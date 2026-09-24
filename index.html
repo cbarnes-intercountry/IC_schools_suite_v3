@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Classroom Exam App</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<!-- Firebase Realtime Database (compat SDK). Loaded from Google's CDN. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/app.css?v=3.0">
+<template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#EFE9DF"/>
+    <rect x="360" y="240" width="480" height="320" rx="28" fill="#ffffff" stroke="#33333D" stroke-width="10"/>
+    <rect x="420" y="310" width="240" height="20" rx="10" fill="#33333D"/>
+    <rect x="420" y="360" width="160" height="16" rx="8" fill="#75757F"/>
+    <rect x="420" y="430" width="360" height="60" rx="16" fill="#EB0055"/>
+  </svg>
+</template>
+</head>
+<body>
+
+<!-- ROLE SELECT -->
+<div class="screen active" id="screen-role">
+  <div class="card center">
+    <h1>Classroom Exam App</h1>
+    <p class="sub">Live tests, results and quiz library — synced in real time.</p>
+    <div class="statusbar"><span id="mode-badge" class="badge live">Connecting…</span></div>
+    <div class="stack">
+      <button class="btn-primary" onclick="goTeacher()">I'm the Teacher</button>
+      <button class="btn-secondary" onclick="showScreen('screen-student-join')">I'm a Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="screen" id="screen-admin">
+  <div class="top-nav wide">
+    <span class="badge">Admin &middot; Quizzes &amp; Polls</span>
+    <a class="linklike" onclick="teacherHome()">&larr; Home</a>
+  </div>
+  <div class="duo">
+    <div class="card">
+      <h2>Add/Remove Schools</h2>
+      <p class="sub">Every quiz and poll is assigned to one or more schools. Teachers pick a school first, then a quiz or poll.</p>
+      <div class="row">
+        <input type="text" id="school-add-name" placeholder="e.g. ESC Lyon Business School" style="flex:2;" data-owner-only>
+        <button class="btn-outline" style="flex:0 0 auto;" onclick="addSchoolUI()" data-owner-only>Add School</button>
+      </div>
+      <div id="school-list" style="margin-top:10px;"></div>
+    </div>
+    <div class="duo-col">
+      <div class="card">
+        <h2>Test Creator</h2>
+        <p class="sub">Marked tests teachers can run. Load one to edit it, or start fresh.</p>
+        <select id="quiz-library-select"><option value="">— select a saved quiz —</option></select>
+        <div class="btn-row">
+          <button class="btn-outline" onclick="loadSetFromLibrary('quiz')">Load / Edit</button>
+          <button class="btn-outline" onclick="exportSavedSet('quiz')">Export</button>
+          <button class="btn-outline" onclick="deleteSetFromLibrary('quiz')" data-owner-only>Delete</button>
+        </div>
+        <button class="btn-primary" style="width:100%;margin-top:12px;" onclick="newSet('quiz')">+ Create a New Quiz</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2>Poll Creator</h2>
+        <p class="sub">Live polls and word clouds for projecting in class. Nothing is marked and no results are kept.</p>
+        <select id="poll-library-select"><option value="">— select a saved poll —</option></select>
+        <div class="btn-row">
+          <button class="btn-outline" onclick="loadSetFromLibrary('poll')">Load / Edit</button>
+          <button class="btn-outline" onclick="exportSavedSet('poll')">Export</button>
+          <button class="btn-outline" onclick="deleteSetFromLibrary('poll')" data-owner-only>Delete</button>
+        </div>
+        <button class="btn-secondary" style="width:100%;margin-top:12px;" onclick="newSet('poll')">+ Create a New Poll</button>
+      </div>
+      <div class="card" style="margin-top:16px;" data-owner-only>
+        <h2>Image Search</h2>
+        <p class="sub">Unsplash supplies the pictures offered by &ldquo;Find a free image&rdquo; in the question editor. Free account, no card. Create an app at unsplash.com/oauth/applications and paste its <b>Access Key</b> here.</p>
+        <div class="row">
+          <input type="text" id="unsplash-key" placeholder="Access Key" autocomplete="off" spellcheck="false" style="flex:2;">
+          <button class="btn-outline" style="flex:0 0 auto;" onclick="saveUnsplashKey()">Save</button>
+        </div>
+        <p id="unsplash-status" class="sub" style="margin:10px 0 0;"></p>
+        <small class="hint">The key is kept in the database where only signed-in teachers can read it, never in the page itself. Leave it empty and the picker falls back to the Creative Commons archives, which are weaker for everyday subjects.</small>
+      </div>
+      <div class="card" style="margin-top:16px;" data-owner-only>
+        <h2>Teacher Accounts</h2>
+        <p class="sub">Owners can delete results, manage schools and add teachers. Teachers can do everything else.</p>
+        <div id="teacher-list" style="margin:12px 0;"></div>
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer;font-weight:600;">+ Add a teacher</summary>
+          <div style="margin-top:10px;">
+            <input type="text" id="teacher-add-name" placeholder="Full name" style="width:100%;margin-bottom:8px;">
+            <input type="email" id="teacher-add-email" placeholder="name@school.com" autocomplete="off" style="width:100%;margin-bottom:8px;">
+            <input type="text" id="teacher-add-pass" placeholder="Starting password (6+ characters)" autocomplete="off" style="width:100%;margin-bottom:8px;">
+            <select id="teacher-add-role" style="width:100%;margin-bottom:10px;">
+              <option value="user">Teacher — run tests, build quizzes</option>
+              <option value="owner">Owner — also delete results and manage accounts</option>
+            </select>
+            <button class="btn-primary" style="width:100%;" onclick="addTeacherUI()">Create account</button>
+            <p id="teacher-add-status" class="sub" style="margin:10px 0 0;"></p>
+            <small class="hint">They sign in with this email and password straight away. Removing someone here blocks their access; deleting the login itself is done in the Firebase console.</small>
+          </div>
+        </details>
+      </div>
+      <div class="tip" data-owner-only>
+        <div class="tip-label">Report retention</div>
+        <p>Teachers only see the last 6 months of results. Run this once a term to download a backup of everything older, then permanently remove it from the database.</p>
+        <button class="btn-ghost" onclick="archiveOldReports()">Download Backup &amp; Purge Old Reports</button>
+        <p id="archive-status" class="sub" style="color:#fff;opacity:.8;margin:10px 0 0;"></p>
+        <small class="hint">A JSON backup downloads first, then runs older than 6 months are deleted. Keep the backup somewhere safe.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN: QUESTION BUILDER -->
+<div class="screen" id="screen-admin-builder">
+  <div class="top-nav wide">
+    <span class="badge" id="builder-badge">Admin &middot; Question Builder</span>
+    <a class="linklike" onclick="leaveBuilder('screen-admin')">&larr; Back</a>
+  </div>
+  <div class="duo">
+    <div class="duo-col">
+      <div class="card">
+        <h2>Question Bank <span style="color:var(--magenta);" id="qcount">0</span></h2>
+        <div id="qbank-list"></div>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="openQuestionEditor()">+ Add Question</button>
+          <button class="btn-outline" onclick="importFromExcel()">Import Excel</button>
+          <button class="btn-outline" onclick="importQuestionsPrompt()">Import JSON</button>
+          <button class="btn-outline" onclick="exportQuestionsJSON()">Export JSON</button>
+        </div>
+        <small class="hint">Add media per question in the editor: drag a file onto the Image or Audio tile, click to browse, or paste an image. Excel imports can still supply ImageURL and AudioURL columns.</small>
+        <button class="btn-outline" style="width:100%;margin-top:10px;" onclick="clearAdminBank()">Clear current bank</button>
+      </div>
+    </div>
+    <div class="duo-col">
+      <div class="card" id="qe-card" style="display:none;">
+        <div class="editor-head">
+          <span class="badge" id="qe-counter">1 of 1</span>
+          <button class="btn-danger" style="min-height:0;padding:7px 12px;font-size:.85rem;" title="Delete this question" onclick="editorDeleteCurrent()">&#128465; Delete</button>
+        </div>
+        <textarea id="qe-text" placeholder="Type the question..." style="font-size:1.1rem;font-weight:700;line-height:1.35;min-height:84px;"></textarea>
+        <div class="type-chips" id="qe-type-chips"></div>
+        <select id="qe-type" onchange="renderQEditorOptions()" style="display:none;">
+          <option value="mcq" data-kind="quiz">Multiple Choice</option>
+          <option value="tf" data-kind="quiz">True / False</option>
+          <option value="text" data-kind="quiz">Short Text Answer</option>
+          <option value="order" data-kind="quiz">Puzzle — drag to order</option>
+          <option value="poll" data-kind="poll">Poll — live vote (no right answer)</option>
+          <option value="cloud" data-kind="poll">Word Cloud — live words</option>
+        </select>
+        <div class="qe-meta" style="margin-top:4px;">
+          <span id="qe-points-wrap"><label for="qe-points">Points</label> <input type="number" id="qe-points" value="1" min="0"></span>
+          <span><label for="qe-qtime">Time limit (s)</label> <input type="number" id="qe-qtime" value="0" min="0"></span>
+        </div>
+        <label>Media <small class="hint" style="display:inline;">&middot; optional &mdash; drag a file onto a tile, click to browse, or paste an image</small></label>
+        <div class="mtiles">
+          <div class="mtile" id="qe-image-tile" onclick="qMediaBrowse('image')">
+            <input type="file" id="qe-image-file" accept="image/*" style="display:none;" onchange="handleQMediaUpload(event,'image')">
+            <input type="hidden" id="qe-image-url">
+            <span class="empty" style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+              <svg class="ico" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.6"></circle><path d="M21 16l-5-5-6 6-3-3-4 4"></path></svg>
+              <span class="exts">.jpeg &middot; .png &middot; .gif</span>
+            </span>
+            <span class="full">
+              <img id="qe-image-preview" alt="">
+              <span class="fmeta"><span id="qe-image-name">image</span><button class="mx" title="Remove image" onclick="clearQMedia('image');event.stopPropagation();">&times;</button></span>
+            </span>
+          </div>
+          <div class="mtile" id="qe-audio-tile" onclick="qMediaBrowse('audio')">
+            <input type="file" id="qe-audio-file" accept="audio/*" style="display:none;" onchange="handleQMediaUpload(event,'audio')">
+            <input type="hidden" id="qe-audio-url">
+            <span class="empty" style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+              <svg class="ico" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-4"></path><path d="M7 18V6"></path><path d="M11 15V9"></path><path d="M15 19V5"></path><path d="M19 16v-8"></path></svg>
+              <span class="exts">.mp3 &middot; .m4a</span>
+            </span>
+            <span class="full">
+              <span class="clip"><i style="height:38%"></i><i style="height:70%"></i><i style="height:26%"></i><i style="height:88%"></i><i style="height:48%"></i><i style="height:76%"></i><i style="height:32%"></i><i style="height:62%"></i><i style="height:44%"></i><i style="height:80%"></i><i style="height:28%"></i><i style="height:56%"></i></span>
+              <span class="fmeta"><span id="qe-audio-name">clip</span><button class="mx" title="Remove audio" onclick="clearQMedia('audio');event.stopPropagation();">&times;</button></span>
+            </span>
+          </div>
+        </div>
+        <button type="button" class="btn-outline" style="width:100%;margin-top:8px;" onclick="openImagePicker()">
+          &#128269; Find a free image
+        </button>
+        <small id="qe-image-status" class="hint"></small>
+        <small id="qe-audio-status" class="hint"></small>
+        <div id="qe-options-area"></div>
+        <small class="hint">Per-question time limits apply in open navigation: when time runs out the question locks and the student moves on. Ignored in teacher-paced mode.</small>
+      </div>
+      <div class="tip">
+        <div class="tip-label" id="quiz-save-label">Save as quiz</div>
+        <input type="text" id="quiz-save-name" placeholder="e.g. Marketing Midterm 2026">
+        <small class="hint" id="quiz-save-note" style="display:block;margin-top:6px;"></small>
+        <label style="font-size:.8rem;">Assign to school(s) — tick all that apply</label>
+        <div id="quiz-school-checks" style="max-height:180px;overflow:auto;"></div>
+        <button class="btn-primary" style="width:100%;margin-top:12px;" onclick="saveQuizToLibrary()"><span id="quiz-save-btn-text">Save Quiz</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER SIGN-IN (Firebase teacher accounts) -->
+<div class="screen" id="screen-teacher-password">
+  <div class="card">
+    <h1>Teacher Sign-in</h1>
+    <p class="sub">Sign in with the teacher account created for you. Your name is recorded on every test you run.</p>
+    <div id="signin-ready">
+      <label>Email</label>
+      <input type="email" id="t-email" placeholder="you@intercountry.com" autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="t-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter') teacherSignIn();">
+      <button class="btn-primary" style="width:100%;margin-top:18px;" onclick="teacherSignIn()">Sign in</button>
+      <p style="margin-top:12px;"><a class="linklike" onclick="teacherResetPassword()">Forgot your password?</a></p>
+    </div>
+    <p id="signin-status" class="sub mono" style="font-size:.8rem;margin-top:10px;"></p>
+    <p style="margin-top:16px;"><a class="linklike" onclick="showScreen('screen-role')">&larr; Back</a></p>
+  </div>
+</div>
+
+<!-- TEACHER SESSION -->
+<div class="screen" id="screen-teacher-login">
+  <div class="top-nav wide">
+    <span class="nav-l">
+      <span class="brandmark"><img src="data:image/png;base64,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" alt="Intercountry"></span>
+      <span class="badge" id="teacher-identity" style="display:none;"></span>
+      <span class="badge">No live session</span>
+    </span>
+    <span class="nav-r">
+      <a class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
+      <a class="linklike" onclick="teacherSignOut()">Log out</a>
+    </span>
+  </div>
+  <div class="duo">
+    <div class="card">
+      <h1>Teacher — Home</h1>
+      <p class="sub">Start a new session, or review past results. A join code is generated when you launch.</p>
+      <!-- Shown only when this teacher has a run still in progress — see refreshOpenRunBanner(). -->
+      <div id="home-rejoin" style="display:none;margin-top:16px;padding:14px;border:2px solid var(--success);background:var(--success-soft);border-radius:12px;">
+        <div style="font-weight:700;color:var(--success);margin-bottom:4px;">Session still running</div>
+        <div id="home-rejoin-detail" class="sub" style="margin:0 0 10px;"></div>
+        <button class="btn-primary" style="width:100%;" onclick="rejoinOpenRun()">Rejoin this session</button>
+      </div>
+      <div class="stack" style="margin-top:16px;">
+        <button class="btn-primary" onclick="teacherCreateSession()">Launch Test</button>
+        <button class="btn-secondary" onclick="pollCreateSession()">New Poll</button>
+        <button class="btn-outline" onclick="openHistory()">Test Archive</button>
+      </div>
+    </div>
+    <div class="tip">
+      <div class="tip-label">Tip</div>
+      <p>Click <b>Launch Test</b> to pick a quiz and launch &mdash; then watch the roster on the live dashboard fill in on its own.</p>
+      <p style="margin-top:10px;">Closed the app by accident? A running session stays live for 12 hours &mdash; reopen the app and a <b>Rejoin</b> button appears here.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER HISTORY -->
+<div class="screen" id="screen-teacher-history">
+  <div class="top-nav">
+    <span class="badge">History</span>
+    <a class="linklike" onclick="showScreen('screen-teacher-login')">&larr; Back</a>
+  </div>
+  <div class="card">
+    <h1>Test Archive</h1>
+    <p class="sub">Every test you've run in the last 6 months, most recent first. Download any run's results as CSV.</p>
+    <div id="history-list"><p class="sub">Loading…</p></div>
+    <small class="hint" style="margin-top:14px;">Reports are automatically archived and deleted after 6 months. Download anything you need to keep before then.</small>
+  </div>
+</div>
+
+<!-- TEACHER SETUP -->
+<div class="screen" id="screen-teacher-setup">
+  <div class="top-nav wide">
+    <span class="nav-l">
+      <span class="brandmark"><img src="data:image/png;base64,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" alt="Intercountry"></span>
+      <span class="badge">No live session</span>
+      <span class="badge" id="setup-session-code" style="display:none;"></span>
+    </span>
+    <span class="nav-r">
+      <a class="linklike" onclick="teacherHome()">&larr; Home</a>
+      <a class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
+      <a class="linklike" onclick="teacherSignOut()">Log out</a>
+    </span>
+  </div>
+  <div class="duo">
+  <div class="card">
+    <h1>Launch Test</h1>
+    <p class="sub">Pick a quiz, confirm settings, then launch.</p>
+  </div>
+  <div class="duo-col">
+  <div class="card">
+    <div class="step-label">Step 1 &middot; Choose a quiz</div>
+    <div class="sel-row">
+      <select id="teacher-school-select" onchange="filterTeacherQuizzes()"><option value="">— select a school —</option></select>
+      <select id="teacher-quiz-select" onchange="teacherQuizPicked()"><option value="">— select a quiz —</option></select>
+    </div>
+    <button class="btn-primary" id="teacher-select-quiz-btn" style="width:100%;" onclick="loadQuizForTeacher()">Select this quiz</button>
+    <p class="picked" id="teacher-quiz-status" style="display:none;"></p>
+  </div>
+  <div class="card" id="setup-step2" style="display:none;">
+    <div class="step-label">Step 2 &middot; Settings</div>
+    <div class="toggle-row">
+      <span>Teacher-paced navigation<br><small class="hint">Off = students move freely between questions</small></span>
+      <label class="switch"><input type="checkbox" id="opt-paced"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span>Team mode<br><small class="hint">Students are split into random teams; the class is ranked by team at the end</small></span>
+      <label class="switch"><input type="checkbox" id="opt-teams" onchange="onTeamsToggle()"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span>Randomize question order per student</span>
+      <label class="switch"><input type="checkbox" id="opt-rand-q"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span>Randomize answer order (MCQ)</span>
+      <label class="switch"><input type="checkbox" id="opt-rand-a"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span>Security monitoring (fullscreen, tab-switch &amp; copy/paste logging)</span>
+      <label class="switch"><input type="checkbox" id="opt-security"><span class="slider"></span></label>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 0 6px;">
+      <label style="margin:0;">Overall time limit (min &middot; 0 = none)</label>
+      <input type="number" id="opt-time-limit" value="0" min="0" class="mono" style="width:90px;text-align:center;">
+    </div>
+    <small class="hint" id="opt-time-limit-hint" style="margin-bottom:16px;">Per-question limits only apply in free navigation &mdash; the question locks when time runs out.</small>
+    <button class="btn-primary" style="width:100%;" onclick="teacherStartTest()">Open Waiting Room &amp; Launch &rarr;</button>
+  </div>
+  </div>
+  </div>
+</div>
+
+<!-- TEACHER DASHBOARD -->
+<div class="screen" id="screen-teacher-dashboard">
+  <div class="top-nav" style="max-width:1140px;">
+    <span class="nav-l">
+      <span class="brandmark"><img src="data:image/png;base64,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" alt="Intercountry"></span>
+      <span class="badge live live-dot"><i></i>LIVE &middot; <b id="dash-session-code"></b></span>
+    </span>
+    <span class="nav-r">
+      <a class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
+      <a class="linklike" onclick="teacherLeaveDashboard()">Log out</a>
+    </span>
+  </div>
+  <div class="dash-duo">
+  <div class="dash-col">
+  <div class="card center">
+    <div class="step-label" style="margin-bottom:14px;">Scan to join</div>
+    <div id="qr-code" style="display:flex;justify-content:center;cursor:zoom-in;" title="Tap to enlarge for scanning" onclick="openQRFullscreen()"></div>
+    <p class="join-code" id="dash-join-code"></p>
+    <small class="hint" style="margin:0 0 12px;">Tap the code to enlarge it for the class.</small>
+    <div class="row">
+      <button class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyQRImage('#qr-code', event)">Copy QR image</button>
+      <button class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyJoinLink()">Copy join link</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="step-label" style="margin-bottom:12px;">Test control</div>
+    <div id="dash-lobby">
+      <p class="sub">Waiting room is open. Students who join appear in the list below. When everyone is connected, start the test &mdash; all students begin together.</p>
+      <!-- Team controls: adjustable right up to the moment the test starts, then fixed. -->
+      <div id="dash-teams-box" style="display:none;margin:14px 0;padding:14px;border:2px solid var(--ink);border-radius:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <label style="margin:0;font-weight:700;">Number of teams</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn-outline nav-sq" onclick="nudgeTeamCount(-1)" aria-label="Fewer teams">&minus;</button>
+            <span class="qpill mono" id="dash-team-count">2</span>
+            <button class="btn-outline nav-sq" onclick="nudgeTeamCount(1)" aria-label="More teams">+</button>
+          </div>
+        </div>
+        <p class="sub" id="dash-team-note" style="margin:10px 0 0;"></p>
+        <div id="dash-team-preview" style="margin-top:10px;"></div>
+        <button class="btn-outline" style="width:100%;margin-top:10px;" onclick="reshuffleTeams()">Shuffle teams again</button>
+      </div>
+      <button class="btn-primary" style="width:100%;" onclick="teacherBeginQuiz()">&#9654; Start Test for Everyone</button>
+    </div>
+    <div id="dash-running" style="display:none;">
+      <p class="sub" id="dash-mode-note"></p>
+      <div class="countdown" id="dash-countdown" style="display:none;">
+        <div class="countdown-head"><span>Time remaining</span><span id="dash-cd-limit"></span></div>
+        <div class="countdown-clock" id="dash-cd-clock">--:--</div>
+        <div class="countdown-bar"><i id="dash-cd-bar" style="width:100%"></i></div>
+        <div class="countdown-note" id="dash-cd-note" style="display:none;"></div>
+      </div>
+      <div class="pace-row" id="dash-pace-controls">
+        <button class="btn-outline nav-sq" title="Previous question" onclick="pacedAdvance(-1)">&larr;</button>
+        <span class="qpill" id="dash-current-q">Q 1</span>
+        <button class="btn-primary nav-sq" title="Next question" onclick="pacedAdvance(1)">&rarr;</button>
+      </div>
+      <button class="btn-warn" id="dash-pause-btn" style="width:100%;margin-top:12px;display:none;" onclick="teacherTogglePause()">&#9208; Pause Timers</button>
+      <small class="hint" id="dash-pause-note" style="display:none;">Freezes the overall and per-question timers for everyone. Students see a "paused" screen and can't answer until you resume.</small>
+      <button class="btn-danger" style="width:100%;margin-top:12px;" onclick="teacherEndTest()">End Test for Everyone</button>
+    </div>
+  </div>
+  </div>
+  <div class="card">
+    <div class="dash-title">
+      <h2>Connected Students <span style="color:var(--magenta);" id="dash-student-count">0</span></h2>
+      <span style="display:inline-flex;gap:8px;">
+        <span class="badge ok" id="dash-done-badge" style="display:none;"></span>
+        <span class="badge bad" id="dash-alert-badge" style="display:none;"></span>
+      </span>
+    </div>
+    <div class="dash-table">
+      <div class="dash-head">
+        <span>#</span><span>Student</span>
+        <span class="qnav"><button id="qnav-prev" title="Earlier questions" onclick="shiftQGrid(-1)">&#9664;</button><span id="qnav-label">Questions</span><button id="qnav-next" title="Later questions" onclick="shiftQGrid(1)">&#9654;</button></span>
+        <span>Status</span><span style="text-align:right">%</span><span style="text-align:right">Alerts</span>
+      </div>
+      <div id="dash-student-list"></div>
+    </div>
+    <div class="qkey">
+      <span><i class="ok"></i>Correct</span><span><i class="no"></i>Wrong</span>
+      <span><i></i>Not reached</span><span><i class="now"></i>On this question now</span>
+    </div>
+    <small class="hint mono" id="dash-poll-note">Updates live. Reset clears a student's alerts (an accidental tab-switch) without turning monitoring off — only later alerts count in the report.</small>
+  </div>
+  </div>
+</div>
+
+<!-- TEACHER RECAP -->
+<div class="screen" id="screen-teacher-recap">
+  <div class="card">
+    <h1>Test Ended</h1>
+    <p class="sub">Session <b id="recap-code"></b> — quick summary below.</p>
+    <div class="row">
+      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-count">0</div><small class="hint">Students</small></div>
+      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-avg">0%</div><small class="hint">Average</small></div>
+      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-alerts">0</div><small class="hint">Cheat alerts</small></div>
+    </div>
+    <!-- Team leaderboard: only drawn for a team run, and placed above the individual table
+         because in team mode that is the result the class is waiting for. -->
+    <div id="recap-teams" style="display:none;margin-top:20px;">
+      <h2 style="margin:0 0 2px;">Team leaderboard</h2>
+      <p class="sub" style="margin-bottom:10px;">Each team scores the average of its members&rsquo; percentages. Students who answered nothing aren&rsquo;t counted in their team&rsquo;s average.</p>
+      <div id="recap-team-list"></div>
+    </div>
+    <h2 style="margin:20px 0 2px;">Student scores</h2>
+    <p class="sub" style="margin-bottom:0;">Ranked high to low. Students who hadn't submitted when you ended the test are marked incomplete.</p>
+    <div class="recap-table">
+      <div class="recap-head">
+        <span>#</span>
+        <span><button class="sort" id="sort-name" onclick="recapSortBy('name')">Student <b>&#9660;</b></button></span>
+        <span><button class="sort" id="sort-score" onclick="recapSortBy('score')">Result <b>&#9660;</b></button></span>
+        <span><button class="sort r" id="sort-pct" onclick="recapSortBy('pct')">% <b>&#9660;</b></button></span>
+        <span><button class="sort r" id="sort-alerts" onclick="recapSortBy('alerts')">Alerts <b>&#9660;</b></button></span>
+      </div>
+      <div id="recap-list"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div class="stack">
+      <button class="btn-primary" onclick="exportResultsCSV()">Download CSV Results</button>
+      <button class="btn-secondary" onclick="startNewTestFromRecap()">Start a New Test</button>
+      <button class="btn-outline" onclick="teacherHome()">Return to Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- POLL SETUP -->
+<div class="screen" id="screen-poll-setup">
+  <div class="top-nav wide">
+    <span class="nav-l">
+      <span class="badge">New Poll</span>
+      <span class="badge" id="poll-setup-code" style="display:none;"></span>
+    </span>
+    <span class="nav-r">
+      <a class="linklike" onclick="teacherHome()">&larr; Home</a>
+      <a class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
+      <a class="linklike" onclick="teacherSignOut()">Log out</a>
+    </span>
+  </div>
+  <div class="duo">
+  <div class="card">
+    <h1>New Poll</h1>
+    <p class="sub">A live vote you project for the class. Nothing is marked, and no results are kept after you close it.</p>
+  </div>
+  <div class="duo-col">
+  <div class="card">
+    <div class="step-label">Step 1 &middot; Choose a poll set</div>
+    <div class="sel-row">
+      <select id="poll-school-select" onchange="filterPollSets()"><option value="">— select a school —</option></select>
+      <select id="poll-set-select" onchange="pollSetPicked()"><option value="">— select a poll —</option></select>
+    </div>
+    <button class="btn-primary" id="poll-select-btn" style="width:100%;" onclick="loadPollSet()">Select this poll</button>
+    <p class="picked" id="poll-set-status" style="display:none;"></p>
+    <small class="hint" id="poll-none-hint" style="display:none;">No poll sets for this school yet. Build one in Admin: add Poll or Word Cloud questions, then tick &ldquo;Save as a poll set&rdquo;.</small>
+  </div>
+  <div class="card" id="poll-step2" style="display:none;">
+    <div class="step-label">Step 2 &middot; Settings</div>
+    <div class="toggle-row">
+      <span>Anonymous responses<br><small class="hint">On = students join with the code only, no name. Off = they give their name, so you can see who has voted.</small></span>
+      <label class="switch"><input type="checkbox" id="poll-anon" checked><span class="slider"></span></label>
+    </div>
+    <small class="hint" style="margin-bottom:16px;">Either way, nothing is stored once you close the poll &mdash; there is no results export.</small>
+    <button class="btn-primary" style="width:100%;" onclick="pollStartSession()">Open Poll &amp; Launch &rarr;</button>
+  </div>
+  </div>
+  </div>
+</div>
+
+<!-- POLL LIVE (doubles as the projection view) -->
+<div class="screen" id="screen-poll-live">
+  <button class="btn-outline proj-exit" onclick="pollToggleProject(false)">Exit projection (Esc)</button>
+  <div class="proj-bar" id="poll-proj-bar">
+    <button class="btn-outline" title="Previous question" onclick="pollAdvance(-1)">&larr;</button>
+    <span class="proj-qpos" id="poll-proj-qpos">Q 1</span>
+    <button class="btn-primary" title="Next question" onclick="pollAdvance(1)">&rarr;</button>
+    <button class="btn-warn" id="poll-proj-lock" onclick="pollToggleLock()">&#128274; Lock</button>
+    <button class="btn-secondary" id="poll-proj-reveal" onclick="pollToggleReveal()">Reveal</button>
+    <button class="btn-outline" id="poll-proj-qr" title="Show the join code for latecomers" onclick="openQRFullscreen('poll')">&#9783; Join code</button>
+  </div>
+  <div class="top-nav wide proj-hide" style="max-width:1140px;">
+    <span class="nav-l">
+      <span class="badge live live-dot"><i></i>POLL &middot; <b id="poll-live-code"></b></span>
+      <span class="badge" id="poll-live-mode">Anonymous</span>
+    </span>
+    <span class="nav-r">
+      <a class="linklike" onclick="pollToggleProject(true)">Project</a>
+      <a class="linklike" onclick="pollClose()">Close poll</a>
+    </span>
+  </div>
+  <div class="poll-wrap">
+    <div class="poll-banner" id="poll-banner">
+      <span class="lbl">Poll</span>
+      <h2 id="poll-title">&mdash;</h2>
+      <span class="badge proj-hide" id="poll-title-meta"></span>
+    </div>
+    <!-- lobby: shown until the teacher starts -->
+    <div class="card center proj-hide" id="poll-lobby">
+      <div class="step-label" style="margin-bottom:14px;">Scan to join</div>
+      <div id="poll-qr" style="display:flex;justify-content:center;cursor:zoom-in;" title="Tap to enlarge for scanning" onclick="openQRFullscreen('poll')"></div>
+      <p class="join-code" id="poll-join-code"></p>
+      <div class="lobby-count"><b id="poll-lobby-count">0</b><span id="poll-lobby-count-label">students connected</span></div>
+      <div class="row">
+        <button class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyQRImage('#poll-qr', event)">Copy QR image</button>
+        <button class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyPollJoinLink()">Copy join link</button>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:14px;" onclick="pollBegin()">&#9654; Start Poll</button>
+    </div>
+
+    <!-- the stage: this is what goes on the projector -->
+    <div class="poll-stage" id="poll-stage" style="display:none;">
+      <div class="poll-head">
+        <div class="poll-head-l">
+          <div class="poll-meta">
+            <span class="badge" id="poll-qpos">Q 1</span>
+            <span class="badge" id="poll-state-badge">Open</span>
+            <span class="badge" id="poll-timer" style="display:none;"></span>
+          </div>
+          <h2 class="poll-q" id="poll-question">—</h2>
+        </div>
+        <div class="poll-tally">
+          <b id="poll-count-big">0</b>
+          <span class="poll-count" id="poll-response-count">responses</span>
+        </div>
+      </div>
+      <div class="poll-media-wrap">
+        <img id="poll-img" class="poll-media" style="display:none;" alt="">
+        <div id="poll-audio-wrap"></div>
+      </div>
+      <div id="poll-results"></div>
+    </div>
+
+    <!-- teacher controls: hidden while projecting -->
+    <div class="card proj-hide" id="poll-controls" style="display:none;margin-top:16px;max-width:1140px;">
+      <div class="pace-row">
+        <button class="btn-outline nav-sq" title="Previous question" onclick="pollAdvance(-1)">&larr;</button>
+        <span class="qpill" id="poll-current-q">Q 1</span>
+        <button class="btn-primary nav-sq" title="Next question" onclick="pollAdvance(1)">&rarr;</button>
+      </div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn-warn" id="poll-lock-btn" onclick="pollToggleLock()">&#128274; Lock Question</button>
+        <button class="btn-secondary" id="poll-reveal-btn" onclick="pollToggleReveal()">Reveal Results</button>
+        <button class="btn-outline" title="Show the join code for latecomers" onclick="openQRFullscreen('poll')">&#9783; Join code</button>
+        <button class="btn-outline" onclick="pollToggleProject(true)">Project</button>
+      </div>
+      <small class="hint" id="poll-roster-hint" style="margin-top:10px;"></small>
+      <div id="poll-roster" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- POLL DEBRIEF (after Close poll — read from memory, nothing left in the database) -->
+<div class="screen" id="screen-poll-debrief">
+  <button class="btn-outline proj-exit" onclick="pollToggleProject(false)">Exit projection (Esc)</button>
+  <div class="poll-wrap">
+    <div class="top-nav wide proj-hide" style="max-width:1140px;">
+      <span class="nav-l"><span class="badge">Poll finished</span></span>
+      <span class="nav-r">
+        <a class="linklike" onclick="pollToggleProject(true)">Project</a>
+        <a class="linklike" onclick="pollDebriefDone()">Done &mdash; back Home</a>
+      </span>
+    </div>
+    <div class="poll-stage" id="poll-debrief-stage">
+      <h1 class="poll-q" style="margin-bottom:4px;">Poll debrief</h1>
+      <p class="sub proj-hide" id="poll-debrief-sub"></p>
+      <div id="poll-debrief-body"></div>
+    </div>
+    <div class="card proj-hide" style="margin-top:16px;max-width:1140px;">
+      <small class="hint" id="poll-debrief-note"></small>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn-outline" onclick="pollToggleProject(true)">Project this debrief</button>
+        <button class="btn-primary" onclick="pollDebriefDone()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT POLL -->
+<div class="screen" id="screen-poll-vote">
+  <div class="card">
+    <div class="poll-meta">
+      <span class="badge" id="pv-qpos">Q 1</span>
+      <span class="badge" id="pv-name" style="display:none;"></span>
+      <span class="badge" id="pv-timer" style="display:none;"></span>
+    </div>
+    <h1 id="pv-question">—</h1>
+    <img id="pv-img" class="qimg" style="display:none;" alt="">
+    <div id="pv-audio-wrap" style="margin:12px 0;"></div>
+    <div id="pv-body"></div>
+    <p id="pv-status" class="sub" style="margin-top:14px;"></p>
+  </div>
+</div>
+
+<!-- STUDENT: POLL FINISHED -->
+<div class="screen" id="screen-poll-done">
+  <div class="card center wait-card">
+    <div class="done-tick wait-pop">&#10003;</div>
+    <h1 class="wait-pop wait-d1">That's the poll done</h1>
+    <p class="wait-pop wait-d1" style="font-weight:700;font-size:1.05rem;margin:2px 0 0;"><b id="pd-count">0 of 0</b> questions answered</p>
+    <p class="sub wait-pop wait-d2" style="margin-top:14px;font-weight:700;">You can put your phone away.</p>
+  </div>
+</div>
+
+<!-- STUDENT JOIN -->
+<div class="screen" id="screen-student-join">
+  <div class="card">
+    <h1>Join</h1>
+    <label>Session code</label>
+    <input type="text" id="s-session-code" placeholder="Ask your teacher" maxlength="10"
+           inputmode="text" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false"
+           style="text-transform:uppercase;" oninput="formatSessionCode(this)">
+    <!-- Hidden until we know the session actually wants a name: an anonymous poll never does. -->
+    <div id="join-names" style="display:none;">
+      <label>Surname (family name)</label>
+      <input type="text" id="s-surname" placeholder="e.g. Dubois">
+      <label>First name</label>
+      <input type="text" id="s-firstname" placeholder="e.g. Marie">
+    </div>
+    <p id="join-status" class="sub" style="margin-top:10px;"></p>
+    <div class="row" style="margin-top:16px;">
+      <button class="btn-primary" id="join-btn" onclick="studentJoin()">Continue</button>
+    </div>
+    <p style="margin-top:16px;"><a class="linklike" onclick="showScreen('screen-role')">&larr; Back</a></p>
+  </div>
+</div>
+
+<!-- STUDENT WAITING -->
+<div class="screen" id="screen-student-waiting">
+  <div class="card center wait-card">
+    <div class="wait-beacon" aria-hidden="true"><span></span><span></span><span></span></div>
+    <h1 class="wait-pop">You're in!</h1>
+    <p class="wait-pop wait-d1"><b id="wait-name"></b> — session <b id="wait-code"></b></p>
+    <p class="sub wait-pop wait-d2" id="wait-status">Waiting for your teacher to start the test<i class="wait-dots"><i>.</i><i>.</i><i>.</i></i></p>
+    <!-- The student no longer starts the test themselves; the teacher's launch opens it for
+         everyone. These two nodes are kept (permanently hidden) so the status-poll code can
+         address them without null checks, and so a future opt-in start has somewhere to live. -->
+    <button class="btn-primary wait-cta" id="wait-start-btn" style="display:none;width:100%;font-size:1.2rem;" hidden>&#9654; Start Your Test</button>
+    <small class="hint" id="wait-start-hint" style="display:none;" hidden>The test will open by itself.</small>
+    <div id="wait-team" style="display:none;margin-top:18px;"></div>
+  </div>
+</div>
+
+<!-- STUDENT TEST -->
+<div class="screen" id="screen-student-test">
+  <div class="top-nav">
+    <span class="badge" id="test-progress">Question 1 of 10</span>
+    <span>
+      <span class="timer-pill" id="test-timer" style="display:none;">--:--</span>
+    </span>
+  </div>
+  <div class="card">
+    <div id="q-timer" class="timer-pill" style="display:none;margin-bottom:10px;">--:--</div>
+    <h2 id="q-text-display"></h2>
+    <img id="q-img-display" class="qimg" style="display:none;">
+    <div id="q-audio-wrap" style="margin:12px 0;"></div>
+    <div id="q-answer-area"></div>
+  </div>
+  <div id="q-palette-wrap" class="card" style="margin-top:16px;">
+    <div class="q-bar" id="q-bar"></div>
+    <p class="sub center" style="font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0;">Tap the bar to jump</p>
+    <div class="q-nav">
+      <button class="btn-outline prev" id="q-prev" onclick="goToQuestion(STUDENT.currentPos-1)" title="Previous question">&larr;</button>
+      <button class="btn-primary next" id="q-next" onclick="goToQuestion(STUDENT.currentPos+1)">Next question &rarr;</button>
+    </div>
+    <button class="btn-handin" onclick="studentConfirmSubmit()">Hand in my test</button>
+  </div>
+  <div id="q-paced-nav" class="card" style="margin-top:16px;display:none;">
+    <p class="sub center">Your teacher controls when the test moves to the next question.</p>
+  </div>
+</div>
+
+<!-- STUDENT FEEDBACK -->
+<div class="screen" id="screen-student-feedback">
+  <div class="fb-panel">
+    <span class="fb-pill">Test Complete</span>
+    <div class="fb-dial">
+      <div class="fb-pct" id="fb-percentage">--%</div>
+      <div class="fb-pts" id="fb-score"></div>
+    </div>
+    <h1 class="fb-title">Nicely done, <span id="fb-name"></span>.</h1>
+    <p class="fb-sub">Your answers are in. You can close this window — your teacher has the results.</p>
+    <div class="fb-stats">
+      <span class="fb-stat"><b id="fb-correct">0</b><i>correct</i></span>
+      <span class="fb-stat"><b id="fb-missed">0</b><i>missed</i></span>
+      <span class="fb-stat"><b id="fb-time">0:00</b><i>min taken</i></span>
+    </div>
+  </div>
+</div>
+
+<!-- TEST PAUSED OVERLAY (teacher has frozen the timers) -->
+<div id="pause-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,29,41,.96);z-index:1900;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:420px;width:100%;">
+    <h2 style="margin:0 0 8px;">&#9208; Test paused</h2>
+    <p class="sub" style="margin:0;">Your teacher has paused the test. The timer is stopped and your answers are saved. Please wait — the test will continue shortly.</p>
+  </div>
+</div>
+
+<!-- RETURN-TO-FULLSCREEN OVERLAY (shown to students if full screen is lost mid-test) -->
+<div id="fs-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,29,41,.96);z-index:2000;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:420px;width:100%;">
+    <h2 style="margin:0 0 8px;">Full screen required</h2>
+    <p class="sub" style="margin-bottom:18px;">Your test runs in full screen. Tap the button to continue — your answers are safe.</p>
+    <button class="btn-primary" style="width:100%;font-size:1.15rem;" onclick="resumeFullscreen()">Continue in Full Screen</button>
+  </div>
+</div>
+
+<!-- IMAGE PICKER (Creative Commons search) -->
+<div id="img-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,29,41,.92);z-index:1500;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;" onclick="closeImagePicker()">
+  <div style="background:var(--card,#fff);border-radius:16px;padding:20px;max-width:760px;width:100%;margin:auto;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
+      <h2 style="margin:0;">Find a free image</h2>
+      <button class="linklike" onclick="closeImagePicker()">Close</button>
+    </div>
+    <p class="sub" style="margin:6px 0 12px;">Unsplash first, then the Creative Commons archives. Unsplash photos carry a small credit line under the picture; public-domain ones carry nothing.</p>
+    <div class="row" style="gap:8px;">
+      <input type="text" id="img-q" placeholder="e.g. price skimming" style="flex:2;" onkeydown="if(event.key==='Enter')runImageSearch(0)">
+      <button class="btn-primary" style="flex:0 0 auto;" onclick="runImageSearch(0)">Search</button>
+    </div>
+    <small class="hint" id="img-topic-note" style="display:none;margin-top:6px;"></small>
+    <label class="hint" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:400;cursor:pointer;">
+      <input type="checkbox" id="img-allow-credit" style="width:auto;margin:0;" onchange="runImageSearch(0)">
+      Widen the Creative Commons archives to images that need a credit
+    </label>
+    <p id="img-status" class="sub" style="margin:12px 0 0;"></p>
+    <div id="img-results" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:12px;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;">
+      <small class="hint" id="img-source-note"></small>
+      <button class="btn-outline" id="img-more" style="display:none;flex:0 0 auto;" onclick="runImageSearch(IMG_PICKER.page+1)">Show 6 more</button>
+    </div>
+  </div>
+</div>
+
+<!-- FULLSCREEN QR OVERLAY -->
+<div id="qr-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1000;flex-direction:column;align-items:center;justify-content:center;padding:20px;" onclick="closeQRFullscreen()">
+  <div style="background:#fff;padding:26px;border-radius:16px;text-align:center;max-width:92vw;" onclick="event.stopPropagation()">
+    <div id="qr-overlay-code" style="display:flex;justify-content:center;"></div>
+    <p style="font-size:2.2rem;font-weight:800;letter-spacing:3px;margin:16px 0 4px;" id="qr-overlay-text"></p>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn-outline" onclick="copyQRImage('#qr-overlay-code', event)">Copy QR image</button>
+      <button class="btn-secondary" onclick="closeQRFullscreen()">Close</button>
+    </div>
+  </div>
+  <p style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
+</div>
+
+<script src="lang/en.js?v=3.0"></script>
+<script src="core/i18n.js?v=3.0"></script>
+<script src="core/backend.js?v=3.0"></script>
+<script src="core/auth.js?v=3.0"></script>
+<script src="core/ui.js?v=3.0"></script>
+<script src="core/session.js?v=3.0"></script>
+<script src="core/groups.js?v=3.0"></script>
+<script src="core/bank.js?v=3.0"></script>
+<script src="core/media.js?v=3.0"></script>
+<script src="core/security.js?v=3.0"></script>
+<script src="core/registry.js?v=3.0"></script>
+<script src="modules/test.js?v=3.0"></script>
+<script src="modules/poll.js?v=3.0"></script>
+<script src="admin/editor.js?v=3.0"></script>
+<script src="admin/import.js?v=3.0"></script>
+<script src="admin/reports.js?v=3.0"></script>
+<script src="admin/accounts.js?v=3.0"></script>
+<script src="boot.js?v=3.0"></script>
+
+
+<!-- Shown only when the database cannot be reached. There is no offline mode. -->
+<div id="backend-down" class="backend-down" hidden>
+  <div class="card center">
+    <h1>Can&rsquo;t reach the database</h1>
+    <p class="sub">Nothing can be saved, no session can be started and no student can join.
+      Don&rsquo;t begin a classroom activity until this is fixed.</p>
+    <p id="backend-down-detail" class="backend-down-detail"></p>
+    <button class="btn-primary" onclick="location.reload()">Try again</button>
+  </div>
+</div>
+
+</body>
+</html>
