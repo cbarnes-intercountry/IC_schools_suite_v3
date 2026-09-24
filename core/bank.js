@@ -25,7 +25,11 @@ function isPollType(t){ return POLL_TYPES.indexOf(t)>=0; }
 
 function setKind(rec){
   if(!rec) return "quiz";
-  if(rec.kind==="poll"||rec.kind==="quiz") return rec.kind;
+  // Whatever the record says it is, it is. Listing the known kinds here meant role play came
+  // back as "quiz" in v3.1 — it landed in the Test Creator list and never appeared in its own,
+  // which looked exactly like "it isn't saving". A new kind must not need this function edited.
+  if(rec.kind) return rec.kind;
+  // Only a record saved before kinds existed has to be guessed at.
   const qs=rec.questions||[];
   return (qs.length>0 && qs.every(q=>isPollType(q.type))) ? "poll" : "quiz";
 }

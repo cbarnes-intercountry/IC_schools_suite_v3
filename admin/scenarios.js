@@ -63,19 +63,7 @@ async function deleteScenarioSet(){
   const key=sel.value; if(!key){ alert("Pick a saved role play first."); return; }
   if(!confirm("Delete “"+sel.options[sel.selectedIndex].text+"” for good?")) return;
   try{ await Backend.deleteQuiz(key); }catch(e){ alert("Couldn't delete it: "+e.message); return; }
-  await loadScenarioLibrary();
-}
-
-async function loadScenarioLibrary(){
-  const sel=document.getElementById("rp-library-select");
-  if(!sel) return;
-  try{
-    const qs=await Backend.listQuizzes();
-    const mine=(qs.quizzes||[]).filter(q=>q.kind==="roleplay");
-    sel.innerHTML='<option value="">— select a saved role play —</option>';
-    mine.forEach(q=>{ const o=document.createElement("option"); o.value=q.key;
-      o.textContent=q.name+" ("+q.count+" scenario"+(q.count===1?"":"s")+")"; sel.appendChild(o); });
-  }catch(e){ console.warn(e); }
+  await loadQuizList();   // the shared filler, so every bank list stays in step
 }
 
 async function renderScenarioSchools(){
@@ -228,7 +216,7 @@ async function saveScenarioSet(){
   try{ await Backend.saveQuiz(key, SCEN.name, SCEN.list, SCEN.schools, "roleplay"); }
   catch(e){ alert("Couldn't save: "+e.message); return; }
   SCEN.key=key; markScenariosSaved();
-  await loadScenarioLibrary();
+  await loadQuizList();   // the shared filler, so every bank list stays in step
   alert("Saved “"+SCEN.name+"”.");
   showScreen("screen-admin");
 }

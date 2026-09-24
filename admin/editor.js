@@ -20,15 +20,19 @@ async function loadQuizList(){
   try{
     const r = await Backend.listQuizzes();
     const all = (r.quizzes||[]).sort((a,b)=>a.name.localeCompare(b.name));
+    // One select per kind, matched exactly. The old version sorted everything into "poll or
+    // else quiz", so any third kind silently joined the quizzes.
     [["quiz","quiz-library-select","— select a saved quiz —"],
-     ["poll","poll-library-select","— select a saved poll —"]].forEach(([kind,id,placeholder])=>{
+     ["poll","poll-library-select","— select a saved poll —"],
+     ["roleplay","rp-library-select","— select a saved role play —"]].forEach(([kind,id,placeholder])=>{
       const sel=document.getElementById(id);
       if(!sel) return;
       sel.innerHTML='<option value="">'+placeholder+'</option>';
-      all.filter(q=>(q.kind==="poll"?"poll":"quiz")===kind).forEach(q=>{
+      all.filter(q=>q.kind===kind).forEach(q=>{
         const sc=(q.schools||[]).join(", ");
         const opt=document.createElement("option"); opt.value=q.key;
-        opt.textContent = q.name + (sc?" · "+sc:"") + " (" + q.count + " question" + (q.count===1?"":"s") + ")";
+        const unit = kind==="roleplay" ? " scenario" : " question";
+        opt.textContent = q.name + (sc?" · "+sc:"") + " (" + q.count + unit + (q.count===1?"":"s") + ")";
         sel.appendChild(opt);
       });
     });

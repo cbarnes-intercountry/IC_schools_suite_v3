@@ -1,7 +1,10 @@
-# Classroom Exam App — v3.1
+# Classroom Exam App — v3.1.1
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
+**v3.1.1 fixes a bug in it**: saved role plays were coming back from the database labelled
+"quiz", so they appeared in the Test Creator list and never in their own — which looked like
+they were not saving at all.
 
 ## Running it
 
@@ -93,7 +96,7 @@ From the folder *above* this one:
 node "_test v3.0.js"
 ```
 
-426 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+446 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
 
 ## Running a role play

@@ -47,8 +47,9 @@ function filterTeacherQuizzes(){
   teacherResetStep2();
   qSel.innerHTML = '<option value="">— select a quiz —</option>';
   if(!school) return;
-  // Poll sets are launched from "New Poll", not from here.
-  TEACHER_QUIZZES.filter(q=>q.kind!=="poll" && (q.schools||[]).includes(school)).sort((a,b)=>a.name.localeCompare(b.name)).forEach(q=>{
+  // Only quizzes. This used to exclude polls by name, which let every later kind through —
+  // role plays turned up in the Launch Test list. Name what belongs, not what does not.
+  TEACHER_QUIZZES.filter(q=>q.kind==="quiz" && (q.schools||[]).includes(school)).sort((a,b)=>a.name.localeCompare(b.name)).forEach(q=>{
     const o=document.createElement("option"); o.value=q.key;
     o.textContent = q.name + " (" + q.count + " question" + (q.count===1?"":"s") + ")";
     qSel.appendChild(o);
