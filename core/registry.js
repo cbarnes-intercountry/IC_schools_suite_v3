@@ -33,3 +33,11 @@ function registerActivity(id, def){
 }
 function activity(id){ return ACTIVITIES[id] || null; }
 function activityIds(){ return Object.keys(ACTIVITIES); }
+
+/* Does a finished run leave anything behind? A test is archived; a poll and a role play are
+   removed, because their records name students and there is nothing worth keeping. Declared
+   by the activity as `keeps:false` so the core never has to ask which is which. */
+function activityKeepsNothing(kind){
+  const a = activity(kind);
+  return !!(a && a.keeps === false);
+}

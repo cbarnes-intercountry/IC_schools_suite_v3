@@ -143,3 +143,46 @@ function parseQuizRows(rows){
   });
   return {questions,errors};
 }
+
+/* ---------- role-play scenarios ----------
+   One row per role, grouped by the Scenario column. The situation is written once, on the
+   first row of each scenario; later rows may leave it blank. A role marked Optional is the
+   third voice that absorbs a spare student when the class does not divide evenly. */
+function parseScenarioRows(rows){
+  const scenarios=[], errors=[], order=[], byTitle={};
+  const get=(row,name)=>{ const key=Object.keys(row).find(k=>k.trim().toLowerCase()===name.toLowerCase()); return key?String(row[key]).trim():""; };
+  const yes=v=>{ const s=String(v).trim().toLowerCase(); return s==="true"||s==="yes"||s==="1"||s==="y"||s==="x"; };
+
+  (rows||[]).forEach((row,i)=>{
+    const rowNum=i+2;
+    const title=get(row,"Scenario");
+    const label=get(row,"Role");
+    const brief=get(row,"Brief");
+    if(!title && !label && !brief) return;                       // a spacer row
+    if(!title){ errors.push("Row "+rowNum+": no Scenario name, so this role belongs to nothing."); return; }
+    if(!label){ errors.push("Row "+rowNum+': scenario "'+title+'" has a role with no name.'); return; }
+    if(!byTitle[title]){
+      byTitle[title]={ id:"sc_"+uid(6), title:title, situation:get(row,"Situation"), roles:[] };
+      order.push(title);
+    }
+    // The situation is usually on the first row; take it from a later row if that is where
+    // the teacher put it, rather than silently losing it.
+    if(!byTitle[title].situation) byTitle[title].situation=get(row,"Situation");
+    const role={ label:label, brief:brief, secret:get(row,"Secret"), useful:get(row,"Useful") };
+    if(yes(get(row,"Optional"))) role.optional=true;
+    byTitle[title].roles.push(role);
+  });
+
+  order.forEach(t=>{
+    const sc=byTitle[t];
+    if(!sc.situation) errors.push('Scenario "'+t+'": no Situation, so nobody sees the shared setup.');
+    if(sc.roles.filter(r=>!r.optional).length<2){
+      errors.push('Scenario "'+t+'": needs at least two roles that are not optional — skipped.');
+      return;
+    }
+    if(sc.roles.length>3) errors.push('Scenario "'+t+'": only the first three roles are used.');
+    sc.roles=sc.roles.slice(0,3);
+    scenarios.push(sc);
+  });
+  return { scenarios:scenarios, errors:errors };
+}

@@ -508,9 +508,6 @@ function buildEffectiveResults(participants, questions, meta){
 }
 
 
-/* ============ STUDENT ============ */
-let STUDENT = { sessionCode:null, runId:null, id:null, surname:null, firstName:null, name:null, questions:[], order:[], answers:{},
-  currentPos:0, timeSpent:{}, questionStartTs:null, cheatAlerts:[], meta:{}, paced:false, finished:false, testStarted:false };
 
 
 /* The join screen asks for the code first and only then, if the session actually needs one,
@@ -545,17 +542,20 @@ async function studentJoin(){
   if(!session||!session.meta||!session.runId){ alert("Session not found. Check the code with your teacher."); return; }
   STUDENT.runId=session.runId; STUDENT.meta=session.meta;
 
-  // ---- Live poll: a different activity entirely (no marking, no security monitoring) ----
-  if(session.meta.kind==="poll"){
-    if(session.meta.status==="ended"){ alert("That poll has finished."); return; }
-    if(session.meta.anonymous){
+  // ---- Any registered activity: poll, role play, whatever comes next ----
+  // The router asks the registry rather than naming activities one at a time, so a new
+  // module does not mean editing this function. A test is the default path below.
+  const act = activity(session.meta.kind);
+  if(act && act.join){
+    const what = (act.label||"session").toLowerCase();
+    if(session.meta.status==="ended"){ alert("That "+what+" has finished."); return; }
+    if(act.anonymous && act.anonymous(session.meta)){
       // Nothing identifying is stored, and the name boxes are never shown.
       surname=""; firstName=""; STUDENT.surname=""; STUDENT.firstName=""; STUDENT.name="";
-      await pollStudentStart(session, surname, firstName);
-      return;
+    } else if(!act.requiresName || act.requiresName(session.meta)){
+      if(!surname || !firstName){ askForName("This "+what+" needs your name."); return; }
     }
-    if(!surname || !firstName){ askForName("This poll needs your name."); return; }
-    await pollStudentStart(session, surname, firstName);
+    await act.join(session, surname, firstName);
     return;
   }
 

@@ -88,7 +88,7 @@ async function closeStaleRuns(stale){
       const run=await Backend.getRun(s.runId);
       const meta=Object.assign({}, (run&&run.meta)||{}, { status:"ended", endedBy:"timeout" });
       await Backend.updateMeta(s.runId, meta);
-      if(s.kind==="poll") await Backend.deleteRun(s.runId);
+      if(activityKeepsNothing(s.kind)) await Backend.deleteRun(s.runId);
     }catch(e){ console.warn("stale close failed", s.runId, e); }
   }
 }
@@ -107,7 +107,8 @@ async function refreshOpenRunBanner(){
   if(!active.length) return;
   const s=active[0];
   OPEN_RUN=s;
-  const what = s.kind==="poll" ? "Poll" : "Test";
+  const act = activity(s.kind);
+  const what = (act && act.label) || "Test";
   document.getElementById("home-rejoin-detail").textContent =
     what+" "+s.code+" — "+s.studentCount+" student"+(s.studentCount===1?"":"s")+
     " joined, started "+fmtDate(s.runAt)+".";
@@ -124,7 +125,9 @@ async function rejoinOpenRun(){
   let run=null;
   try{ run=await Backend.getRun(s.runId); }catch(e){ alert("Couldn't reopen the session: "+e.message); return; }
   if(!run || !run.meta || run.meta.status==="ended"){ alert("That session has already ended."); refreshOpenRunBanner(); return; }
-  if(s.kind==="poll") return rejoinPollRun(s, run);
+  // Each activity says how it picks itself back up; the core does not know their names.
+  const act = activity(s.kind);
+  if(act && act.rejoin) return act.rejoin(s, run);
 
   TEACHER.sessionCode = run.code || s.code;
   TEACHER.runId = s.runId;
@@ -174,20 +177,21 @@ async function confirmNoOpenRun(what){
   if(stale.length) closeStaleRuns(stale);
   if(!open.length) return true;
   const s=open[0];
-  const kind = s.kind==="poll" ? "poll" : "test";
+  const act = activity(s.kind);
+  const kind = (act && act.label ? act.label : "Test").toLowerCase();
   const where = s.status==="active" ? "in progress" : "waiting for students";
   const ok = confirm(
     "You already have a "+kind+" open.\n\n"+
     s.code+" — "+s.studentCount+" student"+(s.studentCount===1?"":"s")+" joined, "+where+".\n\n"+
     "Starting a new "+what+" will end it. Any answers already given are kept and will still "+
-    "appear in the archive"+(s.kind==="poll"?", but poll responses are deleted on close as usual":"")+".\n\n"+
+    "appear in the archive"+(activityKeepsNothing(s.kind)?", but a "+kind+" keeps nothing, so its responses go when it closes":"")+".\n\n"+
     "End it and continue?");
   if(!ok) return false;
   try{
     const run=await Backend.getRun(s.runId);
     const meta=Object.assign({}, (run&&run.meta)||{}, { status:"ended", endedBy:"superseded" });
     await Backend.updateMeta(s.runId, meta);
-    if(s.kind==="poll") await Backend.deleteRun(s.runId);
+    if(activityKeepsNothing(s.kind)) await Backend.deleteRun(s.runId);
   }catch(e){ alert("Couldn't close the old session: "+e.message); return false; }
   return true;
 }
@@ -258,3 +262,11 @@ function copyQRImage(sel, ev){
     }
   });
 }
+
+/* ============ STUDENT ============ */
+/* The student's own side of a session: who they are and which run they are in. A test, a
+   poll and a role play all identify the same person, so this belongs in core rather than
+   inside whichever activity happened to be written first. (It sat in modules/test.js until
+   v3.1, where the rule that modules never reach into each other caught it.) */
+let STUDENT = { sessionCode:null, runId:null, id:null, surname:null, firstName:null, name:null, questions:[], order:[], answers:{},
+  currentPos:0, timeSpent:{}, questionStartTs:null, cheatAlerts:[], meta:{}, paced:false, finished:false, testStarted:false };

@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.0">
+<link rel="stylesheet" href="styles/app.css?v=3.1">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -78,6 +78,16 @@
           <button class="btn-outline" onclick="deleteSetFromLibrary('poll')" data-owner-only>Delete</button>
         </div>
         <button class="btn-secondary" style="width:100%;margin-top:12px;" onclick="newSet('poll')">+ Create a New Poll</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2>Role Play Creator</h2>
+        <p class="sub">Scenarios where each student in a group gets a different brief. Nothing is marked and nothing is kept.</p>
+        <select id="rp-library-select"><option value="">— select a saved role play —</option></select>
+        <div class="btn-row">
+          <button class="btn-outline" onclick="loadScenarioSet()">Load / Edit</button>
+          <button class="btn-outline" onclick="deleteScenarioSet()" data-owner-only>Delete</button>
+        </div>
+        <button class="btn-primary" style="width:100%;margin-top:12px;" onclick="newScenarioSet()">+ Create a New Role Play</button>
       </div>
       <div class="card" style="margin-top:16px;" data-owner-only>
         <h2>Image Search</h2>
@@ -252,6 +262,7 @@
       <div class="stack" style="margin-top:16px;">
         <button class="btn-primary" onclick="teacherCreateSession()">Launch Test</button>
         <button class="btn-secondary" onclick="pollCreateSession()">New Poll</button>
+        <button class="btn-secondary" onclick="rpCreateSession()">Start a Role Play</button>
         <button class="btn-outline" onclick="openHistory()">Test Archive</button>
       </div>
     </div>
@@ -784,24 +795,26 @@
   <p style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.0"></script>
-<script src="core/i18n.js?v=3.0"></script>
-<script src="core/backend.js?v=3.0"></script>
-<script src="core/auth.js?v=3.0"></script>
-<script src="core/ui.js?v=3.0"></script>
-<script src="core/session.js?v=3.0"></script>
-<script src="core/groups.js?v=3.0"></script>
-<script src="core/bank.js?v=3.0"></script>
-<script src="core/media.js?v=3.0"></script>
-<script src="core/security.js?v=3.0"></script>
-<script src="core/registry.js?v=3.0"></script>
-<script src="modules/test.js?v=3.0"></script>
-<script src="modules/poll.js?v=3.0"></script>
-<script src="admin/editor.js?v=3.0"></script>
-<script src="admin/import.js?v=3.0"></script>
-<script src="admin/reports.js?v=3.0"></script>
-<script src="admin/accounts.js?v=3.0"></script>
-<script src="boot.js?v=3.0"></script>
+<script src="lang/en.js?v=3.1"></script>
+<script src="core/i18n.js?v=3.1"></script>
+<script src="core/registry.js?v=3.1"></script>
+<script src="core/backend.js?v=3.1"></script>
+<script src="core/auth.js?v=3.1"></script>
+<script src="core/ui.js?v=3.1"></script>
+<script src="core/session.js?v=3.1"></script>
+<script src="core/groups.js?v=3.1"></script>
+<script src="core/bank.js?v=3.1"></script>
+<script src="core/media.js?v=3.1"></script>
+<script src="core/security.js?v=3.1"></script>
+<script src="modules/test.js?v=3.1"></script>
+<script src="modules/poll.js?v=3.1"></script>
+<script src="modules/roleplay.js?v=3.1"></script>
+<script src="admin/editor.js?v=3.1"></script>
+<script src="admin/import.js?v=3.1"></script>
+<script src="admin/reports.js?v=3.1"></script>
+<script src="admin/scenarios.js?v=3.1"></script>
+<script src="admin/accounts.js?v=3.1"></script>
+<script src="boot.js?v=3.1"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -812,6 +825,209 @@
       Don&rsquo;t begin a classroom activity until this is fixed.</p>
     <p id="backend-down-detail" class="backend-down-detail"></p>
     <button class="btn-primary" onclick="location.reload()">Try again</button>
+  </div>
+</div>
+
+
+<!-- ROLE PLAY — teacher setup -->
+<div class="screen" id="screen-rp-setup">
+  <div class="top-nav wide">
+    <span class="badge">Role Play &middot; Setup</span>
+    <span id="rp-setup-code" class="badge live" style="display:none;"></span>
+    <a class="linklike" onclick="teacherHome()">&larr; Home</a>
+  </div>
+  <div class="card">
+    <h1>Start a role play</h1>
+    <p class="sub">Pick a school, then a set of scenarios. Students join with the code; the app deals the parts.</p>
+    <label>School</label>
+    <select id="rp-school-select" onchange="filterRoleplaySets()"><option value="">— select a school —</option></select>
+    <label style="margin-top:14px;">Role play</label>
+    <select id="rp-set-select" onchange="rpSetPicked()"><option value="">— select a school first —</option></select>
+    <p id="rp-summary" class="sub" style="margin-top:10px;"></p>
+    <button class="btn-primary" id="rp-start-btn" style="width:100%;margin-top:14px;" disabled onclick="rpStartSession()">Open the room</button>
+  </div>
+</div>
+
+<!-- ROLE PLAY — teacher live -->
+<div class="screen" id="screen-rp-live">
+  <div class="top-nav wide">
+    <span class="badge">Role Play &middot; <span id="rp-live-code"></span></span>
+    <span class="nav-r">
+      <a class="linklike" onclick="rpToggleProject()">Project</a>
+      <a class="linklike" onclick="rpLeave()">Leave</a>
+      <a class="linklike" onclick="rpEnd()">End</a>
+    </span>
+  </div>
+
+  <div id="rp-lobby">
+    <div class="card center">
+      <h1 id="rp-title">Role play</h1>
+      <p class="sub">Students join at the code below. Deal the parts when everyone is in.</p>
+      <div class="joincode" id="rp-join-code"></div>
+      <div id="rp-qr-code" style="margin:14px auto;"></div>
+      <p class="sub mono" id="rp-join-url" style="font-size:.75rem;"></p>
+      <p class="sub" id="rp-count">0 joined</p>
+      <div id="rp-roster" class="chips"></div>
+      <button class="btn-primary" id="rp-deal-btn" style="width:100%;margin-top:16px;" disabled onclick="rpDeal()">Deal the parts</button>
+    </div>
+  </div>
+
+  <div id="rp-stage" style="display:none;">
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 id="rp-stage-title" style="flex:1;">Scenario</h2>
+        <span class="badge" id="rp-round">Round 1</span>
+      </div>
+      <p class="sub" id="rp-stage-situation"></p>
+      <div class="row" style="margin-top:12px;">
+        <select id="rp-scenario-select" onchange="rpPickScenario()" style="flex:1;"></select>
+      </div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn-outline" onclick="rpSwapRoles()">Swap roles</button>
+        <button class="btn-outline" onclick="rpNewPartners()">New partners</button>
+      </div>
+      <p class="sub" style="margin-top:8px;font-size:.8rem;">
+        Swap roles keeps the pairs and changes who plays what &mdash; the second run is where the fluency comes from.
+        New partners reshuffles the room.</p>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h2>Who is with whom</h2>
+      <div id="rp-groups" class="rp-groups"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ROLE PLAY — projector -->
+<div id="rp-projection" class="rp-projection" style="display:none;" onclick="rpToggleProject()">
+  <div class="rp-proj-inner">
+    <h1 id="rp-proj-title"></h1>
+    <p id="rp-proj-situation"></p>
+    <div id="rp-proj-groups" class="rp-proj-groups"></div>
+    <p class="rp-proj-hint">Tap anywhere to close</p>
+  </div>
+</div>
+
+<!-- ROLE PLAY — the student's card -->
+<div class="screen" id="screen-rp-card">
+  <div class="top-nav">
+    <span class="badge">Role play</span>
+    <span id="rp-card-name" class="badge" style="display:none;"></span>
+  </div>
+
+  <div class="card center" id="rp-card-waiting">
+    <h1>You&rsquo;re in</h1>
+    <p class="sub">Wait for your teacher to deal the parts. Your card appears here.</p>
+  </div>
+
+  <div id="rp-card-main" style="display:none;">
+    <div class="card">
+      <p class="sub" id="rp-card-scenario" style="margin:0 0 6px;"></p>
+      <p id="rp-card-situation" style="margin:0 0 14px;"></p>
+      <div class="row" style="align-items:center;gap:10px;">
+        <span class="badge live" id="rp-card-role"></span>
+        <span class="badge" id="rp-card-group"></span>
+      </div>
+      <p class="sub" id="rp-card-partners" style="margin-top:8px;"></p>
+      <button class="btn-outline" id="rp-card-toggle" style="width:100%;margin-top:12px;" onclick="rpToggleCard()">Hide my card</button>
+      <p class="sub" id="rp-card-hidden-hint" style="display:none;margin-top:10px;">
+        Card hidden &mdash; put the phone face down and talk. Tap the button to look again.</p>
+    </div>
+
+    <div id="rp-card-body">
+      <div class="card rp-brief" style="margin-top:14px;">
+        <div class="rp-brief-label">Your brief</div>
+        <p id="rp-card-brief"></p>
+      </div>
+      <div class="card rp-secret" id="rp-card-secret" style="margin-top:14px;display:none;">
+        <div class="rp-brief-label">Only you know this</div>
+        <p id="rp-card-secret-text"></p>
+      </div>
+      <div class="card" id="rp-card-useful" style="margin-top:14px;display:none;">
+        <div class="rp-brief-label">Useful language</div>
+        <p id="rp-card-useful-text"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROLE PLAY — student, finished -->
+<div class="screen" id="screen-rp-done">
+  <div class="card center">
+    <h1>That&rsquo;s the end</h1>
+    <p class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
+  </div>
+</div>
+
+<!-- ROLE PLAY — the scenario editor -->
+<div class="screen" id="screen-rp-editor">
+  <div class="top-nav wide">
+    <span class="badge">Admin &middot; Role Play Builder</span>
+    <a class="linklike" onclick="leaveScenarioEditor()">&larr; Back</a>
+  </div>
+  <div class="duo">
+    <div class="card">
+      <h2>This set</h2>
+      <label>Name</label>
+      <input type="text" id="rp-set-name" placeholder="e.g. BTS2 Assurance — claims calls">
+      <label style="margin-top:12px;">Schools</label>
+      <div id="rp-school-checks" class="checks"></div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn-outline" onclick="addScenario()">+ Scenario</button>
+        <button class="btn-outline" onclick="importScenariosFromExcel()">Import Excel</button>
+      </div>
+      <div id="rp-scenario-list" class="qbank" style="margin-top:12px;"></div>
+      <button class="btn-primary" style="width:100%;margin-top:14px;" onclick="saveScenarioSet()">Save Role Play</button>
+      <p class="sub" style="font-size:.78rem;margin-top:8px;">Nothing is kept until you press Save.</p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 style="flex:1;">Scenario</h2>
+        <button class="btn-outline btn-sm" onclick="moveScenario(-1)">&uarr;</button>
+        <button class="btn-outline btn-sm" onclick="moveScenario(1)">&darr;</button>
+        <button class="btn-outline btn-sm" onclick="deleteScenario()">Delete</button>
+      </div>
+      <label>Title</label>
+      <input type="text" id="rp-f-title" placeholder="e.g. Motor claim — first call" onchange="renderScenarioList()">
+      <label style="margin-top:12px;">The situation &mdash; everyone sees this</label>
+      <textarea id="rp-f-situation" rows="3" placeholder="A customer rings the claims line after a minor collision in a car park."></textarea>
+
+      <div class="rp-role" id="rp-role-0">
+        <div class="rp-role-head">Role 1</div>
+        <input type="text" id="rp-f-label-0" placeholder="Name of the role, e.g. Customer">
+        <textarea id="rp-f-brief-0" rows="3" placeholder="What only this person knows about their side." oninput="countBrief(0)"></textarea>
+        <span class="rp-count" id="rp-count-0"></span>
+        <input type="text" id="rp-f-secret-0" placeholder="Secret constraint (optional) — budget, walk-away point">
+        <input type="text" id="rp-f-useful-0" placeholder="Useful language (optional)">
+      </div>
+
+      <div class="rp-role" id="rp-role-1">
+        <div class="rp-role-head">Role 2</div>
+        <input type="text" id="rp-f-label-1" placeholder="e.g. Claims advisor">
+        <textarea id="rp-f-brief-1" rows="3" placeholder="What only this person knows." oninput="countBrief(1)"></textarea>
+        <span class="rp-count" id="rp-count-1"></span>
+        <input type="text" id="rp-f-secret-1" placeholder="Secret constraint (optional)">
+        <input type="text" id="rp-f-useful-1" placeholder="Useful language (optional)">
+      </div>
+
+      <div class="rp-role" id="rp-role-2" style="display:none;">
+        <div class="rp-role-head">Role 3</div>
+        <input type="text" id="rp-f-label-2" placeholder="e.g. Supervisor">
+        <textarea id="rp-f-brief-2" rows="3" placeholder="What only this person knows." oninput="countBrief(2)"></textarea>
+        <span class="rp-count" id="rp-count-2"></span>
+        <input type="text" id="rp-f-secret-2" placeholder="Secret constraint (optional)">
+        <input type="text" id="rp-f-useful-2" placeholder="Useful language (optional)">
+        <label class="chk" style="margin-top:8px;"><input type="checkbox" id="rp-f-optional" checked> Optional &mdash; used only to absorb a spare student</label>
+      </div>
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn-outline" id="rp-add-role" onclick="addThirdRole()">+ Third role</button>
+        <button class="btn-outline" id="rp-drop-role" style="display:none;" onclick="dropThirdRole()">Remove third role</button>
+      </div>
+      <p class="sub" style="font-size:.78rem;margin-top:10px;">
+        A third role marked optional is how 23 students become eleven pairs and one trio.
+        Without one, the spare student gets a listening task instead.</p>
+    </div>
   </div>
 </div>
 

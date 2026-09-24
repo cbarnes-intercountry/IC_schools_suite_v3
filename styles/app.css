@@ -437,3 +437,36 @@
 .backend-down .card{ max-width:520px; }
 .backend-down-detail{ font-family:ui-monospace,Consolas,monospace; font-size:13px;
   opacity:.85; margin:12px 0 18px; word-break:break-word; }
+
+/* ---------------------------------------------------------------------------
+   Role play (v3.1). The student's card is read at arm's length while talking,
+   so it is bigger and plainer than the rest of the app.
+   --------------------------------------------------------------------------- */
+.rp-groups{ display:flex; flex-wrap:wrap; gap:12px; }
+.rp-group{ border:2px solid var(--border); border-radius:12px; padding:12px 14px; min-width:190px; background:var(--surface); }
+.rp-group-obs{ background:var(--paper-2); }
+.rp-group-no{ font-weight:800; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.rp-member{ font-size:.95rem; line-height:1.5; }
+.rp-member b{ color:var(--primary); }
+
+.rp-brief p, .rp-secret p{ font-size:1.05rem; line-height:1.55; margin:0; }
+.rp-brief-label{ font-weight:800; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.rp-secret{ border-color:var(--amber); background:var(--amber-soft); }
+.rp-secret .rp-brief-label{ color:var(--amber); }
+
+.rp-role{ border-top:2px solid var(--border); margin-top:16px; padding-top:12px; }
+.rp-role-head{ font-weight:800; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+.rp-count{ display:block; text-align:right; font-size:.74rem; color:var(--muted); margin-top:-6px; }
+.rp-count.over{ color:var(--danger); font-weight:700; }
+
+/* Projected: read from the back of the room. */
+.rp-projection{ position:fixed; inset:0; z-index:900; background:var(--ink); color:#fff;
+  display:flex; align-items:center; justify-content:center; padding:4vh 4vw; cursor:pointer; }
+.rp-proj-inner{ max-width:1100px; width:100%; }
+.rp-projection h1{ font-size:clamp(28px,4vw,54px); margin:0 0 12px; }
+.rp-projection p{ font-size:clamp(16px,1.8vw,24px); line-height:1.5; opacity:.92; margin:0 0 24px; }
+.rp-proj-groups{ display:flex; flex-wrap:wrap; gap:14px; }
+.rp-proj-group{ border:2px solid rgba(255,255,255,.35); border-radius:12px; padding:10px 16px;
+  font-size:clamp(15px,1.6vw,22px); }
+.rp-proj-no{ display:inline-block; min-width:1.6em; font-weight:800; color:var(--magenta); }
+.rp-proj-hint{ margin-top:28px !important; font-size:14px !important; opacity:.55 !important; }

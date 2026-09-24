@@ -1,7 +1,7 @@
-# Classroom Exam App — v3.0
+# Classroom Exam App — v3.1
 
-The app is now a folder rather than a single page. Nothing it does has changed: v3.0 is the
-same code as v2.22.1, moved.
+The app is a folder rather than a single page. v3.0 moved the code without changing it;
+**v3.1 adds role play**, the first activity built against the module contract.
 
 ## Running it
 
@@ -60,9 +60,11 @@ core/             things every activity uses
 modules/          one file per activity
   test.js         the self-marking test, teacher and student sides
   poll.js         live polls and word clouds
+  roleplay.js     role cards dealt to small groups (v3.1)
 
 admin/            editing, importing, reporting, settings
   editor.js  import.js  reports.js  accounts.js
+  scenarios.js    writing role plays (v3.1)
 
 boot.js           start-up, loaded last
 ```
@@ -76,6 +78,9 @@ boot.js           start-up, loaded last
    Firebase at all, and only for sign-in.
 4. **A new activity adds one file and changes nothing else.** If adding one means editing
    `core/`, the contract is wrong — fix the contract rather than making an exception.
+   Role play tested this in v3.1 and found three places where the core named activities one
+   by one (the student router, the rejoin button, the home banner). They now ask the
+   registry, so the next module will not touch them.
 
 The test suite checks all four, so breaking one is a failing test rather than a discovery
 made later.
@@ -88,5 +93,17 @@ From the folder *above* this one:
 node "_test v3.0.js"
 ```
 
-357 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+426 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
+
+## Running a role play
+
+Admin → **Role Play Creator** to write scenarios (or import a `Scenarios` sheet: one row per
+role, with columns Scenario, Situation, Role, Brief, Secret, Useful, Optional). Then Teacher
+Home → **Start a Role Play**, students join with the code, and **Deal the parts**.
+
+A scenario has one situation everyone sees and two or three private briefs. Mark the third
+role **optional** and a class of 23 becomes eleven pairs and one trio; without one, the spare
+student gets a listening task instead. **Swap roles** keeps the pairs and changes who plays
+what — that second run is where the fluency comes from. **New partners** reshuffles the room.
+Nothing is marked and nothing is kept: the run is deleted when you end it.

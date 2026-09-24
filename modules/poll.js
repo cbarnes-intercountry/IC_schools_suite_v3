@@ -701,3 +701,18 @@ function pollSaveVotes(){
   return Backend.saveProgress(PSTU.runId, STUDENT.id, STUDENT.surname||"", STUDENT.firstName||"", { votes:PSTU.votes })
     .catch(e=>{ console.warn(e); alert("Couldn't send your answer — check your connection and try again."); });
 }
+
+/* ---------- the contract ---------- */
+/* Registered in v3.1 so the student router and the rejoin banner stop naming activities
+   one by one. A poll scores nothing, and an anonymous one does not even want a name. */
+registerActivity("poll", {
+  join: pollStudentStart,
+  teacher: pollCreateSession,
+  score: null,
+  finish: pollClose,
+  rejoin: rejoinPollRun,
+  requiresName: meta => !(meta && meta.anonymous),
+  anonymous: meta => !!(meta && meta.anonymous),
+  label: "Poll",
+  keeps: false   // nothing is archived: the records name students and hold no marks
+});
