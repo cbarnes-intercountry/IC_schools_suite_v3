@@ -11,11 +11,11 @@ async function renderTeacherPanel(){
   const box=document.getElementById("teacher-list");
   if(!box) return;
   if(!isOwner()){ box.innerHTML=""; return; }
-  box.innerHTML='<p class="sub">Loading…</p>';
+  box.innerHTML='<p class="sub">'+t("teacher_history.loading", 'Loading…')+'</p>';
   try{ TEACHER_LIST=(await Backend.listTeachers()).teachers||[]; }
   catch(e){ box.innerHTML='<p class="sub">Couldn’t load accounts: '+escapeHtml(e.message)+'</p>'; return; }
   TEACHER_LIST.sort((a,b)=>String(a.name||a.email||"").localeCompare(String(b.name||b.email||"")));
-  if(!TEACHER_LIST.length){ box.innerHTML='<p class="sub">No accounts yet.</p>'; return; }
+  if(!TEACHER_LIST.length){ box.innerHTML='<p class="sub">'+t("accounts.no_accounts_yet", 'No accounts yet.')+'</p>'; return; }
   const me=(TEACHER_USER&&TEACHER_USER.uid)||"";
   const owners=TEACHER_LIST.filter(t=>t.role==="owner" && t.active!==false).length;
   box.innerHTML="";
@@ -25,7 +25,7 @@ async function renderTeacherPanel(){
     row.className="row";
     row.style.cssText="align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line,#e5e5e5);"+(off?"opacity:.5;":"");
     const who=document.createElement("div"); who.style.flex="1";
-    who.innerHTML="<b>"+escapeHtml(t.name||"(no name)")+"</b>"+(isMe?" <span class='sub'>(you)</span>":"")+
+    who.innerHTML="<b>"+escapeHtml(t.name||"(no name)")+"</b>"+(isMe?" <span class='sub'>"+t("accounts.you", "(you)")+"</span>":"")+
       "<br><small class='sub'>"+escapeHtml(t.email||"")+"</small>";
     const tag=document.createElement("span"); tag.className="qtag";
     tag.textContent = off ? "DEACTIVATED" : (t.role==="owner" ? "OWNER" : "TEACHER");
@@ -77,7 +77,7 @@ async function saveUnsplashKey(){
   const box=document.getElementById("unsplash-key");
   const st=document.getElementById("unsplash-status");
   const key=(box.value||"").trim();
-  st.textContent="Saving\u2026";
+  st.textContent=t("accounts.saving", "Saving\u2026");
   try{
     await Backend.setConfig("unsplashKey", key);
     _unsplashKey=key;                     // drop the cached value so the next search uses it
@@ -93,11 +93,11 @@ async function addTeacherUI(){
   const email=(document.getElementById("teacher-add-email").value||"").trim();
   const pass=(document.getElementById("teacher-add-pass").value||"");
   const role=document.getElementById("teacher-add-role").value||"user";
-  if(!name || !email || !pass){ st.textContent="Fill in the name, email and a starting password."; return; }
-  if(pass.length<6){ st.textContent="Firebase needs a password of at least 6 characters."; return; }
+  if(!name || !email || !pass){ st.textContent=t("accounts.fill_name_email_starting_password", "Fill in the name, email and a starting password."); return; }
+  if(pass.length<6){ st.textContent=t("accounts.firebase_needs_password_least_6_characters", "Firebase needs a password of at least 6 characters."); return; }
   const auth=secondaryAuth();
-  if(!auth){ st.textContent="Account creation needs Firebase — not available in demo mode."; return; }
-  st.textContent="Creating…";
+  if(!auth){ st.textContent=t("accounts.account_creation_needs_firebase_available_demo", "Account creation needs Firebase — not available in demo mode."); return; }
+  st.textContent=t("accounts.creating", "Creating…");
   try{
     const res=await auth.createUserWithEmailAndPassword(email, pass);
     try{ await res.user.updateProfile({ displayName:name }); }catch(e){}
@@ -126,15 +126,15 @@ async function setTeacherRole(t, role){
   if(!confirm((role==="owner"?"Make ":"Remove owner rights from ")+(t.name||t.email)+
     (role==="owner"?" an owner? They'll be able to delete results and manage accounts.":"? They'll keep normal teacher access."))) return;
   try{ await Backend.setTeacher(t.uid, { role }); renderTeacherPanel(); }
-  catch(e){ alert("Couldn't change the role: "+e.message); }
+  catch(e){ alert(t("accounts.couldn_t_change_role", "Couldn't change the role: ")+e.message); }
 }
 
 
 async function setTeacherActive(t, active){
   if(!requireOwner("deactivate or reactivate an account")) return;
-  if(!active && !confirm("Deactivate "+(t.name||t.email)+"?\n\nThey'll be signed out and refused access at the next attempt. Their quizzes and past results are kept.\n\nThe Firebase login itself still exists — delete it in the Firebase console to free the email address.")) return;
+  if(!active && !confirm(t("accounts.deactivate", "Deactivate ")+(t.name||t.email)+"?\n\nThey'll be signed out and refused access at the next attempt. Their quizzes and past results are kept.\n\nThe Firebase login itself still exists — delete it in the Firebase console to free the email address.")) return;
   try{ await Backend.setTeacher(t.uid, { active:!!active }); renderTeacherPanel(); }
-  catch(e){ alert("Couldn't update the account: "+e.message); }
+  catch(e){ alert(t("accounts.couldn_t_update_account", "Couldn't update the account: ")+e.message); }
 }
 
 function openAdmin(){
@@ -149,7 +149,7 @@ function openAdmin(){
 }
 
 function clearAdminBank(){
-  if(TEACHER.questions.length && !confirm("Clear the current question bank? (Saved quizzes and polls are not affected.)")) return;
+  if(TEACHER.questions.length && !confirm(t("accounts.clear_current_question_bank_saved_quizzes", "Clear the current question bank? (Saved quizzes and polls are not affected.)"))) return;
   TEACHER.questions = [];
   renderQBank();
 }
@@ -161,12 +161,12 @@ async function renderSchools(){
   try{ const r=await Backend.listSchools(); schools=r.schools||[]; }catch(e){ console.warn(e); }
   // List with remove buttons
   const list=document.getElementById("school-list"); list.innerHTML="";
-  if(schools.length===0){ list.innerHTML='<p class="sub">No schools yet. Add one above.</p>'; }
+  if(schools.length===0){ list.innerHTML='<p class="sub">'+t("accounts.no_schools_yet_add_one_above", 'No schools yet. Add one above.')+'</p>'; }
   schools.forEach(name=>{
     const div=document.createElement("div"); div.className="student-row";
     div.innerHTML='<span>'+name+'</span>';
     if(isOwner()){
-      const btn=document.createElement("button"); btn.className="btn-outline btn-mini"; btn.style.flex="0 0 auto"; btn.textContent="Remove";
+      const btn=document.createElement("button"); btn.className="btn-outline btn-mini"; btn.style.flex="0 0 auto"; btn.textContent=t("accounts.remove", "Remove");
       btn.onclick=()=>removeSchoolUI(name);
       div.appendChild(btn);
     }
@@ -182,7 +182,7 @@ function renderSchoolChecks(schools, checked){
   const box=document.getElementById("quiz-school-checks"); if(!box) return;
   const set=new Set(checked||[]);
   box.innerHTML="";
-  if(!schools || schools.length===0){ box.innerHTML='<p class="sub" style="margin:0;">No schools yet — add one above first.</p>'; return; }
+  if(!schools || schools.length===0){ box.innerHTML='<p class="sub" style="margin:0;">'+t("accounts.no_schools_yet_add_one_above_2", 'No schools yet — add one above first.')+'</p>'; return; }
   schools.forEach(n=>{
     const row=document.createElement("label"); row.style.cssText="display:flex;align-items:center;gap:8px;padding:4px 0;font-weight:500;";
     const cb=document.createElement("input"); cb.type="checkbox"; cb.value=n; cb.style.cssText="width:18px;height:18px;flex:0 0 auto;"; if(set.has(n)) cb.checked=true;
@@ -203,12 +203,12 @@ function setCheckedSchools(names){
 async function addSchoolUI(){
   if(!requireOwner("add a school")) return;
   const inp=document.getElementById("school-add-name"); const name=inp.value.trim();
-  if(!name){ alert("Type a school name first."); return; }
-  try{ await Backend.addSchool(name); inp.value=""; renderSchools(); }catch(e){ alert("Add failed: "+e.message); }
+  if(!name){ alert(t("accounts.type_school_name_first", "Type a school name first.")); return; }
+  try{ await Backend.addSchool(name); inp.value=""; renderSchools(); }catch(e){ alert(t("accounts.add_failed", "Add failed: ")+e.message); }
 }
 
 async function removeSchoolUI(name){
   if(!requireOwner("remove a school")) return;
-  if(!confirm('Remove "'+name+'"? Quizzes already assigned to it keep their label until re-saved.')) return;
-  try{ await Backend.removeSchool(name); renderSchools(); }catch(e){ alert("Remove failed: "+e.message); }
+  if(!confirm(t("poll.remove", 'Remove "')+name+'"? Quizzes already assigned to it keep their label until re-saved.')) return;
+  try{ await Backend.removeSchool(name); renderSchools(); }catch(e){ alert(t("accounts.remove_failed", "Remove failed: ")+e.message); }
 }

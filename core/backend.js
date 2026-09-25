@@ -269,8 +269,8 @@ const Backend = {
 function refreshModeBadge(){
   const b = document.getElementById("mode-badge");
   if(!b) return;
-  if(Backend.live){ b.textContent="LIVE — synced"; b.className="badge live"; }
-  else { b.textContent="NO DATABASE"; b.className="badge demo"; }
+  if(Backend.live){ b.textContent=t("backend.live_synced", "LIVE — synced"); b.className="badge live"; }
+  else { b.textContent=t("backend.no_database", "NO DATABASE"); b.className="badge demo"; }
 }
 
 

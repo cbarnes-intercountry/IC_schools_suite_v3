@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Classroom Exam App</title>
+<title data-i18n="app.classroom_exam_app">Classroom Exam App</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.1.1">
+<link rel="stylesheet" href="styles/app.css?v=3.3">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -30,12 +30,16 @@
 <!-- ROLE SELECT -->
 <div class="screen active" id="screen-role">
   <div class="card center">
-    <h1>Classroom Exam App</h1>
-    <p class="sub">Live tests, results and quiz library — synced in real time.</p>
-    <div class="statusbar"><span id="mode-badge" class="badge live">Connecting…</span></div>
+    <h1 data-i18n="role.classroom_exam_app">Classroom Exam App</h1>
+    <p data-i18n="role.live_tests_results_quiz_library_synced" class="sub">Live tests, results and quiz library — synced in real time.</p>
+    <div class="statusbar"><span id="mode-badge" class="badge live">Connecting…</span>
+      <label class="lang-pick"><span data-i18n="role.language" class="visually-hidden">Language</span>
+        <select id="ui-lang-select" aria-label="Language"></select>
+      </label>
+    </div>
     <div class="stack">
-      <button class="btn-primary" onclick="goTeacher()">I'm the Teacher</button>
-      <button class="btn-secondary" onclick="showScreen('screen-student-join')">I'm a Student</button>
+      <button data-i18n="role.i_m_teacher" class="btn-primary" onclick="goTeacher()">I'm the Teacher</button>
+      <button data-i18n="role.i_m_student" class="btn-secondary" onclick="showScreen('screen-student-join')">I'm a Student</button>
     </div>
   </div>
 </div>
@@ -43,88 +47,88 @@
 <!-- ADMIN -->
 <div class="screen" id="screen-admin">
   <div class="top-nav wide">
-    <span class="badge">Admin &middot; Quizzes &amp; Polls</span>
-    <a class="linklike" onclick="teacherHome()">&larr; Home</a>
+    <span data-i18n="admin.admin_quizzes_polls" class="badge">Admin &middot; Quizzes &amp; Polls</span>
+    <a data-i18n="admin.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
   </div>
   <div class="duo">
     <div class="card">
-      <h2>Add/Remove Schools</h2>
-      <p class="sub">Every quiz and poll is assigned to one or more schools. Teachers pick a school first, then a quiz or poll.</p>
+      <h2 data-i18n="admin.add_remove_schools">Add/Remove Schools</h2>
+      <p data-i18n="admin.every_quiz_poll_assigned_one_more" class="sub">Every quiz and poll is assigned to one or more schools. Teachers pick a school first, then a quiz or poll.</p>
       <div class="row">
-        <input type="text" id="school-add-name" placeholder="e.g. ESC Lyon Business School" style="flex:2;" data-owner-only>
-        <button class="btn-outline" style="flex:0 0 auto;" onclick="addSchoolUI()" data-owner-only>Add School</button>
+        <input data-i18n-ph="admin.ph.e_g_esc_lyon_business_school" type="text" id="school-add-name" placeholder="e.g. ESC Lyon Business School" style="flex:2;" data-owner-only>
+        <button data-i18n="admin.add_school" class="btn-outline" style="flex:0 0 auto;" onclick="addSchoolUI()" data-owner-only>Add School</button>
       </div>
       <div id="school-list" style="margin-top:10px;"></div>
     </div>
     <div class="duo-col">
       <div class="card">
-        <h2>Test Creator</h2>
-        <p class="sub">Marked tests teachers can run. Load one to edit it, or start fresh.</p>
-        <select id="quiz-library-select"><option value="">— select a saved quiz —</option></select>
+        <h2 data-i18n="admin.test_creator">Test Creator</h2>
+        <p data-i18n="admin.marked_tests_teachers_run_load_one" class="sub">Marked tests teachers can run. Load one to edit it, or start fresh.</p>
+        <select id="quiz-library-select"><option data-i18n="admin.opt.select_saved_quiz" value="">— select a saved quiz —</option></select>
         <div class="btn-row">
-          <button class="btn-outline" onclick="loadSetFromLibrary('quiz')">Load / Edit</button>
-          <button class="btn-outline" onclick="exportSavedSet('quiz')">Export</button>
-          <button class="btn-outline" onclick="deleteSetFromLibrary('quiz')" data-owner-only>Delete</button>
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadSetFromLibrary('quiz')">Load / Edit</button>
+          <button data-i18n="admin.export" class="btn-outline" onclick="exportSavedSet('quiz')">Export</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteSetFromLibrary('quiz')" data-owner-only>Delete</button>
         </div>
-        <button class="btn-primary" style="width:100%;margin-top:12px;" onclick="newSet('quiz')">+ Create a New Quiz</button>
+        <button data-i18n="admin.create_new_quiz" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newSet('quiz')">+ Create a New Quiz</button>
       </div>
       <div class="card" style="margin-top:16px;">
-        <h2>Poll Creator</h2>
-        <p class="sub">Live polls and word clouds for projecting in class. Nothing is marked and no results are kept.</p>
-        <select id="poll-library-select"><option value="">— select a saved poll —</option></select>
+        <h2 data-i18n="admin.poll_creator">Poll Creator</h2>
+        <p data-i18n="admin.live_polls_word_clouds_projecting_class" class="sub">Live polls and word clouds for projecting in class. Nothing is marked and no results are kept.</p>
+        <select id="poll-library-select"><option data-i18n="admin.opt.select_saved_poll" value="">— select a saved poll —</option></select>
         <div class="btn-row">
-          <button class="btn-outline" onclick="loadSetFromLibrary('poll')">Load / Edit</button>
-          <button class="btn-outline" onclick="exportSavedSet('poll')">Export</button>
-          <button class="btn-outline" onclick="deleteSetFromLibrary('poll')" data-owner-only>Delete</button>
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadSetFromLibrary('poll')">Load / Edit</button>
+          <button data-i18n="admin.export" class="btn-outline" onclick="exportSavedSet('poll')">Export</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteSetFromLibrary('poll')" data-owner-only>Delete</button>
         </div>
-        <button class="btn-secondary" style="width:100%;margin-top:12px;" onclick="newSet('poll')">+ Create a New Poll</button>
+        <button data-i18n="admin.create_new_poll" class="btn-secondary" style="width:100%;margin-top:12px;" onclick="newSet('poll')">+ Create a New Poll</button>
       </div>
       <div class="card" style="margin-top:16px;">
-        <h2>Role Play Creator</h2>
-        <p class="sub">Scenarios where each student in a group gets a different brief. Nothing is marked and nothing is kept.</p>
-        <select id="rp-library-select"><option value="">— select a saved role play —</option></select>
+        <h2 data-i18n="admin.role_play_creator">Role Play Creator</h2>
+        <p data-i18n="admin.scenarios_where_each_student_group_gets" class="sub">Scenarios where each student in a group gets a different brief. Nothing is marked and nothing is kept.</p>
+        <select id="rp-library-select"><option data-i18n="admin.opt.select_saved_role_play" value="">— select a saved role play —</option></select>
         <div class="btn-row">
-          <button class="btn-outline" onclick="loadScenarioSet()">Load / Edit</button>
-          <button class="btn-outline" onclick="deleteScenarioSet()" data-owner-only>Delete</button>
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadScenarioSet()">Load / Edit</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteScenarioSet()" data-owner-only>Delete</button>
         </div>
-        <button class="btn-primary" style="width:100%;margin-top:12px;" onclick="newScenarioSet()">+ Create a New Role Play</button>
+        <button data-i18n="admin.create_new_role_play" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newScenarioSet()">+ Create a New Role Play</button>
       </div>
       <div class="card" style="margin-top:16px;" data-owner-only>
-        <h2>Image Search</h2>
-        <p class="sub">Unsplash supplies the pictures offered by &ldquo;Find a free image&rdquo; in the question editor. Free account, no card. Create an app at unsplash.com/oauth/applications and paste its <b>Access Key</b> here.</p>
+        <h2 data-i18n="admin.image_search">Image Search</h2>
+        <p class="sub">Unsplash supplies the pictures offered by &ldquo;Find a free image&rdquo; in the question editor. Free account, no card. Create an app at unsplash.com/oauth/applications and paste its <b data-i18n="admin.access_key">Access Key</b> here.</p>
         <div class="row">
-          <input type="text" id="unsplash-key" placeholder="Access Key" autocomplete="off" spellcheck="false" style="flex:2;">
-          <button class="btn-outline" style="flex:0 0 auto;" onclick="saveUnsplashKey()">Save</button>
+          <input data-i18n-ph="admin.ph.access_key" type="text" id="unsplash-key" placeholder="Access Key" autocomplete="off" spellcheck="false" style="flex:2;">
+          <button data-i18n="admin.save" class="btn-outline" style="flex:0 0 auto;" onclick="saveUnsplashKey()">Save</button>
         </div>
         <p id="unsplash-status" class="sub" style="margin:10px 0 0;"></p>
-        <small class="hint">The key is kept in the database where only signed-in teachers can read it, never in the page itself. Leave it empty and the picker falls back to the Creative Commons archives, which are weaker for everyday subjects.</small>
+        <small data-i18n="admin.key_kept_database_where_only_signed" class="hint">The key is kept in the database where only signed-in teachers can read it, never in the page itself. Leave it empty and the picker falls back to the Creative Commons archives, which are weaker for everyday subjects.</small>
       </div>
       <div class="card" style="margin-top:16px;" data-owner-only>
-        <h2>Teacher Accounts</h2>
-        <p class="sub">Owners can delete results, manage schools and add teachers. Teachers can do everything else.</p>
+        <h2 data-i18n="admin.teacher_accounts">Teacher Accounts</h2>
+        <p data-i18n="admin.owners_delete_results_manage_schools_add" class="sub">Owners can delete results, manage schools and add teachers. Teachers can do everything else.</p>
         <div id="teacher-list" style="margin:12px 0;"></div>
         <details style="margin-top:12px;">
-          <summary style="cursor:pointer;font-weight:600;">+ Add a teacher</summary>
+          <summary data-i18n="admin.add_teacher" style="cursor:pointer;font-weight:600;">+ Add a teacher</summary>
           <div style="margin-top:10px;">
-            <input type="text" id="teacher-add-name" placeholder="Full name" style="width:100%;margin-bottom:8px;">
-            <input type="email" id="teacher-add-email" placeholder="name@school.com" autocomplete="off" style="width:100%;margin-bottom:8px;">
-            <input type="text" id="teacher-add-pass" placeholder="Starting password (6+ characters)" autocomplete="off" style="width:100%;margin-bottom:8px;">
+            <input data-i18n-ph="admin.ph.full_name" type="text" id="teacher-add-name" placeholder="Full name" style="width:100%;margin-bottom:8px;">
+            <input data-i18n-ph="admin.ph.name_school_com" type="email" id="teacher-add-email" placeholder="name@school.com" autocomplete="off" style="width:100%;margin-bottom:8px;">
+            <input data-i18n-ph="admin.ph.starting_password_6_characters" type="text" id="teacher-add-pass" placeholder="Starting password (6+ characters)" autocomplete="off" style="width:100%;margin-bottom:8px;">
             <select id="teacher-add-role" style="width:100%;margin-bottom:10px;">
-              <option value="user">Teacher — run tests, build quizzes</option>
-              <option value="owner">Owner — also delete results and manage accounts</option>
+              <option data-i18n="admin.opt.teacher_run_tests_build_quizzes" value="user">Teacher — run tests, build quizzes</option>
+              <option data-i18n="admin.opt.owner_also_delete_results_manage_accounts" value="owner">Owner — also delete results and manage accounts</option>
             </select>
-            <button class="btn-primary" style="width:100%;" onclick="addTeacherUI()">Create account</button>
+            <button data-i18n="admin.create_account" class="btn-primary" style="width:100%;" onclick="addTeacherUI()">Create account</button>
             <p id="teacher-add-status" class="sub" style="margin:10px 0 0;"></p>
-            <small class="hint">They sign in with this email and password straight away. Removing someone here blocks their access; deleting the login itself is done in the Firebase console.</small>
+            <small data-i18n="admin.they_sign_email_password_straight_away" class="hint">They sign in with this email and password straight away. Removing someone here blocks their access; deleting the login itself is done in the Firebase console.</small>
           </div>
         </details>
       </div>
       <div class="tip" data-owner-only>
-        <div class="tip-label">Report retention</div>
-        <p>Teachers only see the last 6 months of results. Run this once a term to download a backup of everything older, then permanently remove it from the database.</p>
-        <button class="btn-ghost" onclick="archiveOldReports()">Download Backup &amp; Purge Old Reports</button>
+        <div data-i18n="admin.report_retention" class="tip-label">Report retention</div>
+        <p data-i18n="admin.teachers_only_see_last_6_months">Teachers only see the last 6 months of results. Run this once a term to download a backup of everything older, then permanently remove it from the database.</p>
+        <button data-i18n="admin.download_backup_purge_old_reports" class="btn-ghost" onclick="archiveOldReports()">Download Backup &amp; Purge Old Reports</button>
         <p id="archive-status" class="sub" style="color:#fff;opacity:.8;margin:10px 0 0;"></p>
-        <small class="hint">A JSON backup downloads first, then runs older than 6 months are deleted. Keep the backup somewhere safe.</small>
+        <small data-i18n="admin.json_backup_downloads_first_then_runs" class="hint">A JSON backup downloads first, then runs older than 6 months are deleted. Keep the backup somewhere safe.</small>
       </div>
     </div>
   </div>
@@ -134,7 +138,7 @@
 <div class="screen" id="screen-admin-builder">
   <div class="top-nav wide">
     <span class="badge" id="builder-badge">Admin &middot; Question Builder</span>
-    <a class="linklike" onclick="leaveBuilder('screen-admin')">&larr; Back</a>
+    <a data-i18n="admin_builder.back" class="linklike" onclick="leaveBuilder('screen-admin')">&larr; Back</a>
   </div>
   <div class="duo">
     <div class="duo-col">
@@ -142,47 +146,47 @@
         <h2>Question Bank <span style="color:var(--magenta);" id="qcount">0</span></h2>
         <div id="qbank-list"></div>
         <div class="btn-row">
-          <button class="btn-primary" onclick="openQuestionEditor()">+ Add Question</button>
-          <button class="btn-outline" onclick="importFromExcel()">Import Excel</button>
-          <button class="btn-outline" onclick="importQuestionsPrompt()">Import JSON</button>
-          <button class="btn-outline" onclick="exportQuestionsJSON()">Export JSON</button>
+          <button data-i18n="admin_builder.add_question" class="btn-primary" onclick="openQuestionEditor()">+ Add Question</button>
+          <button data-i18n="admin_builder.import_excel" class="btn-outline" onclick="importFromExcel()">Import Excel</button>
+          <button data-i18n="admin_builder.import_json" class="btn-outline" onclick="importQuestionsPrompt()">Import JSON</button>
+          <button data-i18n="admin_builder.export_json" class="btn-outline" onclick="exportQuestionsJSON()">Export JSON</button>
         </div>
-        <small class="hint">Add media per question in the editor: drag a file onto the Image or Audio tile, click to browse, or paste an image. Excel imports can still supply ImageURL and AudioURL columns.</small>
-        <button class="btn-outline" style="width:100%;margin-top:10px;" onclick="clearAdminBank()">Clear current bank</button>
+        <small data-i18n="admin_builder.add_media_per_question_editor_drag" class="hint">Add media per question in the editor: drag a file onto the Image or Audio tile, click to browse, or paste an image. Excel imports can still supply ImageURL and AudioURL columns.</small>
+        <button data-i18n="admin_builder.clear_current_bank" class="btn-outline" style="width:100%;margin-top:10px;" onclick="clearAdminBank()">Clear current bank</button>
       </div>
     </div>
     <div class="duo-col">
       <div class="card" id="qe-card" style="display:none;">
         <div class="editor-head">
           <span class="badge" id="qe-counter">1 of 1</span>
-          <button class="btn-danger" style="min-height:0;padding:7px 12px;font-size:.85rem;" title="Delete this question" onclick="editorDeleteCurrent()">&#128465; Delete</button>
+          <button data-i18n="admin_builder.delete" data-i18n-title="admin_builder.ti.delete_question" class="btn-danger" style="min-height:0;padding:7px 12px;font-size:.85rem;" title="Delete this question" onclick="editorDeleteCurrent()">&#128465; Delete</button>
         </div>
-        <textarea id="qe-text" placeholder="Type the question..." style="font-size:1.1rem;font-weight:700;line-height:1.35;min-height:84px;"></textarea>
+        <textarea data-i18n-ph="admin_builder.ph.type_question" id="qe-text" placeholder="Type the question..." style="font-size:1.1rem;font-weight:700;line-height:1.35;min-height:84px;"></textarea>
         <div class="type-chips" id="qe-type-chips"></div>
         <select id="qe-type" onchange="renderQEditorOptions()" style="display:none;">
-          <option value="mcq" data-kind="quiz">Multiple Choice</option>
-          <option value="tf" data-kind="quiz">True / False</option>
-          <option value="text" data-kind="quiz">Short Text Answer</option>
-          <option value="order" data-kind="quiz">Puzzle — drag to order</option>
-          <option value="poll" data-kind="poll">Poll — live vote (no right answer)</option>
-          <option value="cloud" data-kind="poll">Word Cloud — live words</option>
+          <option data-i18n="admin_builder.opt.multiple_choice" value="mcq" data-kind="quiz">Multiple Choice</option>
+          <option data-i18n="admin_builder.opt.true_false" value="tf" data-kind="quiz">True / False</option>
+          <option data-i18n="admin_builder.opt.short_text_answer" value="text" data-kind="quiz">Short Text Answer</option>
+          <option data-i18n="admin_builder.opt.puzzle_drag_order" value="order" data-kind="quiz">Puzzle — drag to order</option>
+          <option data-i18n="admin_builder.opt.poll_live_vote_no_right_answer" value="poll" data-kind="poll">Poll — live vote (no right answer)</option>
+          <option data-i18n="admin_builder.opt.word_cloud_live_words" value="cloud" data-kind="poll">Word Cloud — live words</option>
         </select>
         <div class="qe-meta" style="margin-top:4px;">
-          <span id="qe-points-wrap"><label for="qe-points">Points</label> <input type="number" id="qe-points" value="1" min="0"></span>
-          <span><label for="qe-qtime">Time limit (s)</label> <input type="number" id="qe-qtime" value="0" min="0"></span>
+          <span id="qe-points-wrap"><label data-i18n="admin_builder.points" for="qe-points">Points</label> <input type="number" id="qe-points" value="1" min="0"></span>
+          <span><label data-i18n="admin_builder.time_limit_s" for="qe-qtime">Time limit (s)</label> <input type="number" id="qe-qtime" value="0" min="0"></span>
         </div>
-        <label>Media <small class="hint" style="display:inline;">&middot; optional &mdash; drag a file onto a tile, click to browse, or paste an image</small></label>
+        <label>Media <small data-i18n="admin_builder.optional_drag_file_onto_tile_click" class="hint" style="display:inline;">&middot; optional &mdash; drag a file onto a tile, click to browse, or paste an image</small></label>
         <div class="mtiles">
           <div class="mtile" id="qe-image-tile" onclick="qMediaBrowse('image')">
             <input type="file" id="qe-image-file" accept="image/*" style="display:none;" onchange="handleQMediaUpload(event,'image')">
             <input type="hidden" id="qe-image-url">
             <span class="empty" style="display:flex;flex-direction:column;align-items:center;gap:7px;">
               <svg class="ico" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.6"></circle><path d="M21 16l-5-5-6 6-3-3-4 4"></path></svg>
-              <span class="exts">.jpeg &middot; .png &middot; .gif</span>
+              <span data-i18n="admin_builder.jpeg_png_gif" class="exts">.jpeg &middot; .png &middot; .gif</span>
             </span>
             <span class="full">
               <img id="qe-image-preview" alt="">
-              <span class="fmeta"><span id="qe-image-name">image</span><button class="mx" title="Remove image" onclick="clearQMedia('image');event.stopPropagation();">&times;</button></span>
+              <span class="fmeta"><span data-i18n="admin_builder.image" id="qe-image-name">image</span><button data-i18n-title="admin_builder.ti.remove_image" class="mx" title="Remove image" onclick="clearQMedia('image');event.stopPropagation();">&times;</button></span>
             </span>
           </div>
           <div class="mtile" id="qe-audio-tile" onclick="qMediaBrowse('audio')">
@@ -190,27 +194,27 @@
             <input type="hidden" id="qe-audio-url">
             <span class="empty" style="display:flex;flex-direction:column;align-items:center;gap:7px;">
               <svg class="ico" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-4"></path><path d="M7 18V6"></path><path d="M11 15V9"></path><path d="M15 19V5"></path><path d="M19 16v-8"></path></svg>
-              <span class="exts">.mp3 &middot; .m4a</span>
+              <span data-i18n="admin_builder.mp3_m4a" class="exts">.mp3 &middot; .m4a</span>
             </span>
             <span class="full">
               <span class="clip"><i style="height:38%"></i><i style="height:70%"></i><i style="height:26%"></i><i style="height:88%"></i><i style="height:48%"></i><i style="height:76%"></i><i style="height:32%"></i><i style="height:62%"></i><i style="height:44%"></i><i style="height:80%"></i><i style="height:28%"></i><i style="height:56%"></i></span>
-              <span class="fmeta"><span id="qe-audio-name">clip</span><button class="mx" title="Remove audio" onclick="clearQMedia('audio');event.stopPropagation();">&times;</button></span>
+              <span class="fmeta"><span data-i18n="admin_builder.clip" id="qe-audio-name">clip</span><button data-i18n-title="admin_builder.ti.remove_audio" class="mx" title="Remove audio" onclick="clearQMedia('audio');event.stopPropagation();">&times;</button></span>
             </span>
           </div>
         </div>
-        <button type="button" class="btn-outline" style="width:100%;margin-top:8px;" onclick="openImagePicker()">
+        <button data-i18n="admin_builder.find_free_image" type="button" class="btn-outline" style="width:100%;margin-top:8px;" onclick="openImagePicker()">
           &#128269; Find a free image
         </button>
         <small id="qe-image-status" class="hint"></small>
         <small id="qe-audio-status" class="hint"></small>
         <div id="qe-options-area"></div>
-        <small class="hint">Per-question time limits apply in open navigation: when time runs out the question locks and the student moves on. Ignored in teacher-paced mode.</small>
+        <small data-i18n="admin_builder.per_question_time_limits_apply_open" class="hint">Per-question time limits apply in open navigation: when time runs out the question locks and the student moves on. Ignored in teacher-paced mode.</small>
       </div>
       <div class="tip">
         <div class="tip-label" id="quiz-save-label">Save as quiz</div>
-        <input type="text" id="quiz-save-name" placeholder="e.g. Marketing Midterm 2026">
+        <input data-i18n-ph="admin_builder.ph.e_g_marketing_midterm_2026" type="text" id="quiz-save-name" placeholder="e.g. Marketing Midterm 2026">
         <small class="hint" id="quiz-save-note" style="display:block;margin-top:6px;"></small>
-        <label style="font-size:.8rem;">Assign to school(s) — tick all that apply</label>
+        <label data-i18n="admin_builder.assign_school_s_tick_all_apply" style="font-size:.8rem;">Assign to school(s) — tick all that apply</label>
         <div id="quiz-school-checks" style="max-height:180px;overflow:auto;"></div>
         <button class="btn-primary" style="width:100%;margin-top:12px;" onclick="saveQuizToLibrary()"><span id="quiz-save-btn-text">Save Quiz</span></button>
       </div>
@@ -221,18 +225,18 @@
 <!-- TEACHER SIGN-IN (Firebase teacher accounts) -->
 <div class="screen" id="screen-teacher-password">
   <div class="card">
-    <h1>Teacher Sign-in</h1>
-    <p class="sub">Sign in with the teacher account created for you. Your name is recorded on every test you run.</p>
+    <h1 data-i18n="teacher_password.teacher_sign">Teacher Sign-in</h1>
+    <p data-i18n="teacher_password.sign_teacher_account_created_name_recorded" class="sub">Sign in with the teacher account created for you. Your name is recorded on every test you run.</p>
     <div id="signin-ready">
-      <label>Email</label>
-      <input type="email" id="t-email" placeholder="you@intercountry.com" autocomplete="username">
-      <label>Password</label>
+      <label data-i18n="teacher_password.email">Email</label>
+      <input data-i18n-ph="teacher_password.ph.intercountry_com" type="email" id="t-email" placeholder="you@intercountry.com" autocomplete="username">
+      <label data-i18n="teacher_password.password">Password</label>
       <input type="password" id="t-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter') teacherSignIn();">
-      <button class="btn-primary" style="width:100%;margin-top:18px;" onclick="teacherSignIn()">Sign in</button>
-      <p style="margin-top:12px;"><a class="linklike" onclick="teacherResetPassword()">Forgot your password?</a></p>
+      <button data-i18n="teacher_password.sign" class="btn-primary" style="width:100%;margin-top:18px;" onclick="teacherSignIn()">Sign in</button>
+      <p style="margin-top:12px;"><a data-i18n="teacher_password.forgot_password" class="linklike" onclick="teacherResetPassword()">Forgot your password?</a></p>
     </div>
     <p id="signin-status" class="sub mono" style="font-size:.8rem;margin-top:10px;"></p>
-    <p style="margin-top:16px;"><a class="linklike" onclick="showScreen('screen-role')">&larr; Back</a></p>
+    <p style="margin-top:16px;"><a data-i18n="teacher_password.back" class="linklike" onclick="showScreen('screen-role')">&larr; Back</a></p>
   </div>
 </div>
 
@@ -242,34 +246,34 @@
     <span class="nav-l">
       <span class="brandmark"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAY8AAAGPCAIAAAAr+MuwAAAQAElEQVR4AeydB1xV5f/HmbJkpFZarjKpTDP9pT8rc89E3AMREUwcqDhQEUQURXPvRZYDF2kucuBKK02lzNRcv0hNzREpLkBA+X/NvwvuvZxz7jnPec45H1+Mc5/xHe/v5eNznnPvuXZ5+AcCIAACWiBgZ4N/IAACIKAFAlArLVQJMYIACNjYQK2M+CxAziCgRQJQKy1WDTGDgBEJQK2MWHXkDAJaJAC10mLVEDMIiCeg/RlQK+3XEBmAgDEIQK2MUWdkCQLaJwC10n4NkQEIGIMA1Ep8nTEDBEBADQJQKzWowycIgIB4AlAr8cwwAwRAQA0CUCs1qMOn9gggYvUJQK3UrwEiAAEQEEIAaiWEEsaAAAioTwBqpX4NEAEIgIAQAuzVSkhUGAMCIAAC+QlArfITwWMQAAE+CUCt+KwLogIBEMhPAGqVnwgeK0EANkHAegJQK+sZwgIIgAALAlArFpThAwRAwHoCUCvrGcICCICAKQJyt0Gt5CYKeyAAAsoQgFopwxVWQQAE5CYAtZKbKOyBAAgoQwBqpQxXea3CGgiAgI0N1ArPAhAAAW0QgFppo06IEgRAAGqF5wAI8EkAUeUnALXKTwSPQQAE+CQAteKzLogKBEAgPwGoVX4ieAwCIMAnASOoFZ/kERUIgIA4AlArcbwwGgRAQC0CUCu1yMMvCICAOAJQK3G8MForBBCn/ghArfRXU2QEAvokALXSZ12RFQjojwDUSn81RUYgoE8ChauVPvNGViAAAlojALXSWsUQLwgYlQDUyqiVR94goDUCUCutVYxNvPACAvwRgFrxVxNEBAIgYIoA1MoUFbSBAAjwRwBqxV9NEBEIqEOAd69QK94rhPhAAAQeEYBaPeKAnyAAArwTgFrxXiHEBwIg8IgA1OoRB3l/whoIgID8BKBW8jOFRRAAASUIQK2UoAqbIAAC8hOAWsnPFBaNSQBZK00AaqU0YdgHARCQhwDUSh6OsAICIKA0AaiV0oRhHwRAQB4CPKqVPJnBCgiAgL4IQK30VU9kAwL6JQC10m9tkRkI6IsA1Epf9dRuNogcBAojALUqjBD6QQAE+CAAteKjDogCBECgMAJQq8IIoR8EQEApAuLsQq3E8cJoEAABtQhArdQiD78gAALiCECtxPHCaBAAAbUIQK3UIi+vX1gDAf0TgFrpv8bIEAT0QQBqpY86IgsQ0D8BqJX+a4wM9UrAaHlBrYxWceQLAlolALXSauUQNwgYjQDUymgVR74goFUCUKuHlcM3CIAA/wSgVvzXCBGCAAg8JAC1ekgB3yAAAvwTgFrxXyNEqAwBWNUaAaiV1iqGeEHAqASgVkatPPIGAa0RgFpprWKIFwSMSkAOtTIqO+QNAiDAkgDUiiVt+AIBEJBOAGolnR1mggAIsCQAtWJJW0++kAsIsCYAtWJNHP5AAASkEYBaSeOGWSAAAqwJQK1YE4c/ENAuAXUjh1qpyx/eQQAEhBKAWgklhXEgAALqEoBaqcsf3kEABIQSgFoJJSXvOFgDARAQSwBqJZYYxoMACKhDAGqlDnd4BQEQEEsAaiWWGMaDgFQCmGcdAaiVdfwwGwRAgBUBqBUr0vADAiBgHQGolXX8MBsEQIAVAW2qFSs6Yv08SLuVvelg5sSvb/eYfcsn9mb9qPRaQ282jbnVZsKdsM+z5m/N+eGETXauWLMYDwIgQASgVgTB2q/7569lxK1Jf3/w9dJBt9pPvBu94l7Ct9nbj+TsO5l7ODXn22PZm1NIqkiwbjYY+c9LAbd8x91bsTfvbpa1jjEfBIxEAGplVbVzfjx1q3XcDe8+GWNW5R49Z/Mgr1BzeRn3srcdvh0083rZHncjlj64kl7oFAwAARAgAlArgiDl6/4fV261GnezbmT2lp9t8goXqYI+8m5nZk7beOPN3hljE/OycgoOQMvzBPDI6ASgVuKfAXl5mdM3pb8Xlr31sPjJ+WfkZWaTWpG13ENn8vfhMQiAwDMEoFbPwBBwmJd+91bbCXeHL5F3NUQrtfT6UZkzkwSEgCEgYFACUCsRhac9ppuNR2Vv/knEHOFDc+7fHbqYduKFbH4Jt4qRIKBpAs8GD7V6loal4weXr9+sOyL317OWBlnd9/DSYchcaRthVjuHARDgmgDUSlB58m5m3PKNu3/2qqDR1g3KWrb7zqAvrLOB2SCgQwJQKwFFzcu7HTRT6VXVs3FkzdtyL+HbZ1twDAIgALUq/DmQOXVD9jcphY+TdcSdAZ/fP3VRRpMwBQJaJwC1KqSC91MvZ8SuLmSQAt15d7Pu9J6HDSwF0MKkVglArQqpHK1x8lR66WbO/lNZy3A+WEiB0G0cAlArS7XO2XM8Z8cRSyMU7ssYsxrvglaYsa7N6ys5qJWlemZM+tpSt/J9Dy6mZa3Yo7wfeAABDRCAWpkt0v3fL+fsOmq2m1VH1vytrFzBDwhwTQBqZbY895bv4WGTO/fI2dzj581GiQ4QMAwBqJXZUt/7ev/TPlWPstcfUNU/nIMAFwSgVqbL8ODyjfunL5nuY96as+cYc59wCALcEYBamS5Jzve/me5QozXn4Jm8e7gBlhro4ZMnAlAr09W4f/KC6Q5VWrNzH6ReUcWzsZ0ie74IQK1M1+P+6b9Md6jUev8ML6elKgGAWxCwgVqZfhI8uJZuukOl1gdX+YpHJQxwa2gCUCvT5c+7nWm6Q6XWvFt8xaMSBrg1NAE2aqU9xLztaudlZWsPIiIGAVkJQK1M47R1dTLdoVKrbVEXlTzDLQjwQgBqZboSth6upjtUarV1d1bJM9yCAC8EoFamK2FfuoTpDpVa7cq+pJJn6W4xEwTkJQC1Ms3T3vsV0x0qtdq/yVc8KmGAW0MTgFqZLr/9u+VNd6jRauvlZl/mRTU8wycIcEQAamW6GI4fvW3jaG+6j3mrY53KNna2zN3CIQiIJ6DkDKiVabq27i6ONb1N9zFvLdKgCnOfcAgC3BGAWpktiVPH2mb7WHY42Bdp+yFLh/AFAnwSgFqZrYtTp49tnRzNdrPqKNLkPbuSXqy8wQ8I8EsAamW2NrbFijoF1DfbrXTHY/suYb6PD/G7cAK5ubnXr984d+78iROnUlJ+fvJ19OjxU6fO/PnnhUuX/rp9+3ZODu7AUzhM3kZArSxVxGVoGxsHNffaHT94y7E+Nq1M1+j27TvHjh3fuPGbGTPmDB0a1a1bz6ZNfWvXbvTJJ206dw4MDu7dv/+QJ18hIf26dw/p2DGgXbsujRu3rFu3qY9P+549+0VHx86du3Dt2vUpKYfJoGlPaOWDANTKUh3sX3vZpU9zSyMU7bOzdZsYqKgHzRn/449za9asHzNmPOlOkyYtSW4mTJiyevXa77/fd+bM/27evCUwowcPHqSlpZHY7dixOyFh1ZQpM/v3H0wGO3ToOmrU2FWrvvrll1+x/hIIk9kwqFUhqF1jOtuVKlbIIGW6nQMbOtR6UxnbWrKakZGxa9e3pFA+Pu26dOk+derMrVu30zldXl6evGmQwQsXLm7fvmvmzHl9+oQ1bdpqxIhRSUlb6NRSXkfmraHHEgGolSU61Gfr4eq+dKCNPWtQ9q+XdJvUnQKQ8evatb9TUg7v3Ll7w4aklSsTN23aLKNx2U3du3cvOXlHePiIZs1aR0WNIYVKS/tHdi8WDJJKfvvtd3Fxk0gl6bySiN24ccPCeHQpTYD1H6HS+Shh37FeZdeIdkpYNmfT1tnRfeUQW09r31lNf120Kpk0aVpgYEj9+s19fTvQ+c7IkbGffTZ11qz569dvMheAuu0nT56m87sWLdrGxMT98MOP2dkq3y2HThtpz56I+fp2jIyMOXDgELWoi8iY3qFWguruOqqzc2ADQUOtH2RvV3TpQIfqFSRbojXUsmUrAwJ6fPJJW1qVrFu36fTpM5mZvN/Pjy7n0S5Sz56hQUG9aO/8zp27kgkoNJF2snbv3jtw4LC2bf1obysrK0shRzBrkoBe1cpkslY02toWndeniO9/rTAhbCpJ1YK+Tm0+EDb6uVH0H/6ePd/17z+kdetO8+bF/+9/qbQR89wIXh+QTm3Zkuzn152u0B07xtGnDZkDduXKVdrbIs6LFi25e5c7VTUXttbboVaCK+ho75E41LlHY8ETRA+0dXJ0Xz5YwiKOdGrXrj3+/sEREaNSUn6mh6J9qzSBQt28eVv79v6xsRNoh1ulKCS6TU+/SWrVrp3/ihWJtOySaAXTBBOAWglGRQNp4TO/T9F5vW2KONAjeb/sypTw3BHr1E70m2wOHfqpc+fAqKjRZ8+ekzckpa2RsAYG9hw79jNaqijtSzn76enps2fP79q1x08/HVbOCywTAagVQRD35fxpE6+9ExyqlBM3zcJoW1vnbg1eODxD7OsV6BoZXdcfMCCcLudbMM9h1z//XKfI6aSVTldlDE9FU+fP/9mv3+Dw8BFXr15TMQx9u4ZaSamvw38qeB2c4jY12O5FDynzn5njUKOi5+5xRRf1E3sFkLZ7O3fuRtf1nzGmgUPaSqMd9E6dAjQXuRC4dAXT3z8oOXmnkMEYI5YA1EosscfjHexd+vu8cGaB2+Qg+zdKPW4V/NvO1rFRVY9vRnntm/jwXlqC59FA2iKZNm02XUrn8KoZhWfh6/r1G8OGjZwwYYrmIreQVL4uSi0mZhytHDMzccUwHxtrH0KtrCJo6+bsEtbyhRNzvb6b4DLI1+G91yzfNo/GF2nyntvE7sVS4z23xNCxWPc3btzo1av/V199LXai6uP37z/g5xf4/ff7VI+EQQC0cgwK6pWa+gcDX8ZxYVqtjJO/XJnSlhNpkNehqcWvJtByyX1xmNv4ANeoDi5D27iO9nObEuyxZvgLR2cVv5ZA6ynSNbtXi0twffnyld69B5w4cUrCXBWn0IW/BQu+GDJkhPD38akYrVyuz507HxzcZ8+e7+QyCDtQK5mfA7T9RFtRTv51XcLbuMb4ucUFuEZ2cBngU6TVf+3fKm1jxd2TU1PP9uwZev78BZkjVtgcnRkNGjR8yZIE2rFS2BV35u/duxcZOToxcS13kWkzIKiVNur211+Xw8LC6SKgNsJ9HCWFTQp78GDK4wbD/aZ15fTpc2ifkQ4Ml7zcCUOt5CaqgL309PRBg4YpLlVyR37mzO89evTV3KvA5Mbw0B7tM9K+OwTrIQsrvqFWVsBjMjU7O3vQoOGaOwGkzbX+/QfTNQEmkDTgJDl5Z1zcJAiWNaWCWllDj8XcGTPmnDx5moUn+Xz88suvoaEDDbWnLgTe5s3b6JTQgPt3QuAIGQO1EkJJtTG7du1Zt47T+7qYg3Ls2PHBgyPwaiOTfNauXT9v3ucmu1Rq1JJbqBW/1bp69dr48ZP5jc9UZKdOnaHzVv7vTmMqdkZtCQkraZHFyJm+3ECt+K0nXUvS1t1ILl++MmRIxB3+7kvFW40/+2zq8eMneIuK/3igVpzW6MCBFG29sPD27Tt0FHcHKQAAEABJREFUAvjPP9c5BcpTWDk5ORERozR3kVd1hFAruUogp53c3NzJk6fLaVFhW3SpKzo6Fi9WEI45LS0tKmo0cRM+BSOhVjw+B7Zu3X7p0l88RmYmpvj4xQcOHDLTiWbTBH799diKFYmm+9BqigDUyhQVVdvo/9uEhFWqhiDO+Q8//Lh06XJxczD6XwLx8V+mpp799xA/CicAtSqcEeMRu3bt0dDd9dLT08ePn2TY1xBZ+dygDawxY+Lop5V2DDIdasVdodet28hdTGYCIpGKjf3s+nV8yp4ZQAKaz5z5PTFRe/f/EZCZ/EOgVvIztcbilStXjxw5ao0FlnO/+Wbr/v0HWHrUpa8lSxLwFiUhlYVaCaHEbszmzdtowcLOnxWe0tNvzp270AoDmPr/BO7cuRsfv/j/H+CXeQK8qJX5CI3Vs2PHbq0kPHXqTBIsrUTLeZwbN37z+++pnAepenhQK9VL8DSAtLS0c+fOP33M8dGxY8d37vyW4wA1FhpdCF60aInGgmYeLtSKOXLzDlNStPGBdPSnNX36HK2csZrnzVfP3r0//PGHxj4RkjFBqBVj4Jbc/fzzL5a6uenbvn3XiRNy3Buem4x4CITUf8WK1TxEwm0MUCuOSvPbbyc5isZMKLSwWrx4mZlONFtFIDl5J10UtsqEridDrXgpL6nAxYuXeInGfBxbt27n9kamdnZ2FSq81rp1y8GD+0+ZMmHVqiWbNq3ZsSNp//7dO3Z8s23bxsTEhNmzp0VFDevUqf2771Z2cnIyn6gKPbm5uRs2JKngWCMuoVa8FOry5Sv8v6aZJHXJkuW8IHscR5EiRerV+3jcuFHbtyetWLE4ImJIx47tatf+4LXXyr/00ovu7u6kYu7uRb28PMuVK1OjRvWWLT8ZNKhffPyc5OSNkybFtWjRzNnZ+bExlX9v2ZJMkFUOQln30q1DraSzk3fm+fN/ymtQCWv79v144cJFJSxLs0li1K9f7y1b1n/22dhGjRoULeomyg6JVJ06H0VHRyQlrQ0LCy1evJio6UoMvnbt75SUn5WwrAObUCteiqiJO0OtXs3LR+N5enoMGzZ43bpVXbt2FitSBUtOKy8/vw5ff72yV68etFIrOIBly+bN21i605AvqBUvxeL/7sCpqWd5uGppa2vbpo3vmjXL27b1dXBwkLF+tNQKCgpYvvyLd955W0azYk19992+e/fuiZ1lhPFQK16qnJGRITIU1sOTkjazdlnAn4eHx8SJ44YPH0wHBTrlaShbtsyCBbPat28jjznxVrKysg4fPiJ+nv5nQK14qXFGRiYvoZiKg64AbNu2w1QPu7by5cstW/Y57TQp7dLR0TE8PCw0tBet45T2ZdI+3ituEgvUyiQWFRrv37+vglfBLml/Xd13BVaq9DYteUqWfFlwyNYODAjwGzCgr7VWJM3fv/+gpHk6nwS10nmB5Upv9+69cpmSYMfbu+KcOVO9vDwlzLVmCm29+/t3ssaChLmvv16+YcN6tJg1OdfIjVArI1dfaO70l7Nvn2r3sSpVquT06RNdXV2FhivrODofrFWrhqwmTRizs7N7993KoaEhiYnLVq5c0rdvCJ2Nmhhn7CaolbHrLyz7gwd/UuuTDYsUKTJlyngVXwlFOjJqVKSnp4cwVOJGkdlmzRrHxcVs354UHz8nIKBLuXJlxZkw0miolZGqLTVXFT/PhpYbFSq8LjVweeYVK/bCwIH95LH1r5Vy5cp07dp5/vyZW7duGD06qmHD+ta/ZOxfwzr/YVy10nlhZU3v0KGfZLUn1FiNGtU7dmwndLSS42gF5O39hjUe7O3tq1d/b8CAPmvWLE9MTOjXr3e1alVp4WaNTaPNhVoZreKi8718+Yoqn8FDf8kDB/ZX6zUE+TBRGCEhwfkahTx0dy/auHGDMWNGbtu2Yd68GV26dCpTprSQiRhTkADUqiATtDxH4Jdffn3uMasHrVr5VKjwGitvhfupXftD4a9xf+WVUq1bt6Qdty1b1o8dO6pp00bu7u6F+8AIiwSgVhbxoNPGRpUb7zk4OAQFBciP3zqLXbp0tGCAFoNVq1YJDe21evXSdetWRUQMIYFzdHS0MAVdoghArUThMuLgY8d+Y592/fp1XnrpRfZ+LXv8+OOPCm6HOzs71679AWlTUtLahQtnBwT4lS9fzrId9EojALWSxs0os3JyclJT/2CfbceObdk7LdRjkYc30qrzaFipUiU7dGg7a9aUHTuSpkyZQOd9xTm44cyj2PT6E2ql18rKk9eff17Mzc2Vx5ZgK6+++kqVKpUFD2c6sG1b3969P12x4sv161cPGTKgZs33ca7HrABS1YpZgHCkKgFVFlYNGtRVNWlLzitVert7966qvwTMUoj67YNa6be2cmR29qwKnxlVt+7HcsQOG3ojALXSW0Xlzefy5SvyGizUmqura6VKbxU6DAMMSABqZcCii0j56tVrz4xmcfjOO2/Z2eFpyQK15nzgaaG5kjENmP3H273zzjtMM4Qz7RCAWmmnVmpEmpb2D2O3FSuq/B5mxvnCnXACUCvhrAw3MjMzMycnh3HapUqVZOwR7iwT4KcXasVPLbiL5ObNW+xjeuWVUuydwqMmCECtNFEmdYK8ffsOY8dOTk6enqxvZ8w4R7iTTABqJRmd/iey/1Q7NzdXW1tb/ZNFhpIIQK0kYZM0SXOT2G9aOTs7a44SAmZGAGrFDLX2HLF/h6Czs5P2MCFiVgSgVqxIa9DPgwcPGEft4ODA2CPcaYgA1EpDxWIdKnvtYL9TpjhTOJCPANRKPpa6s8T+XiiZmVm6o4iEZCMAtZINpf4MQa30V1NNZwS10nT5lA3elfnHI9+5cyc7O1vZrGBdswS0o1aaRazdwD09PRgHn5eXx/4eNYxzhDvJBKBWktHpf6KHhzv7m7dcuvSX/skiQ0kEoFaSsBljEkmVu3tRxrmeP3+BsUe40woBqJVWKqVOnC+//BJjx8ePn3jGIw5B4CkBqNVTFjgqSKBkyZcLNira8uuvxxS1D+PaJQC10m7tWEReqhTr+7ekpaX99ddlFrnBh9YIQK20VjG28ZYtW5qtw4fe9u79/uEvfBuVgLm8oVbmyKD9IQFVPjhv1649D33z+v3gwYPTp8/k5eXxGqBu44Ja6ba0siSmilr99ttJnk8GDx8+EhgY0qpVx0mTph84kML+vjqyVFaLRqBWWqwau5jd3YuWYn6jdFq2rFmzjl2SIj1t3ryNZly79ve6dRsHDhzatGmryMiYrVu3q3JjaIrEOF9QKz3XWpbcqlRR4SOzNm7czP4+y0JwZWZm7tnz3LZaRkbG7t17x4wZ37x565CQfgkJK8+dOy/EFMaIJQC1EkvMcONVUSuSgLVr13PIesOGJBIsk4HRftbRo8fnzo3v3DnQz6/7vHnxx4+foEaTg9EogQDUSgI0Y02pUqWyKgkvW7bi77/TVHFtzikt9xYvXm6u99n2s2fPLVu28tNP+/r4tBs/fvL33+/Drbue5SPtGGoljZuBZnl7v+HlpcLn0GRmZs2Zs4Ar0CRAt26J+9Sy69dvbNq0eejQKNreGjYsio5v3LihbFL6tQ610m9tZcrMzs6uZs33ZTImzkxy8s49e74TN0ex0XSZ8quvvpZsPisr67vv9tE6q0WLdj17hmJ7SwJJqJUEaIabUqtWTbVyjoubfOXKVbW8P/FL20+0jy7L2RyZOnbst0fbW+3b+8+aNf+XX36lxie+cGCOANTKHBm0PyVQu/YH7O/R/sj97du3R4wYZW5j+9EYBj/j4xcr8QbGixcvrVyZ2KdPGF1PjI2dQNcWVc+UAUzJLqBW5tGh5zEBDw+P99+v/vgR698nT56OiBil4oswd+7cvXSpoM11yWhu3ry1ZUtyZGRMkya+AwcOW7duE29XGCSnJuNEqJWMMPVsqlGj+iqmd/BgSnR0rCo3QT5w4NCYMRPy8hi9z4ZEmTxOmjQtLm6SisD5dA214rMuLKKytbUV7qZevTrqfpDynj3fDxgQTieGwmO2fiTtiw8fHk0KYr0psRbo7FvsFN2Ph1rpvsRmE3RxcTHbV6CjaFG3hg3rFWhm2nDkyNHg4D6nTp1R0utT24mJayMiomXZWX9qVPBR7dofCh5rlIFQK6NUumCeYj/SpnVrn4JGGLdcuHDx38v/q+7fv6+ca9pFIp2aPn2OWpfqKlR4nf19EJXjKZdlqJVcJLVnx83NVVTQVapU9vauKGqKEoPpvGzu3IXdun166NBPstun/Sna7e7UqRudeMpuXLhB1ZexwkNlORJqxZI2X77cxX9ChL9/R05ySE09S9tY/fsP/vHHgyQx1kdFyyjapQoM7BkbOyE9Pd16g5It2NnZtWjRTPJ0HU9UTq10DE0nqZUpI/q+oA0b1mf/uRIWcKekHB40aLifX/elS1fQSaKFkRa6rly5mpCwskOHrsOGRZ0587uFkWy6atZ8nyvIbLIW4gVqJYSSPseULVtWbGIODg5du/qJnaX0+HPnzs+f/znJjb9/0OTJM5KTd/z55wU6YTTnl5ZRly9f2b1776xZ87t27dG6dae5c+P5+RzDli0/MRe5wduhVsZ9ApQrV0ZC8rTXzu0GMJ0efv31hpiYuI4dA+rWbUoy1KNHn/79hwwfPjIyMoYOevce0K5dF+pq06Yztaxcmfj776kSICg35aWXXqxT5yPl7GvaMtRK0+WTHjxtWkk73XB0dAwO7mbOMT/ttICiU7zffjuZkvLz3r0/0EqKDo4cOUprKAvLLtXj9/fvRIRVD4PPAKBWfNZF8aiqVatKu7nS3Pj4NK9YsYK0uZhlgYCXl6evr/ovE7EQobpdUCt1+avm/T//qSbZN8lcePhAW1sRL4WX7MtQE7t06eTi4myolEUlC7UShUs/g618l3LVqlUaNKirHxwcZFK8eLH27VtzEIj4EFjNgFqxIs2Tn9KlX3399desjGjw4AHu7u5WGsH0JwT69Okp9t0FT+Ya5ABqZZBCP5fmJ580tbW19jyO1gJhYX2fs4sHUgm8+aY3FUXqbKPMg1oZpdJP8rS1tW3atNGTh9YctGjR7MMPa1ljAXOJAFVkyJABtBtIx/iyQABqZQEO8y4mDqtXf+/VV1+RxRX9mUVHD6dFlizWDGukVSufd9+tbNj0hScOtRLOSicjAwP9ZczkhRdeiImJxLpAMlL6nwMn1ALpQa0EgtLJsEqV3q4p9wfYkMEePQJ1AohtGqTyI0cOdxFzozG2AfLlDWrFVz2UjiY4OEAJF8HB3erVq6OEZX3bDAjwq1atqr5zlDE7qJWMMHk3VaPGfxS6IyVtYMXEjPD2foN3BDzFV6NG9ZCQYJ4i4j0WqBXvFZIrPkdHx/DwMLmsFbRDpzPTpk0sVapkwS60FCRAoMaOjbG3ty/YhRZzBKBW5sjord3fv1O5cqJvESOKQokSxadPn+jp6SFqlgEHu7q6TjBC/X8AAArnSURBVJkywcvL04C5W5OyntTKGg46n/vGGxWCghTZscoHrnz5crNnT8Vr3PNhefYhradiY0dWqGDtewmetWmQY6iV/gtN52hxcaOdnJzYpOrtXXHu3OkeHlhhmeBNFwFHjRqh0O6hCX/6aoJa6aueprKJihoq7cZ7powJavP2fmPOnKnFir0gaLRhBtG1iMjIoXK9kcAw2J4mCrV6ykKXRz17BjVq1IB9at7eFePj57wq04vmLcSvlS6SqvDwMB+f5loJmMM4oVYcFkW2kNq08VXxdZulS79KgvXOO2/Llo9mDTk4OERHR7RrhxvCWFVCqJVV+Hie3LBhvaFDB6obYfHixRYsmGXwuwvQvuHkyXEGhyDL8xBqJQtG7oy0aNEsNjaa9nRVj8zR0ZGWFWFhfWl9oXow7AMoUaL4woWzP/jgv+xd68/jU7XSX26GzSggoAsJBF0p54QAbdn4+XWkRRa3H5ajEKhq1aouXrzQGy/xl4kv1EomkHyYoZOO0aOjQkND+AjnuSgqV66UkLCoWbPGz7Xq9AGtaoOCAubMmfbiiyV0mqIKaUGtVICukMvy5cstWjSPZzlwd3cnMZ04cZy+X9xA2c2cOblXrx78LG8VesoxNgu1YgxcEXf0V0GnWkuXxot+hbQi4RRitG7d2omJCR07tqMFSCFDtdZN57zNmzdZuXJxjRr/0VrsGogXaqWBIlkOsWrVKsuWfU7b2MxerW45HiG97u5FBw/u/+WXC/R0z8zXXis/f/7MmJhILy8vIRAwRiwBqJVYYhyNr1Dh9XHjRtHuNR1wFJbgUN56yzs+fg6dGJZT+O3WgiOSOLBoUbe+fUNoV+69996VaALTBBCAWgmAxN+QSpXeoj/y5cu/aNSoAZ198BegiIjoxJBOnWg/i9YmIqbxMdTNzY1209evX92tWxftvESDD3bio4BaiWem3owSJUrQdg/tT9E5FP2Ra12nnoCkfTe6OLBixZcTJsRq5dzQ1dW1e/eu69evot10d3yu4pNaKnkAtVKSrhy2HR0dq1Wr2rNnEJ00bdr01eDB/d9801sOw9zZoE33+vXrUJq0Defr28KF17uVV6xYYdiwQUlJa3r3/hS3mmD5NIJasaRtyRc97+nPgFYWtWrVaNq08aefdh87dhQto3bu/Ib2bnv0CKQu+nu2ZEIvfd7eFSMjh27Zsp52rOniGidZOzs7t2jRbNGieQkJX7Rt24rOAfXCWzN5QK2sKZWccwMD/enPgFYWM2ZMHjMmitSqceMGtIzS0JU+OXHY2Li4ODdv3mT27KkkWyNHDv/444+oRV4XQqyVKFG8VSufKVMmJCdvjI6OqFy5kpBZGKMEAaiVElRhU04CXl6ePj7NJ0+O27496dEyk06NFVUuWufWqlWT/sOg/cGkpLUjRoTXrv2BYf/bkLOW1tmCWlnHD7MZEniyhUeatWvXFrokSieMfn4d6Ny5ZMmXJZ8wktnSpV+tUaM6XcGgVe2aNcu3b980Y8YkUiu69qqbSxkMC6WUK6iVUmRhV1ECpE1vvFGBNuPDwkJnzJi8YUPi3r3J69atIiGLjY0ODw8LCQnu3Ll969Yt6YsuONKWEx0EBPgFB3cLDQ2hAaNHRy1cOJuWTjRx7doVs2dPoysYtGNYpkxpy5GjVy0CUCu1yMOvzARoifTKK6XoJLFJk4bt27chVRo4sF9ExBD6ImGiLSc6CA3tRSoWENCFBpCEVa1a5cUXS5DwyRwKzClDAGqlDFdYBQEQkJsA1EpuorAHAiCgDAE11UqZjGAVBEBAnwSgVvqsK7ICAf0RgFrpr6bICAT0SQBqpc+68psVIgMBqQSgVlLJYR4IgABbAlArtrzhDQRAQCoBqJVUcpgHAiAglIA846BW8nCEFRAAAaUJQK2UJgz7IAAC8hCAWsnDEVZAAASUJgC1UpqwvPZhDQSMSwBqZdzaI3MQ0BYBqJW26oVoQcC4BKBWxq09MtcKAcT5iADU6hEH/AQBEOCdANSK9wohPhAAgUcEoFaPOOAnCIAA7wSMpVa8VwPxgQAImCcAtTLPBj0gAAI8EYBa8VQNxAICIGCeANTKPBv06IMAstALAaiVXiqJPEBA7wSgVnqvMPIDAb0QgFrppZLIAwT0TkCMWumdBfIDARDgmQDUiufqIDYQAIGnBKBWT1ngCARAgGcCUCueq8NDbIgBBHghALXipRKIAwRAwDIBqJVlPugFARDghQDUipdKIA4Q4IcAn5FArfisC6ICARDITwBqlZ8IHoMACPBJAGrFZ10QFQiAQH4CUKv8ROR9DGsgAAJyEYBayUUSdkAABJQlALVSli+sgwAIyEUAaiUXSdgBgccE8FsZAlArZbjCKgiAgNwEoFZyE4U9EAABZQhArZThCqsgAAJyE+BbreTOFvZAAAS0SwBqpd3aIXIQMBYBqJWx6o1sQUC7BKBW2q2dXiNHXiBgmgDUyjQXtIIACPBGAGrFW0UQDwiAgGkCUCvTXNAKAiDAkoAQX1ArIZQwBgRAQH0CUCv1a4AIQAAEhBCAWgmhhDEgAALqE4BaqV8DeSOANRDQKwGolV4ri7xAQG8EoFZ6qyjyAQG9EoBa6bWyyMtIBIyRK9TKGHVGliCgfQJQK+3XEBmAgDEIQK2MUWdkCQLaJwC1er6GeAQCIMArAagVr5VBXCAAAs8TgFo9zwOPQAAEeCUAteK1MoiLHQF40gYBqJU26oQoQQAEoFZ4DoAACGiDANRKG3VClCAAAvKqFXiCAAiAgFIEoFZKkYVdEAABeQlAreTlCWsgAAJKEYBaKUXWOHaRKQiwIQC1YsMZXkAABKwlALWyliDmgwAIsCEAtWLDGV5AQF8E1MgGaqUGdfgEARAQTwBqJZ4ZZoAACKhBAGqlBnX4BAEQEE8AaiWembwzYA0EQEAYAaiVME4YBQIgoDYBqJXaFYB/EAABYQSgVsI4YRQIyEkAtqQQgFpJoYY5IAAC7AlArdgzh0cQAAEpBKBWUqhhDgiAAHsCWlcr9sTgEQRAQB0CUCt1uMMrCICAWAJQK7HEMB4EQEAdAlArdbjDqzUEMNeYBKBWxqw7sgYB7RGAWmmvZogYBIxJAGplzLojaxDQGgEbG6iV9mqGiEHAmASgVsasO7IGAe0RgFppr2aIGASMSQBqZby6I2MQ0CYBqJU264aoQcB4BKBWxqs5MgYBbRKAWmmzbogaBMQR0MNoqJUeqogcQMAIBKBWRqgycgQBPRCAWumhisgBBIxAAGoltsoYDwIgoA4BqJU63OEVBEBALAGolVhiGA8CIKAOAaiVOtzhVVsEEC0PBKBWPFQBMYAACBROAGpVOCOMAAEQ4IEA1IqHKiAGEACBwgmwVqvCI8IIEAABEDBFAGpligraQAAE+CMAteKvJogIBEDAFAGolSkqaJOXAKyBgBwEoFZyUIQNEAAB5QlArZRnDA8gAAJyEIBayUERNkAABPITkP8x1Ep+prAIAiCgBAGolRJUYRMEQEB+AlAr+ZnCIgiAgBIEoFZKUJXXJqyBAAg8JAC1ekgB3yAAAvwTgFrxXyNECAIg8JAA1OohBXyDAG8EEE9BAlCrgkzQAgIgwCMBqBWPVUFMIAACBQlArQoyQQsIgACPBPSvVjxSR0wgAALiCUCtxDPDDBAAATUIQK3UoA6fIAAC4glArcQzwwz+CSBCPRKAWumxqsgJBPRIAGqlx6oiJxDQI4H/AwAA///KztZDAAAABklEQVQDAH0fXURG6VHyAAAAAElFTkSuQmCC" alt="Intercountry"></span>
       <span class="badge" id="teacher-identity" style="display:none;"></span>
-      <span class="badge">No live session</span>
+      <span data-i18n="teacher_login.no_live_session" class="badge">No live session</span>
     </span>
     <span class="nav-r">
-      <a class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
-      <a class="linklike" onclick="teacherSignOut()">Log out</a>
+      <a data-i18n="teacher_login.admin" data-i18n-title="teacher_login.ti.admin_quizzes_schools" class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
+      <a data-i18n="teacher_login.log_out" class="linklike" onclick="teacherSignOut()">Log out</a>
     </span>
   </div>
   <div class="duo">
     <div class="card">
-      <h1>Teacher — Home</h1>
-      <p class="sub">Start a new session, or review past results. A join code is generated when you launch.</p>
+      <h1 data-i18n="teacher_login.teacher_home">Teacher — Home</h1>
+      <p data-i18n="teacher_login.start_new_session_review_past_results" class="sub">Start a new session, or review past results. A join code is generated when you launch.</p>
       <!-- Shown only when this teacher has a run still in progress — see refreshOpenRunBanner(). -->
       <div id="home-rejoin" style="display:none;margin-top:16px;padding:14px;border:2px solid var(--success);background:var(--success-soft);border-radius:12px;">
-        <div style="font-weight:700;color:var(--success);margin-bottom:4px;">Session still running</div>
+        <div data-i18n="teacher_login.session_still_running" style="font-weight:700;color:var(--success);margin-bottom:4px;">Session still running</div>
         <div id="home-rejoin-detail" class="sub" style="margin:0 0 10px;"></div>
-        <button class="btn-primary" style="width:100%;" onclick="rejoinOpenRun()">Rejoin this session</button>
+        <button data-i18n="teacher_login.rejoin_session" class="btn-primary" style="width:100%;" onclick="rejoinOpenRun()">Rejoin this session</button>
       </div>
       <div class="stack" style="margin-top:16px;">
-        <button class="btn-primary" onclick="teacherCreateSession()">Launch Test</button>
-        <button class="btn-secondary" onclick="pollCreateSession()">New Poll</button>
-        <button class="btn-secondary" onclick="rpCreateSession()">Start a Role Play</button>
-        <button class="btn-outline" onclick="openHistory()">Test Archive</button>
+        <button data-i18n="teacher_login.launch_test" class="btn-primary" onclick="teacherCreateSession()">Launch Test</button>
+        <button data-i18n="teacher_login.new_poll" class="btn-secondary" onclick="pollCreateSession()">New Poll</button>
+        <button data-i18n="teacher_login.start_role_play" class="btn-secondary" onclick="rpCreateSession()">Start a Role Play</button>
+        <button data-i18n="teacher_login.test_archive" class="btn-outline" onclick="openHistory()">Test Archive</button>
       </div>
     </div>
     <div class="tip">
-      <div class="tip-label">Tip</div>
-      <p>Click <b>Launch Test</b> to pick a quiz and launch &mdash; then watch the roster on the live dashboard fill in on its own.</p>
-      <p style="margin-top:10px;">Closed the app by accident? A running session stays live for 12 hours &mdash; reopen the app and a <b>Rejoin</b> button appears here.</p>
+      <div data-i18n="teacher_login.tip" class="tip-label">Tip</div>
+      <p>Click <b data-i18n="teacher_login.launch_test">Launch Test</b> to pick a quiz and launch &mdash; then watch the roster on the live dashboard fill in on its own.</p>
+      <p style="margin-top:10px;">Closed the app by accident? A running session stays live for 12 hours &mdash; reopen the app and a <b data-i18n="teacher_login.rejoin">Rejoin</b> button appears here.</p>
     </div>
   </div>
 </div>
@@ -277,14 +281,14 @@
 <!-- TEACHER HISTORY -->
 <div class="screen" id="screen-teacher-history">
   <div class="top-nav">
-    <span class="badge">History</span>
-    <a class="linklike" onclick="showScreen('screen-teacher-login')">&larr; Back</a>
+    <span data-i18n="teacher_history.history" class="badge">History</span>
+    <a data-i18n="teacher_history.back" class="linklike" onclick="showScreen('screen-teacher-login')">&larr; Back</a>
   </div>
   <div class="card">
-    <h1>Test Archive</h1>
-    <p class="sub">Every test you've run in the last 6 months, most recent first. Download any run's results as CSV.</p>
-    <div id="history-list"><p class="sub">Loading…</p></div>
-    <small class="hint" style="margin-top:14px;">Reports are automatically archived and deleted after 6 months. Download anything you need to keep before then.</small>
+    <h1 data-i18n="teacher_history.test_archive">Test Archive</h1>
+    <p data-i18n="teacher_history.every_test_ve_run_last_6" class="sub">Every test you've run in the last 6 months, most recent first. Download any run's results as CSV.</p>
+    <div id="history-list"><p data-i18n="teacher_history.loading" class="sub">Loading…</p></div>
+    <small data-i18n="teacher_history.reports_automatically_archived_deleted_after_6" class="hint" style="margin-top:14px;">Reports are automatically archived and deleted after 6 months. Download anything you need to keep before then.</small>
   </div>
 </div>
 
@@ -293,58 +297,58 @@
   <div class="top-nav wide">
     <span class="nav-l">
       <span class="brandmark"><img src="data:image/png;base64,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" alt="Intercountry"></span>
-      <span class="badge">No live session</span>
+      <span data-i18n="teacher_setup.no_live_session" class="badge">No live session</span>
       <span class="badge" id="setup-session-code" style="display:none;"></span>
     </span>
     <span class="nav-r">
-      <a class="linklike" onclick="teacherHome()">&larr; Home</a>
-      <a class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
-      <a class="linklike" onclick="teacherSignOut()">Log out</a>
+      <a data-i18n="teacher_setup.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
+      <a data-i18n="teacher_setup.admin" data-i18n-title="teacher_setup.ti.admin_quizzes_schools" class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
+      <a data-i18n="teacher_setup.log_out" class="linklike" onclick="teacherSignOut()">Log out</a>
     </span>
   </div>
   <div class="duo">
   <div class="card">
-    <h1>Launch Test</h1>
-    <p class="sub">Pick a quiz, confirm settings, then launch.</p>
+    <h1 data-i18n="teacher_setup.launch_test">Launch Test</h1>
+    <p data-i18n="teacher_setup.pick_quiz_confirm_settings_then_launch" class="sub">Pick a quiz, confirm settings, then launch.</p>
   </div>
   <div class="duo-col">
   <div class="card">
-    <div class="step-label">Step 1 &middot; Choose a quiz</div>
+    <div data-i18n="teacher_setup.step_1_choose_quiz" class="step-label">Step 1 &middot; Choose a quiz</div>
     <div class="sel-row">
-      <select id="teacher-school-select" onchange="filterTeacherQuizzes()"><option value="">— select a school —</option></select>
-      <select id="teacher-quiz-select" onchange="teacherQuizPicked()"><option value="">— select a quiz —</option></select>
+      <select id="teacher-school-select" onchange="filterTeacherQuizzes()"><option data-i18n="poll.select_school" value="">— select a school —</option></select>
+      <select id="teacher-quiz-select" onchange="teacherQuizPicked()"><option data-i18n="test.select_quiz" value="">— select a quiz —</option></select>
     </div>
-    <button class="btn-primary" id="teacher-select-quiz-btn" style="width:100%;" onclick="loadQuizForTeacher()">Select this quiz</button>
+    <button data-i18n="teacher_setup.select_quiz" class="btn-primary" id="teacher-select-quiz-btn" style="width:100%;" onclick="loadQuizForTeacher()">Select this quiz</button>
     <p class="picked" id="teacher-quiz-status" style="display:none;"></p>
   </div>
   <div class="card" id="setup-step2" style="display:none;">
-    <div class="step-label">Step 2 &middot; Settings</div>
+    <div data-i18n="teacher_setup.step_2_settings" class="step-label">Step 2 &middot; Settings</div>
     <div class="toggle-row">
-      <span>Teacher-paced navigation<br><small class="hint">Off = students move freely between questions</small></span>
+      <span>Teacher-paced navigation<br><small data-i18n="teacher_setup.off_students_move_freely_between_questions" class="hint">Off = students move freely between questions</small></span>
       <label class="switch"><input type="checkbox" id="opt-paced"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
-      <span>Team mode<br><small class="hint">Students are split into random teams; the class is ranked by team at the end</small></span>
+      <span>Team mode<br><small data-i18n="teacher_setup.students_split_into_random_teams_class" class="hint">Students are split into random teams; the class is ranked by team at the end</small></span>
       <label class="switch"><input type="checkbox" id="opt-teams" onchange="onTeamsToggle()"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
-      <span>Randomize question order per student</span>
+      <span data-i18n="teacher_setup.randomize_question_order_per_student">Randomize question order per student</span>
       <label class="switch"><input type="checkbox" id="opt-rand-q"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
-      <span>Randomize answer order (MCQ)</span>
+      <span data-i18n="teacher_setup.randomize_answer_order_mcq">Randomize answer order (MCQ)</span>
       <label class="switch"><input type="checkbox" id="opt-rand-a"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
-      <span>Security monitoring (fullscreen, tab-switch &amp; copy/paste logging)</span>
+      <span data-i18n="teacher_setup.security_monitoring_fullscreen_tab_switch_copy">Security monitoring (fullscreen, tab-switch &amp; copy/paste logging)</span>
       <label class="switch"><input type="checkbox" id="opt-security"><span class="slider"></span></label>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 0 6px;">
-      <label style="margin:0;">Overall time limit (min &middot; 0 = none)</label>
+      <label data-i18n="teacher_setup.overall_time_limit_min_0_none" style="margin:0;">Overall time limit (min &middot; 0 = none)</label>
       <input type="number" id="opt-time-limit" value="0" min="0" class="mono" style="width:90px;text-align:center;">
     </div>
-    <small class="hint" id="opt-time-limit-hint" style="margin-bottom:16px;">Per-question limits only apply in free navigation &mdash; the question locks when time runs out.</small>
-    <button class="btn-primary" style="width:100%;" onclick="teacherStartTest()">Open Waiting Room &amp; Launch &rarr;</button>
+    <small data-i18n="teacher_setup.per_question_limits_only_apply_free" class="hint" id="opt-time-limit-hint" style="margin-bottom:16px;">Per-question limits only apply in free navigation &mdash; the question locks when time runs out.</small>
+    <button data-i18n="teacher_setup.open_waiting_room_launch" class="btn-primary" style="width:100%;" onclick="teacherStartTest()">Open Waiting Room &amp; Launch &rarr;</button>
   </div>
   </div>
   </div>
@@ -358,30 +362,30 @@
       <span class="badge live live-dot"><i></i>LIVE &middot; <b id="dash-session-code"></b></span>
     </span>
     <span class="nav-r">
-      <a class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
-      <a class="linklike" onclick="teacherLeaveDashboard()">Log out</a>
+      <a data-i18n="teacher_dashboard.admin" data-i18n-title="teacher_dashboard.ti.admin_quizzes_schools" class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
+      <a data-i18n="teacher_dashboard.log_out" class="linklike" onclick="teacherLeaveDashboard()">Log out</a>
     </span>
   </div>
   <div class="dash-duo">
   <div class="dash-col">
   <div class="card center">
-    <div class="step-label" style="margin-bottom:14px;">Scan to join</div>
-    <div id="qr-code" style="display:flex;justify-content:center;cursor:zoom-in;" title="Tap to enlarge for scanning" onclick="openQRFullscreen()"></div>
+    <div data-i18n="teacher_dashboard.scan_join" class="step-label" style="margin-bottom:14px;">Scan to join</div>
+    <div data-i18n-title="teacher_dashboard.ti.tap_enlarge_scanning" id="qr-code" style="display:flex;justify-content:center;cursor:zoom-in;" title="Tap to enlarge for scanning" onclick="openQRFullscreen()"></div>
     <p class="join-code" id="dash-join-code"></p>
-    <small class="hint" style="margin:0 0 12px;">Tap the code to enlarge it for the class.</small>
+    <small data-i18n="teacher_dashboard.tap_code_enlarge_class" class="hint" style="margin:0 0 12px;">Tap the code to enlarge it for the class.</small>
     <div class="row">
-      <button class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyQRImage('#qr-code', event)">Copy QR image</button>
-      <button class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyJoinLink()">Copy join link</button>
+      <button data-i18n="teacher_dashboard.copy_qr_image" class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyQRImage('#qr-code', event)">Copy QR image</button>
+      <button data-i18n="teacher_dashboard.copy_join_link" class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyJoinLink()">Copy join link</button>
     </div>
   </div>
   <div class="card">
-    <div class="step-label" style="margin-bottom:12px;">Test control</div>
+    <div data-i18n="teacher_dashboard.test_control" class="step-label" style="margin-bottom:12px;">Test control</div>
     <div id="dash-lobby">
-      <p class="sub">Waiting room is open. Students who join appear in the list below. When everyone is connected, start the test &mdash; all students begin together.</p>
+      <p data-i18n="teacher_dashboard.waiting_room_open_students_who_join" class="sub">Waiting room is open. Students who join appear in the list below. When everyone is connected, start the test &mdash; all students begin together.</p>
       <!-- Team controls: adjustable right up to the moment the test starts, then fixed. -->
       <div id="dash-teams-box" style="display:none;margin:14px 0;padding:14px;border:2px solid var(--ink);border-radius:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-          <label style="margin:0;font-weight:700;">Number of teams</label>
+          <label data-i18n="teacher_dashboard.number_teams" style="margin:0;font-weight:700;">Number of teams</label>
           <div style="display:flex;align-items:center;gap:8px;">
             <button class="btn-outline nav-sq" onclick="nudgeTeamCount(-1)" aria-label="Fewer teams">&minus;</button>
             <span class="qpill mono" id="dash-team-count">2</span>
@@ -390,26 +394,26 @@
         </div>
         <p class="sub" id="dash-team-note" style="margin:10px 0 0;"></p>
         <div id="dash-team-preview" style="margin-top:10px;"></div>
-        <button class="btn-outline" style="width:100%;margin-top:10px;" onclick="reshuffleTeams()">Shuffle teams again</button>
+        <button data-i18n="teacher_dashboard.shuffle_teams_again" class="btn-outline" style="width:100%;margin-top:10px;" onclick="reshuffleTeams()">Shuffle teams again</button>
       </div>
-      <button class="btn-primary" style="width:100%;" onclick="teacherBeginQuiz()">&#9654; Start Test for Everyone</button>
+      <button data-i18n="teacher_dashboard.start_test_everyone" class="btn-primary" style="width:100%;" onclick="teacherBeginQuiz()">&#9654; Start Test for Everyone</button>
     </div>
     <div id="dash-running" style="display:none;">
       <p class="sub" id="dash-mode-note"></p>
       <div class="countdown" id="dash-countdown" style="display:none;">
-        <div class="countdown-head"><span>Time remaining</span><span id="dash-cd-limit"></span></div>
+        <div class="countdown-head"><span data-i18n="teacher_dashboard.time_remaining">Time remaining</span><span id="dash-cd-limit"></span></div>
         <div class="countdown-clock" id="dash-cd-clock">--:--</div>
         <div class="countdown-bar"><i id="dash-cd-bar" style="width:100%"></i></div>
         <div class="countdown-note" id="dash-cd-note" style="display:none;"></div>
       </div>
       <div class="pace-row" id="dash-pace-controls">
-        <button class="btn-outline nav-sq" title="Previous question" onclick="pacedAdvance(-1)">&larr;</button>
+        <button data-i18n-title="teacher_dashboard.ti.previous_question" class="btn-outline nav-sq" title="Previous question" onclick="pacedAdvance(-1)">&larr;</button>
         <span class="qpill" id="dash-current-q">Q 1</span>
-        <button class="btn-primary nav-sq" title="Next question" onclick="pacedAdvance(1)">&rarr;</button>
+        <button data-i18n-title="teacher_dashboard.ti.next_question" class="btn-primary nav-sq" title="Next question" onclick="pacedAdvance(1)">&rarr;</button>
       </div>
       <button class="btn-warn" id="dash-pause-btn" style="width:100%;margin-top:12px;display:none;" onclick="teacherTogglePause()">&#9208; Pause Timers</button>
       <small class="hint" id="dash-pause-note" style="display:none;">Freezes the overall and per-question timers for everyone. Students see a "paused" screen and can't answer until you resume.</small>
-      <button class="btn-danger" style="width:100%;margin-top:12px;" onclick="teacherEndTest()">End Test for Everyone</button>
+      <button data-i18n="teacher_dashboard.end_test_everyone" class="btn-danger" style="width:100%;margin-top:12px;" onclick="teacherEndTest()">End Test for Everyone</button>
     </div>
   </div>
   </div>
@@ -423,9 +427,9 @@
     </div>
     <div class="dash-table">
       <div class="dash-head">
-        <span>#</span><span>Student</span>
-        <span class="qnav"><button id="qnav-prev" title="Earlier questions" onclick="shiftQGrid(-1)">&#9664;</button><span id="qnav-label">Questions</span><button id="qnav-next" title="Later questions" onclick="shiftQGrid(1)">&#9654;</button></span>
-        <span>Status</span><span style="text-align:right">%</span><span style="text-align:right">Alerts</span>
+        <span>#</span><span data-i18n="teacher_dashboard.student">Student</span>
+        <span class="qnav"><button data-i18n-title="teacher_dashboard.ti.earlier_questions" id="qnav-prev" title="Earlier questions" onclick="shiftQGrid(-1)">&#9664;</button><span data-i18n="teacher_dashboard.questions" id="qnav-label">Questions</span><button data-i18n-title="teacher_dashboard.ti.later_questions" id="qnav-next" title="Later questions" onclick="shiftQGrid(1)">&#9654;</button></span>
+        <span data-i18n="teacher_dashboard.status">Status</span><span style="text-align:right">%</span><span data-i18n="teacher_dashboard.alerts" style="text-align:right">Alerts</span>
       </div>
       <div id="dash-student-list"></div>
     </div>
@@ -433,7 +437,7 @@
       <span><i class="ok"></i>Correct</span><span><i class="no"></i>Wrong</span>
       <span><i></i>Not reached</span><span><i class="now"></i>On this question now</span>
     </div>
-    <small class="hint mono" id="dash-poll-note">Updates live. Reset clears a student's alerts (an accidental tab-switch) without turning monitoring off — only later alerts count in the report.</small>
+    <small data-i18n="teacher_dashboard.updates_live_reset_clears_student_s" class="hint mono" id="dash-poll-note">Updates live. Reset clears a student's alerts (an accidental tab-switch) without turning monitoring off — only later alerts count in the report.</small>
   </div>
   </div>
 </div>
@@ -441,22 +445,22 @@
 <!-- TEACHER RECAP -->
 <div class="screen" id="screen-teacher-recap">
   <div class="card">
-    <h1>Test Ended</h1>
+    <h1 data-i18n="teacher_recap.test_ended">Test Ended</h1>
     <p class="sub">Session <b id="recap-code"></b> — quick summary below.</p>
     <div class="row">
-      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-count">0</div><small class="hint">Students</small></div>
-      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-avg">0%</div><small class="hint">Average</small></div>
-      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-alerts">0</div><small class="hint">Cheat alerts</small></div>
+      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-count">0</div><small data-i18n="teacher_recap.students" class="hint">Students</small></div>
+      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-avg">0%</div><small data-i18n="teacher_recap.average" class="hint">Average</small></div>
+      <div class="card center" style="padding:14px;"><div style="font-size:1.6rem;font-weight:800;" id="recap-alerts">0</div><small data-i18n="teacher_recap.cheat_alerts" class="hint">Cheat alerts</small></div>
     </div>
     <!-- Team leaderboard: only drawn for a team run, and placed above the individual table
          because in team mode that is the result the class is waiting for. -->
     <div id="recap-teams" style="display:none;margin-top:20px;">
-      <h2 style="margin:0 0 2px;">Team leaderboard</h2>
-      <p class="sub" style="margin-bottom:10px;">Each team scores the average of its members&rsquo; percentages. Students who answered nothing aren&rsquo;t counted in their team&rsquo;s average.</p>
+      <h2 data-i18n="teacher_recap.team_leaderboard" style="margin:0 0 2px;">Team leaderboard</h2>
+      <p data-i18n="teacher_recap.each_team_scores_average_members_percentages" class="sub" style="margin-bottom:10px;">Each team scores the average of its members&rsquo; percentages. Students who answered nothing aren&rsquo;t counted in their team&rsquo;s average.</p>
       <div id="recap-team-list"></div>
     </div>
-    <h2 style="margin:20px 0 2px;">Student scores</h2>
-    <p class="sub" style="margin-bottom:0;">Ranked high to low. Students who hadn't submitted when you ended the test are marked incomplete.</p>
+    <h2 data-i18n="teacher_recap.student_scores" style="margin:20px 0 2px;">Student scores</h2>
+    <p data-i18n="teacher_recap.ranked_high_low_students_who_hadn" class="sub" style="margin-bottom:0;">Ranked high to low. Students who hadn't submitted when you ended the test are marked incomplete.</p>
     <div class="recap-table">
       <div class="recap-head">
         <span>#</span>
@@ -470,9 +474,9 @@
   </div>
   <div class="card" style="margin-top:16px;">
     <div class="stack">
-      <button class="btn-primary" onclick="exportResultsCSV()">Download CSV Results</button>
-      <button class="btn-secondary" onclick="startNewTestFromRecap()">Start a New Test</button>
-      <button class="btn-outline" onclick="teacherHome()">Return to Home</button>
+      <button data-i18n="teacher_recap.download_csv_results" class="btn-primary" onclick="exportResultsCSV()">Download CSV Results</button>
+      <button data-i18n="teacher_recap.start_new_test" class="btn-secondary" onclick="startNewTestFromRecap()">Start a New Test</button>
+      <button data-i18n="teacher_recap.return_home" class="btn-outline" onclick="teacherHome()">Return to Home</button>
     </div>
   </div>
 </div>
@@ -481,39 +485,39 @@
 <div class="screen" id="screen-poll-setup">
   <div class="top-nav wide">
     <span class="nav-l">
-      <span class="badge">New Poll</span>
+      <span data-i18n="poll_setup.new_poll" class="badge">New Poll</span>
       <span class="badge" id="poll-setup-code" style="display:none;"></span>
     </span>
     <span class="nav-r">
-      <a class="linklike" onclick="teacherHome()">&larr; Home</a>
-      <a class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
-      <a class="linklike" onclick="teacherSignOut()">Log out</a>
+      <a data-i18n="poll_setup.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
+      <a data-i18n="poll_setup.admin" data-i18n-title="poll_setup.ti.admin_quizzes_schools" class="linklike" title="Admin — quizzes &amp; schools" onclick="openAdmin()">Admin</a>
+      <a data-i18n="poll_setup.log_out" class="linklike" onclick="teacherSignOut()">Log out</a>
     </span>
   </div>
   <div class="duo">
   <div class="card">
-    <h1>New Poll</h1>
-    <p class="sub">A live vote you project for the class. Nothing is marked, and no results are kept after you close it.</p>
+    <h1 data-i18n="poll_setup.new_poll">New Poll</h1>
+    <p data-i18n="poll_setup.live_vote_project_class_nothing_marked" class="sub">A live vote you project for the class. Nothing is marked, and no results are kept after you close it.</p>
   </div>
   <div class="duo-col">
   <div class="card">
-    <div class="step-label">Step 1 &middot; Choose a poll set</div>
+    <div data-i18n="poll_setup.step_1_choose_poll_set" class="step-label">Step 1 &middot; Choose a poll set</div>
     <div class="sel-row">
-      <select id="poll-school-select" onchange="filterPollSets()"><option value="">— select a school —</option></select>
-      <select id="poll-set-select" onchange="pollSetPicked()"><option value="">— select a poll —</option></select>
+      <select id="poll-school-select" onchange="filterPollSets()"><option data-i18n="poll.select_school" value="">— select a school —</option></select>
+      <select id="poll-set-select" onchange="pollSetPicked()"><option data-i18n="poll.select_poll" value="">— select a poll —</option></select>
     </div>
-    <button class="btn-primary" id="poll-select-btn" style="width:100%;" onclick="loadPollSet()">Select this poll</button>
+    <button data-i18n="poll_setup.select_poll" class="btn-primary" id="poll-select-btn" style="width:100%;" onclick="loadPollSet()">Select this poll</button>
     <p class="picked" id="poll-set-status" style="display:none;"></p>
     <small class="hint" id="poll-none-hint" style="display:none;">No poll sets for this school yet. Build one in Admin: add Poll or Word Cloud questions, then tick &ldquo;Save as a poll set&rdquo;.</small>
   </div>
   <div class="card" id="poll-step2" style="display:none;">
-    <div class="step-label">Step 2 &middot; Settings</div>
+    <div data-i18n="poll_setup.step_2_settings" class="step-label">Step 2 &middot; Settings</div>
     <div class="toggle-row">
-      <span>Anonymous responses<br><small class="hint">On = students join with the code only, no name. Off = they give their name, so you can see who has voted.</small></span>
+      <span>Anonymous responses<br><small data-i18n="poll_setup.students_join_code_only_no_name" class="hint">On = students join with the code only, no name. Off = they give their name, so you can see who has voted.</small></span>
       <label class="switch"><input type="checkbox" id="poll-anon" checked><span class="slider"></span></label>
     </div>
-    <small class="hint" style="margin-bottom:16px;">Either way, nothing is stored once you close the poll &mdash; there is no results export.</small>
-    <button class="btn-primary" style="width:100%;" onclick="pollStartSession()">Open Poll &amp; Launch &rarr;</button>
+    <small data-i18n="poll_setup.either_way_nothing_stored_once_close" class="hint" style="margin-bottom:16px;">Either way, nothing is stored once you close the poll &mdash; there is no results export.</small>
+    <button data-i18n="poll_setup.open_poll_launch" class="btn-primary" style="width:100%;" onclick="pollStartSession()">Open Poll &amp; Launch &rarr;</button>
   </div>
   </div>
   </div>
@@ -521,14 +525,14 @@
 
 <!-- POLL LIVE (doubles as the projection view) -->
 <div class="screen" id="screen-poll-live">
-  <button class="btn-outline proj-exit" onclick="pollToggleProject(false)">Exit projection (Esc)</button>
+  <button data-i18n="poll_live.exit_projection_esc" class="btn-outline proj-exit" onclick="pollToggleProject(false)">Exit projection (Esc)</button>
   <div class="proj-bar" id="poll-proj-bar">
-    <button class="btn-outline" title="Previous question" onclick="pollAdvance(-1)">&larr;</button>
+    <button data-i18n-title="poll_live.ti.previous_question" class="btn-outline" title="Previous question" onclick="pollAdvance(-1)">&larr;</button>
     <span class="proj-qpos" id="poll-proj-qpos">Q 1</span>
-    <button class="btn-primary" title="Next question" onclick="pollAdvance(1)">&rarr;</button>
+    <button data-i18n-title="poll_live.ti.next_question" class="btn-primary" title="Next question" onclick="pollAdvance(1)">&rarr;</button>
     <button class="btn-warn" id="poll-proj-lock" onclick="pollToggleLock()">&#128274; Lock</button>
     <button class="btn-secondary" id="poll-proj-reveal" onclick="pollToggleReveal()">Reveal</button>
-    <button class="btn-outline" id="poll-proj-qr" title="Show the join code for latecomers" onclick="openQRFullscreen('poll')">&#9783; Join code</button>
+    <button data-i18n="poll_live.join_code" data-i18n-title="poll_live.ti.show_join_code_latecomers" class="btn-outline" id="poll-proj-qr" title="Show the join code for latecomers" onclick="openQRFullscreen('poll')">&#9783; Join code</button>
   </div>
   <div class="top-nav wide proj-hide" style="max-width:1140px;">
     <span class="nav-l">
@@ -536,27 +540,27 @@
       <span class="badge" id="poll-live-mode">Anonymous</span>
     </span>
     <span class="nav-r">
-      <a class="linklike" onclick="pollToggleProject(true)">Project</a>
-      <a class="linklike" onclick="pollClose()">Close poll</a>
+      <a data-i18n="poll_live.project" class="linklike" onclick="pollToggleProject(true)">Project</a>
+      <a data-i18n="poll_live.close_poll" class="linklike" onclick="pollClose()">Close poll</a>
     </span>
   </div>
   <div class="poll-wrap">
     <div class="poll-banner" id="poll-banner">
-      <span class="lbl">Poll</span>
+      <span data-i18n="poll_live.poll" class="lbl">Poll</span>
       <h2 id="poll-title">&mdash;</h2>
       <span class="badge proj-hide" id="poll-title-meta"></span>
     </div>
     <!-- lobby: shown until the teacher starts -->
     <div class="card center proj-hide" id="poll-lobby">
-      <div class="step-label" style="margin-bottom:14px;">Scan to join</div>
-      <div id="poll-qr" style="display:flex;justify-content:center;cursor:zoom-in;" title="Tap to enlarge for scanning" onclick="openQRFullscreen('poll')"></div>
+      <div data-i18n="poll_live.scan_join" class="step-label" style="margin-bottom:14px;">Scan to join</div>
+      <div data-i18n-title="poll_live.ti.tap_enlarge_scanning" id="poll-qr" style="display:flex;justify-content:center;cursor:zoom-in;" title="Tap to enlarge for scanning" onclick="openQRFullscreen('poll')"></div>
       <p class="join-code" id="poll-join-code"></p>
       <div class="lobby-count"><b id="poll-lobby-count">0</b><span id="poll-lobby-count-label">students connected</span></div>
       <div class="row">
-        <button class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyQRImage('#poll-qr', event)">Copy QR image</button>
-        <button class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyPollJoinLink()">Copy join link</button>
+        <button data-i18n="poll_live.copy_qr_image" class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyQRImage('#poll-qr', event)">Copy QR image</button>
+        <button data-i18n="poll_live.copy_join_link" class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyPollJoinLink()">Copy join link</button>
       </div>
-      <button class="btn-primary" style="width:100%;margin-top:14px;" onclick="pollBegin()">&#9654; Start Poll</button>
+      <button data-i18n="poll_live.start_poll" class="btn-primary" style="width:100%;margin-top:14px;" onclick="pollBegin()">&#9654; Start Poll</button>
     </div>
 
     <!-- the stage: this is what goes on the projector -->
@@ -585,15 +589,15 @@
     <!-- teacher controls: hidden while projecting -->
     <div class="card proj-hide" id="poll-controls" style="display:none;margin-top:16px;max-width:1140px;">
       <div class="pace-row">
-        <button class="btn-outline nav-sq" title="Previous question" onclick="pollAdvance(-1)">&larr;</button>
+        <button data-i18n-title="poll_live.ti.previous_question" class="btn-outline nav-sq" title="Previous question" onclick="pollAdvance(-1)">&larr;</button>
         <span class="qpill" id="poll-current-q">Q 1</span>
-        <button class="btn-primary nav-sq" title="Next question" onclick="pollAdvance(1)">&rarr;</button>
+        <button data-i18n-title="poll_live.ti.next_question" class="btn-primary nav-sq" title="Next question" onclick="pollAdvance(1)">&rarr;</button>
       </div>
       <div class="btn-row" style="margin-top:12px;">
         <button class="btn-warn" id="poll-lock-btn" onclick="pollToggleLock()">&#128274; Lock Question</button>
         <button class="btn-secondary" id="poll-reveal-btn" onclick="pollToggleReveal()">Reveal Results</button>
-        <button class="btn-outline" title="Show the join code for latecomers" onclick="openQRFullscreen('poll')">&#9783; Join code</button>
-        <button class="btn-outline" onclick="pollToggleProject(true)">Project</button>
+        <button data-i18n="poll_live.join_code" data-i18n-title="poll_live.ti.show_join_code_latecomers" class="btn-outline" title="Show the join code for latecomers" onclick="openQRFullscreen('poll')">&#9783; Join code</button>
+        <button data-i18n="poll_live.project" class="btn-outline" onclick="pollToggleProject(true)">Project</button>
       </div>
       <small class="hint" id="poll-roster-hint" style="margin-top:10px;"></small>
       <div id="poll-roster" style="margin-top:8px;"></div>
@@ -603,25 +607,25 @@
 
 <!-- POLL DEBRIEF (after Close poll — read from memory, nothing left in the database) -->
 <div class="screen" id="screen-poll-debrief">
-  <button class="btn-outline proj-exit" onclick="pollToggleProject(false)">Exit projection (Esc)</button>
+  <button data-i18n="poll_debrief.exit_projection_esc" class="btn-outline proj-exit" onclick="pollToggleProject(false)">Exit projection (Esc)</button>
   <div class="poll-wrap">
     <div class="top-nav wide proj-hide" style="max-width:1140px;">
-      <span class="nav-l"><span class="badge">Poll finished</span></span>
+      <span class="nav-l"><span data-i18n="poll_debrief.poll_finished" class="badge">Poll finished</span></span>
       <span class="nav-r">
-        <a class="linklike" onclick="pollToggleProject(true)">Project</a>
-        <a class="linklike" onclick="pollDebriefDone()">Done &mdash; back Home</a>
+        <a data-i18n="poll_debrief.project" class="linklike" onclick="pollToggleProject(true)">Project</a>
+        <a data-i18n="poll_debrief.done_back_home" class="linklike" onclick="pollDebriefDone()">Done &mdash; back Home</a>
       </span>
     </div>
     <div class="poll-stage" id="poll-debrief-stage">
-      <h1 class="poll-q" style="margin-bottom:4px;">Poll debrief</h1>
+      <h1 data-i18n="poll_debrief.poll_debrief" class="poll-q" style="margin-bottom:4px;">Poll debrief</h1>
       <p class="sub proj-hide" id="poll-debrief-sub"></p>
       <div id="poll-debrief-body"></div>
     </div>
     <div class="card proj-hide" style="margin-top:16px;max-width:1140px;">
       <small class="hint" id="poll-debrief-note"></small>
       <div class="btn-row" style="margin-top:10px;">
-        <button class="btn-outline" onclick="pollToggleProject(true)">Project this debrief</button>
-        <button class="btn-primary" onclick="pollDebriefDone()">Done</button>
+        <button data-i18n="poll_debrief.project_debrief" class="btn-outline" onclick="pollToggleProject(true)">Project this debrief</button>
+        <button data-i18n="poll_debrief.done" class="btn-primary" onclick="pollDebriefDone()">Done</button>
       </div>
     </div>
   </div>
@@ -647,32 +651,32 @@
 <div class="screen" id="screen-poll-done">
   <div class="card center wait-card">
     <div class="done-tick wait-pop">&#10003;</div>
-    <h1 class="wait-pop wait-d1">That's the poll done</h1>
+    <h1 data-i18n="poll_done.s_poll_done" class="wait-pop wait-d1">That's the poll done</h1>
     <p class="wait-pop wait-d1" style="font-weight:700;font-size:1.05rem;margin:2px 0 0;"><b id="pd-count">0 of 0</b> questions answered</p>
-    <p class="sub wait-pop wait-d2" style="margin-top:14px;font-weight:700;">You can put your phone away.</p>
+    <p data-i18n="poll_done.put_phone_away" class="sub wait-pop wait-d2" style="margin-top:14px;font-weight:700;">You can put your phone away.</p>
   </div>
 </div>
 
 <!-- STUDENT JOIN -->
 <div class="screen" id="screen-student-join">
   <div class="card">
-    <h1>Join</h1>
-    <label>Session code</label>
-    <input type="text" id="s-session-code" placeholder="Ask your teacher" maxlength="10"
+    <h1 data-i18n="student_join.join">Join</h1>
+    <label data-i18n="student_join.session_code">Session code</label>
+    <input data-i18n-ph="student_join.ph.ask_teacher" type="text" id="s-session-code" placeholder="Ask your teacher" maxlength="10"
            inputmode="text" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false"
            style="text-transform:uppercase;" oninput="formatSessionCode(this)">
     <!-- Hidden until we know the session actually wants a name: an anonymous poll never does. -->
     <div id="join-names" style="display:none;">
-      <label>Surname (family name)</label>
-      <input type="text" id="s-surname" placeholder="e.g. Dubois">
-      <label>First name</label>
-      <input type="text" id="s-firstname" placeholder="e.g. Marie">
+      <label data-i18n="student_join.surname_family_name">Surname (family name)</label>
+      <input data-i18n-ph="student_join.ph.e_g_dubois" type="text" id="s-surname" placeholder="e.g. Dubois">
+      <label data-i18n="student_join.first_name">First name</label>
+      <input data-i18n-ph="student_join.ph.e_g_marie" type="text" id="s-firstname" placeholder="e.g. Marie">
     </div>
     <p id="join-status" class="sub" style="margin-top:10px;"></p>
     <div class="row" style="margin-top:16px;">
       <button class="btn-primary" id="join-btn" onclick="studentJoin()">Continue</button>
     </div>
-    <p style="margin-top:16px;"><a class="linklike" onclick="showScreen('screen-role')">&larr; Back</a></p>
+    <p style="margin-top:16px;"><a data-i18n="student_join.back" class="linklike" onclick="showScreen('screen-role')">&larr; Back</a></p>
   </div>
 </div>
 
@@ -680,14 +684,14 @@
 <div class="screen" id="screen-student-waiting">
   <div class="card center wait-card">
     <div class="wait-beacon" aria-hidden="true"><span></span><span></span><span></span></div>
-    <h1 class="wait-pop">You're in!</h1>
+    <h1 data-i18n="student_waiting.re" class="wait-pop">You're in!</h1>
     <p class="wait-pop wait-d1"><b id="wait-name"></b> — session <b id="wait-code"></b></p>
     <p class="sub wait-pop wait-d2" id="wait-status">Waiting for your teacher to start the test<i class="wait-dots"><i>.</i><i>.</i><i>.</i></i></p>
     <!-- The student no longer starts the test themselves; the teacher's launch opens it for
          everyone. These two nodes are kept (permanently hidden) so the status-poll code can
          address them without null checks, and so a future opt-in start has somewhere to live. -->
-    <button class="btn-primary wait-cta" id="wait-start-btn" style="display:none;width:100%;font-size:1.2rem;" hidden>&#9654; Start Your Test</button>
-    <small class="hint" id="wait-start-hint" style="display:none;" hidden>The test will open by itself.</small>
+    <button data-i18n="student_waiting.start_test" class="btn-primary wait-cta" id="wait-start-btn" style="display:none;width:100%;font-size:1.2rem;" hidden>&#9654; Start Your Test</button>
+    <small data-i18n="student_waiting.test_open_itself" class="hint" id="wait-start-hint" style="display:none;" hidden>The test will open by itself.</small>
     <div id="wait-team" style="display:none;margin-top:18px;"></div>
   </div>
 </div>
@@ -709,32 +713,32 @@
   </div>
   <div id="q-palette-wrap" class="card" style="margin-top:16px;">
     <div class="q-bar" id="q-bar"></div>
-    <p class="sub center" style="font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0;">Tap the bar to jump</p>
+    <p data-i18n="student_test.tap_bar_jump" class="sub center" style="font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0;">Tap the bar to jump</p>
     <div class="q-nav">
-      <button class="btn-outline prev" id="q-prev" onclick="goToQuestion(STUDENT.currentPos-1)" title="Previous question">&larr;</button>
-      <button class="btn-primary next" id="q-next" onclick="goToQuestion(STUDENT.currentPos+1)">Next question &rarr;</button>
+      <button data-i18n-title="student_test.ti.previous_question" class="btn-outline prev" id="q-prev" onclick="goToQuestion(STUDENT.currentPos-1)" title="Previous question">&larr;</button>
+      <button data-i18n="student_test.next_question" class="btn-primary next" id="q-next" onclick="goToQuestion(STUDENT.currentPos+1)">Next question &rarr;</button>
     </div>
-    <button class="btn-handin" onclick="studentConfirmSubmit()">Hand in my test</button>
+    <button data-i18n="student_test.hand_my_test" class="btn-handin" onclick="studentConfirmSubmit()">Hand in my test</button>
   </div>
   <div id="q-paced-nav" class="card" style="margin-top:16px;display:none;">
-    <p class="sub center">Your teacher controls when the test moves to the next question.</p>
+    <p data-i18n="student_test.teacher_controls_when_test_moves_next" class="sub center">Your teacher controls when the test moves to the next question.</p>
   </div>
 </div>
 
 <!-- STUDENT FEEDBACK -->
 <div class="screen" id="screen-student-feedback">
   <div class="fb-panel">
-    <span class="fb-pill">Test Complete</span>
+    <span data-i18n="student_feedback.test_complete" class="fb-pill">Test Complete</span>
     <div class="fb-dial">
       <div class="fb-pct" id="fb-percentage">--%</div>
       <div class="fb-pts" id="fb-score"></div>
     </div>
     <h1 class="fb-title">Nicely done, <span id="fb-name"></span>.</h1>
-    <p class="fb-sub">Your answers are in. You can close this window — your teacher has the results.</p>
+    <p data-i18n="student_feedback.answers_close_window_teacher_results" class="fb-sub">Your answers are in. You can close this window — your teacher has the results.</p>
     <div class="fb-stats">
-      <span class="fb-stat"><b id="fb-correct">0</b><i>correct</i></span>
-      <span class="fb-stat"><b id="fb-missed">0</b><i>missed</i></span>
-      <span class="fb-stat"><b id="fb-time">0:00</b><i>min taken</i></span>
+      <span class="fb-stat"><b id="fb-correct">0</b><i data-i18n="student_feedback.correct">correct</i></span>
+      <span class="fb-stat"><b id="fb-missed">0</b><i data-i18n="student_feedback.missed">missed</i></span>
+      <span class="fb-stat"><b id="fb-time">0:00</b><i data-i18n="student_feedback.min_taken">min taken</i></span>
     </div>
   </div>
 </div>
@@ -742,17 +746,17 @@
 <!-- TEST PAUSED OVERLAY (teacher has frozen the timers) -->
 <div id="pause-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,29,41,.96);z-index:1900;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
   <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:420px;width:100%;">
-    <h2 style="margin:0 0 8px;">&#9208; Test paused</h2>
-    <p class="sub" style="margin:0;">Your teacher has paused the test. The timer is stopped and your answers are saved. Please wait — the test will continue shortly.</p>
+    <h2 data-i18n="student_feedback.test_paused" style="margin:0 0 8px;">&#9208; Test paused</h2>
+    <p data-i18n="student_feedback.teacher_paused_test_timer_stopped_answers" class="sub" style="margin:0;">Your teacher has paused the test. The timer is stopped and your answers are saved. Please wait — the test will continue shortly.</p>
   </div>
 </div>
 
 <!-- RETURN-TO-FULLSCREEN OVERLAY (shown to students if full screen is lost mid-test) -->
 <div id="fs-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,29,41,.96);z-index:2000;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
   <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:420px;width:100%;">
-    <h2 style="margin:0 0 8px;">Full screen required</h2>
-    <p class="sub" style="margin-bottom:18px;">Your test runs in full screen. Tap the button to continue — your answers are safe.</p>
-    <button class="btn-primary" style="width:100%;font-size:1.15rem;" onclick="resumeFullscreen()">Continue in Full Screen</button>
+    <h2 data-i18n="student_feedback.full_screen_required" style="margin:0 0 8px;">Full screen required</h2>
+    <p data-i18n="student_feedback.test_runs_full_screen_tap_button" class="sub" style="margin-bottom:18px;">Your test runs in full screen. Tap the button to continue — your answers are safe.</p>
+    <button data-i18n="student_feedback.continue_full_screen" class="btn-primary" style="width:100%;font-size:1.15rem;" onclick="resumeFullscreen()">Continue in Full Screen</button>
   </div>
 </div>
 
@@ -760,13 +764,13 @@
 <div id="img-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,29,41,.92);z-index:1500;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;" onclick="closeImagePicker()">
   <div style="background:var(--card,#fff);border-radius:16px;padding:20px;max-width:760px;width:100%;margin:auto;" onclick="event.stopPropagation()">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
-      <h2 style="margin:0;">Find a free image</h2>
-      <button class="linklike" onclick="closeImagePicker()">Close</button>
+      <h2 data-i18n="student_feedback.find_free_image" style="margin:0;">Find a free image</h2>
+      <button data-i18n="student_feedback.close" class="linklike" onclick="closeImagePicker()">Close</button>
     </div>
-    <p class="sub" style="margin:6px 0 12px;">Unsplash first, then the Creative Commons archives. Unsplash photos carry a small credit line under the picture; public-domain ones carry nothing.</p>
+    <p data-i18n="student_feedback.unsplash_first_then_creative_commons_archives" class="sub" style="margin:6px 0 12px;">Unsplash first, then the Creative Commons archives. Unsplash photos carry a small credit line under the picture; public-domain ones carry nothing.</p>
     <div class="row" style="gap:8px;">
-      <input type="text" id="img-q" placeholder="e.g. price skimming" style="flex:2;" onkeydown="if(event.key==='Enter')runImageSearch(0)">
-      <button class="btn-primary" style="flex:0 0 auto;" onclick="runImageSearch(0)">Search</button>
+      <input data-i18n-ph="student_feedback.ph.e_g_price_skimming" type="text" id="img-q" placeholder="e.g. price skimming" style="flex:2;" onkeydown="if(event.key==='Enter')runImageSearch(0)">
+      <button data-i18n="student_feedback.search" class="btn-primary" style="flex:0 0 auto;" onclick="runImageSearch(0)">Search</button>
     </div>
     <small class="hint" id="img-topic-note" style="display:none;margin-top:6px;"></small>
     <label class="hint" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:400;cursor:pointer;">
@@ -788,43 +792,45 @@
     <div id="qr-overlay-code" style="display:flex;justify-content:center;"></div>
     <p style="font-size:2.2rem;font-weight:800;letter-spacing:3px;margin:16px 0 4px;" id="qr-overlay-text"></p>
     <div class="row" style="margin-top:12px;">
-      <button class="btn-outline" onclick="copyQRImage('#qr-overlay-code', event)">Copy QR image</button>
-      <button class="btn-secondary" onclick="closeQRFullscreen()">Close</button>
+      <button data-i18n="student_feedback.copy_qr_image" class="btn-outline" onclick="copyQRImage('#qr-overlay-code', event)">Copy QR image</button>
+      <button data-i18n="student_feedback.close" class="btn-secondary" onclick="closeQRFullscreen()">Close</button>
     </div>
   </div>
-  <p style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
+  <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.1.1"></script>
-<script src="core/i18n.js?v=3.1.1"></script>
-<script src="core/registry.js?v=3.1.1"></script>
-<script src="core/backend.js?v=3.1.1"></script>
-<script src="core/auth.js?v=3.1.1"></script>
-<script src="core/ui.js?v=3.1.1"></script>
-<script src="core/session.js?v=3.1.1"></script>
-<script src="core/groups.js?v=3.1.1"></script>
-<script src="core/bank.js?v=3.1.1"></script>
-<script src="core/media.js?v=3.1.1"></script>
-<script src="core/security.js?v=3.1.1"></script>
-<script src="modules/test.js?v=3.1.1"></script>
-<script src="modules/poll.js?v=3.1.1"></script>
-<script src="modules/roleplay.js?v=3.1.1"></script>
-<script src="admin/editor.js?v=3.1.1"></script>
-<script src="admin/import.js?v=3.1.1"></script>
-<script src="admin/reports.js?v=3.1.1"></script>
-<script src="admin/scenarios.js?v=3.1.1"></script>
-<script src="admin/accounts.js?v=3.1.1"></script>
-<script src="boot.js?v=3.1.1"></script>
+<script src="lang/en.js?v=3.3"></script>
+<script src="lang/fr.js?v=3.3"></script>
+<script src="core/i18n.js?v=3.3"></script>
+<script src="core/registry.js?v=3.3"></script>
+<script src="core/backend.js?v=3.3"></script>
+<script src="core/auth.js?v=3.3"></script>
+<script src="core/ui.js?v=3.3"></script>
+<script src="core/session.js?v=3.3"></script>
+<script src="core/groups.js?v=3.3"></script>
+<script src="core/bank.js?v=3.3"></script>
+<script src="core/media.js?v=3.3"></script>
+<script src="core/security.js?v=3.3"></script>
+<script src="core/answers.js?v=3.3"></script>
+<script src="modules/test.js?v=3.3"></script>
+<script src="modules/poll.js?v=3.3"></script>
+<script src="modules/roleplay.js?v=3.3"></script>
+<script src="admin/editor.js?v=3.3"></script>
+<script src="admin/import.js?v=3.3"></script>
+<script src="admin/reports.js?v=3.3"></script>
+<script src="admin/scenarios.js?v=3.3"></script>
+<script src="admin/accounts.js?v=3.3"></script>
+<script src="boot.js?v=3.3"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
 <div id="backend-down" class="backend-down" hidden>
   <div class="card center">
-    <h1>Can&rsquo;t reach the database</h1>
-    <p class="sub">Nothing can be saved, no session can be started and no student can join.
+    <h1 data-i18n="student_feedback.t_reach_database">Can&rsquo;t reach the database</h1>
+    <p data-i18n="student_feedback.nothing_saved_no_session_started_no" class="sub">Nothing can be saved, no session can be started and no student can join.
       Don&rsquo;t begin a classroom activity until this is fixed.</p>
     <p id="backend-down-detail" class="backend-down-detail"></p>
-    <button class="btn-primary" onclick="location.reload()">Try again</button>
+    <button data-i18n="student_feedback.try_again" class="btn-primary" onclick="location.reload()">Try again</button>
   </div>
 </div>
 
@@ -832,19 +838,19 @@
 <!-- ROLE PLAY — teacher setup -->
 <div class="screen" id="screen-rp-setup">
   <div class="top-nav wide">
-    <span class="badge">Role Play &middot; Setup</span>
+    <span data-i18n="rp_setup.role_play_setup" class="badge">Role Play &middot; Setup</span>
     <span id="rp-setup-code" class="badge live" style="display:none;"></span>
-    <a class="linklike" onclick="teacherHome()">&larr; Home</a>
+    <a data-i18n="rp_setup.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
   </div>
   <div class="card">
-    <h1>Start a role play</h1>
-    <p class="sub">Pick a school, then a set of scenarios. Students join with the code; the app deals the parts.</p>
-    <label>School</label>
-    <select id="rp-school-select" onchange="filterRoleplaySets()"><option value="">— select a school —</option></select>
-    <label style="margin-top:14px;">Role play</label>
-    <select id="rp-set-select" onchange="rpSetPicked()"><option value="">— select a school first —</option></select>
+    <h1 data-i18n="rp_setup.start_role_play">Start a role play</h1>
+    <p data-i18n="rp_setup.pick_school_then_set_scenarios_students" class="sub">Pick a school, then a set of scenarios. Students join with the code; the app deals the parts.</p>
+    <label data-i18n="rp_setup.school">School</label>
+    <select id="rp-school-select" onchange="filterRoleplaySets()"><option data-i18n="poll.select_school" value="">— select a school —</option></select>
+    <label data-i18n="rp_setup.role_play" style="margin-top:14px;">Role play</label>
+    <select id="rp-set-select" onchange="rpSetPicked()"><option data-i18n="poll.select_school_first" value="">— select a school first —</option></select>
     <p id="rp-summary" class="sub" style="margin-top:10px;"></p>
-    <button class="btn-primary" id="rp-start-btn" style="width:100%;margin-top:14px;" disabled onclick="rpStartSession()">Open the room</button>
+    <button data-i18n="rp_setup.open_room" class="btn-primary" id="rp-start-btn" style="width:100%;margin-top:14px;" disabled onclick="rpStartSession()">Open the room</button>
   </div>
 </div>
 
@@ -853,22 +859,22 @@
   <div class="top-nav wide">
     <span class="badge">Role Play &middot; <span id="rp-live-code"></span></span>
     <span class="nav-r">
-      <a class="linklike" onclick="rpToggleProject()">Project</a>
-      <a class="linklike" onclick="rpLeave()">Leave</a>
-      <a class="linklike" onclick="rpEnd()">End</a>
+      <a data-i18n="rp_live.project" class="linklike" onclick="rpToggleProject()">Project</a>
+      <a data-i18n="rp_live.leave" class="linklike" onclick="rpLeave()">Leave</a>
+      <a data-i18n="rp_live.end" class="linklike" onclick="rpEnd()">End</a>
     </span>
   </div>
 
   <div id="rp-lobby">
     <div class="card center">
       <h1 id="rp-title">Role play</h1>
-      <p class="sub">Students join at the code below. Deal the parts when everyone is in.</p>
+      <p data-i18n="rp_live.students_join_code_below_deal_parts" class="sub">Students join at the code below. Deal the parts when everyone is in.</p>
       <div class="joincode" id="rp-join-code"></div>
       <div id="rp-qr-code" style="margin:14px auto;"></div>
       <p class="sub mono" id="rp-join-url" style="font-size:.75rem;"></p>
       <p class="sub" id="rp-count">0 joined</p>
       <div id="rp-roster" class="chips"></div>
-      <button class="btn-primary" id="rp-deal-btn" style="width:100%;margin-top:16px;" disabled onclick="rpDeal()">Deal the parts</button>
+      <button data-i18n="rp_live.deal_parts" class="btn-primary" id="rp-deal-btn" style="width:100%;margin-top:16px;" disabled onclick="rpDeal()">Deal the parts</button>
     </div>
   </div>
 
@@ -883,15 +889,15 @@
         <select id="rp-scenario-select" onchange="rpPickScenario()" style="flex:1;"></select>
       </div>
       <div class="btn-row" style="margin-top:12px;">
-        <button class="btn-outline" onclick="rpSwapRoles()">Swap roles</button>
-        <button class="btn-outline" onclick="rpNewPartners()">New partners</button>
+        <button data-i18n="rp_live.swap_roles" class="btn-outline" onclick="rpSwapRoles()">Swap roles</button>
+        <button data-i18n="rp_live.new_partners" class="btn-outline" onclick="rpNewPartners()">New partners</button>
       </div>
-      <p class="sub" style="margin-top:8px;font-size:.8rem;">
+      <p data-i18n="rp_live.swap_roles_keeps_pairs_changes_who" class="sub" style="margin-top:8px;font-size:.8rem;">
         Swap roles keeps the pairs and changes who plays what &mdash; the second run is where the fluency comes from.
         New partners reshuffles the room.</p>
     </div>
     <div class="card" style="margin-top:16px;">
-      <h2>Who is with whom</h2>
+      <h2 data-i18n="rp_live.who_whom">Who is with whom</h2>
       <div id="rp-groups" class="rp-groups"></div>
     </div>
   </div>
@@ -903,20 +909,20 @@
     <h1 id="rp-proj-title"></h1>
     <p id="rp-proj-situation"></p>
     <div id="rp-proj-groups" class="rp-proj-groups"></div>
-    <p class="rp-proj-hint">Tap anywhere to close</p>
+    <p data-i18n="rp_live.tap_anywhere_close" class="rp-proj-hint">Tap anywhere to close</p>
   </div>
 </div>
 
 <!-- ROLE PLAY — the student's card -->
 <div class="screen" id="screen-rp-card">
   <div class="top-nav">
-    <span class="badge">Role play</span>
+    <span data-i18n="rp_card.role_play" class="badge">Role play</span>
     <span id="rp-card-name" class="badge" style="display:none;"></span>
   </div>
 
   <div class="card center" id="rp-card-waiting">
-    <h1>You&rsquo;re in</h1>
-    <p class="sub">Wait for your teacher to deal the parts. Your card appears here.</p>
+    <h1 data-i18n="rp_card.re">You&rsquo;re in</h1>
+    <p data-i18n="rp_card.wait_teacher_deal_parts_card_appears" class="sub">Wait for your teacher to deal the parts. Your card appears here.</p>
   </div>
 
   <div id="rp-card-main" style="display:none;">
@@ -935,15 +941,15 @@
 
     <div id="rp-card-body">
       <div class="card rp-brief" style="margin-top:14px;">
-        <div class="rp-brief-label">Your brief</div>
+        <div data-i18n="rp_card.brief" class="rp-brief-label">Your brief</div>
         <p id="rp-card-brief"></p>
       </div>
       <div class="card rp-secret" id="rp-card-secret" style="margin-top:14px;display:none;">
-        <div class="rp-brief-label">Only you know this</div>
+        <div data-i18n="rp_card.only_know" class="rp-brief-label">Only you know this</div>
         <p id="rp-card-secret-text"></p>
       </div>
       <div class="card" id="rp-card-useful" style="margin-top:14px;display:none;">
-        <div class="rp-brief-label">Useful language</div>
+        <div data-i18n="rp_card.useful_language" class="rp-brief-label">Useful language</div>
         <p id="rp-card-useful-text"></p>
       </div>
     </div>
@@ -953,78 +959,78 @@
 <!-- ROLE PLAY — student, finished -->
 <div class="screen" id="screen-rp-done">
   <div class="card center">
-    <h1>That&rsquo;s the end</h1>
-    <p class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
+    <h1 data-i18n="rp_done.s_end">That&rsquo;s the end</h1>
+    <p data-i18n="rp_done.thanks_nothing_was_marked_nothing_was" class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
   </div>
 </div>
 
 <!-- ROLE PLAY — the scenario editor -->
 <div class="screen" id="screen-rp-editor">
   <div class="top-nav wide">
-    <span class="badge">Admin &middot; Role Play Builder</span>
-    <a class="linklike" onclick="leaveScenarioEditor()">&larr; Back</a>
+    <span data-i18n="rp_editor.admin_role_play_builder" class="badge">Admin &middot; Role Play Builder</span>
+    <a data-i18n="rp_editor.back" class="linklike" onclick="leaveScenarioEditor()">&larr; Back</a>
   </div>
   <div class="duo">
     <div class="card">
-      <h2>This set</h2>
-      <label>Name</label>
-      <input type="text" id="rp-set-name" placeholder="e.g. BTS2 Assurance — claims calls">
-      <label style="margin-top:12px;">Schools</label>
+      <h2 data-i18n="rp_editor.set">This set</h2>
+      <label data-i18n="rp_editor.name">Name</label>
+      <input data-i18n-ph="rp_editor.ph.e_g_bts2_assurance_claims_calls" type="text" id="rp-set-name" placeholder="e.g. BTS2 Assurance — claims calls">
+      <label data-i18n="rp_editor.schools" style="margin-top:12px;">Schools</label>
       <div id="rp-school-checks" class="checks"></div>
       <div class="btn-row" style="margin-top:14px;">
-        <button class="btn-outline" onclick="addScenario()">+ Scenario</button>
-        <button class="btn-outline" onclick="importScenariosFromExcel()">Import Excel</button>
+        <button data-i18n="rp_editor.scenario" class="btn-outline" onclick="addScenario()">+ Scenario</button>
+        <button data-i18n="rp_editor.import_excel" class="btn-outline" onclick="importScenariosFromExcel()">Import Excel</button>
       </div>
       <div id="rp-scenario-list" class="qbank" style="margin-top:12px;"></div>
-      <button class="btn-primary" style="width:100%;margin-top:14px;" onclick="saveScenarioSet()">Save Role Play</button>
-      <p class="sub" style="font-size:.78rem;margin-top:8px;">Nothing is kept until you press Save.</p>
+      <button data-i18n="rp_editor.save_role_play" class="btn-primary" style="width:100%;margin-top:14px;" onclick="saveScenarioSet()">Save Role Play</button>
+      <p data-i18n="rp_editor.nothing_kept_until_press_save" class="sub" style="font-size:.78rem;margin-top:8px;">Nothing is kept until you press Save.</p>
     </div>
 
     <div class="card">
       <div class="row" style="align-items:center;">
-        <h2 style="flex:1;">Scenario</h2>
+        <h2 data-i18n="rp_editor.scenario_2" style="flex:1;">Scenario</h2>
         <button class="btn-outline btn-sm" onclick="moveScenario(-1)">&uarr;</button>
         <button class="btn-outline btn-sm" onclick="moveScenario(1)">&darr;</button>
-        <button class="btn-outline btn-sm" onclick="deleteScenario()">Delete</button>
+        <button data-i18n="rp_editor.delete" class="btn-outline btn-sm" onclick="deleteScenario()">Delete</button>
       </div>
-      <label>Title</label>
-      <input type="text" id="rp-f-title" placeholder="e.g. Motor claim — first call" onchange="renderScenarioList()">
-      <label style="margin-top:12px;">The situation &mdash; everyone sees this</label>
-      <textarea id="rp-f-situation" rows="3" placeholder="A customer rings the claims line after a minor collision in a car park."></textarea>
+      <label data-i18n="rp_editor.title">Title</label>
+      <input data-i18n-ph="rp_editor.ph.e_g_motor_claim_first_call" type="text" id="rp-f-title" placeholder="e.g. Motor claim — first call" onchange="renderScenarioList()">
+      <label data-i18n="rp_editor.situation_everyone_sees" style="margin-top:12px;">The situation &mdash; everyone sees this</label>
+      <textarea data-i18n-ph="rp_editor.ph.customer_rings_claims_line_after_minor" id="rp-f-situation" rows="3" placeholder="A customer rings the claims line after a minor collision in a car park."></textarea>
 
       <div class="rp-role" id="rp-role-0">
-        <div class="rp-role-head">Role 1</div>
-        <input type="text" id="rp-f-label-0" placeholder="Name of the role, e.g. Customer">
-        <textarea id="rp-f-brief-0" rows="3" placeholder="What only this person knows about their side." oninput="countBrief(0)"></textarea>
+        <div data-i18n="rp_editor.role_1" class="rp-role-head">Role 1</div>
+        <input data-i18n-ph="rp_editor.ph.name_role_e_g_customer" type="text" id="rp-f-label-0" placeholder="Name of the role, e.g. Customer">
+        <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows_about_their" id="rp-f-brief-0" rows="3" placeholder="What only this person knows about their side." oninput="countBrief(0)"></textarea>
         <span class="rp-count" id="rp-count-0"></span>
-        <input type="text" id="rp-f-secret-0" placeholder="Secret constraint (optional) — budget, walk-away point">
-        <input type="text" id="rp-f-useful-0" placeholder="Useful language (optional)">
+        <input data-i18n-ph="rp_editor.ph.secret_constraint_optional_budget_walk_away" type="text" id="rp-f-secret-0" placeholder="Secret constraint (optional) — budget, walk-away point">
+        <input data-i18n-ph="rp_editor.ph.useful_language_optional" type="text" id="rp-f-useful-0" placeholder="Useful language (optional)">
       </div>
 
       <div class="rp-role" id="rp-role-1">
-        <div class="rp-role-head">Role 2</div>
-        <input type="text" id="rp-f-label-1" placeholder="e.g. Claims advisor">
-        <textarea id="rp-f-brief-1" rows="3" placeholder="What only this person knows." oninput="countBrief(1)"></textarea>
+        <div data-i18n="rp_editor.role_2" class="rp-role-head">Role 2</div>
+        <input data-i18n-ph="rp_editor.ph.e_g_claims_advisor" type="text" id="rp-f-label-1" placeholder="e.g. Claims advisor">
+        <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows" id="rp-f-brief-1" rows="3" placeholder="What only this person knows." oninput="countBrief(1)"></textarea>
         <span class="rp-count" id="rp-count-1"></span>
-        <input type="text" id="rp-f-secret-1" placeholder="Secret constraint (optional)">
-        <input type="text" id="rp-f-useful-1" placeholder="Useful language (optional)">
+        <input data-i18n-ph="rp_editor.ph.secret_constraint_optional" type="text" id="rp-f-secret-1" placeholder="Secret constraint (optional)">
+        <input data-i18n-ph="rp_editor.ph.useful_language_optional" type="text" id="rp-f-useful-1" placeholder="Useful language (optional)">
       </div>
 
       <div class="rp-role" id="rp-role-2" style="display:none;">
-        <div class="rp-role-head">Role 3</div>
-        <input type="text" id="rp-f-label-2" placeholder="e.g. Supervisor">
-        <textarea id="rp-f-brief-2" rows="3" placeholder="What only this person knows." oninput="countBrief(2)"></textarea>
+        <div data-i18n="rp_editor.role_3" class="rp-role-head">Role 3</div>
+        <input data-i18n-ph="rp_editor.ph.e_g_supervisor" type="text" id="rp-f-label-2" placeholder="e.g. Supervisor">
+        <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows" id="rp-f-brief-2" rows="3" placeholder="What only this person knows." oninput="countBrief(2)"></textarea>
         <span class="rp-count" id="rp-count-2"></span>
-        <input type="text" id="rp-f-secret-2" placeholder="Secret constraint (optional)">
-        <input type="text" id="rp-f-useful-2" placeholder="Useful language (optional)">
+        <input data-i18n-ph="rp_editor.ph.secret_constraint_optional" type="text" id="rp-f-secret-2" placeholder="Secret constraint (optional)">
+        <input data-i18n-ph="rp_editor.ph.useful_language_optional" type="text" id="rp-f-useful-2" placeholder="Useful language (optional)">
         <label class="chk" style="margin-top:8px;"><input type="checkbox" id="rp-f-optional" checked> Optional &mdash; used only to absorb a spare student</label>
       </div>
 
       <div class="btn-row" style="margin-top:12px;">
-        <button class="btn-outline" id="rp-add-role" onclick="addThirdRole()">+ Third role</button>
-        <button class="btn-outline" id="rp-drop-role" style="display:none;" onclick="dropThirdRole()">Remove third role</button>
+        <button data-i18n="rp_editor.third_role" class="btn-outline" id="rp-add-role" onclick="addThirdRole()">+ Third role</button>
+        <button data-i18n="rp_editor.remove_third_role" class="btn-outline" id="rp-drop-role" style="display:none;" onclick="dropThirdRole()">Remove third role</button>
       </div>
-      <p class="sub" style="font-size:.78rem;margin-top:10px;">
+      <p data-i18n="rp_editor.third_role_marked_optional_how_23" class="sub" style="font-size:.78rem;margin-top:10px;">
         A third role marked optional is how 23 students become eleven pairs and one trio.
         Without one, the spare student gets a listening task instead.</p>
     </div>

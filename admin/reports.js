@@ -11,13 +11,13 @@
 async function archiveOldReports(){
   if(!requireOwner("purge old reports")) return;
   const st=document.getElementById("archive-status");
-  st.textContent="Checking…";
+  st.textContent=t("reports.checking", "Checking…");
   try{
     const r=await Backend.listSessions();
     const cutoff=Date.now()-REPORT_VISIBLE_DAYS*24*60*60*1000;
     const old=(r.sessions||[]).filter(x=>(x.runAt||0)<cutoff);
-    if(old.length===0){ st.textContent="Nothing to archive — no runs older than 6 months."; return; }
-    if(!confirm("Found "+old.length+" run(s) older than 6 months. Download a backup and then permanently delete them from the database?")) { st.textContent="Cancelled."; return; }
+    if(old.length===0){ st.textContent=t("reports.nothing_archive_no_runs_older_than", "Nothing to archive — no runs older than 6 months."); return; }
+    if(!confirm(t("reports.found", "Found ")+old.length+" run(s) older than 6 months. Download a backup and then permanently delete them from the database?")) { st.textContent=t("reports.cancelled", "Cancelled."); return; }
     // Build a full backup (run details + participants) before deleting anything.
     const backup={ exportedAt:new Date().toISOString(), runs:[] };
     for(const run of old){
@@ -47,7 +47,7 @@ async function buildAndDownloadCSV(runId, code, questionsMaybe, schoolMaybe){
   try{
     if(!questions){ const run=await Backend.getRun(runId); questions=(run&&run.questions)||[]; if(run&&run.code) code=run.code; if(run&&run.meta){ if(run.meta.school) school=run.meta.school; runMeta=run.meta; } }
     const r=await Backend.listParticipants(runId); participants=r.participants||[];
-  }catch(e){ alert("Couldn't fetch results: "+e.message); return; }
+  }catch(e){ alert(t("reports.couldn_t_fetch_results", "Couldn't fetch results: ")+e.message); return; }
   const results=buildEffectiveResults(participants, questions, runMeta).slice().sort(bySurname);
 
   /* One row per student. The per-question detail goes sideways into Q1..Qn, holding the mark
@@ -102,7 +102,7 @@ const REPORT_VISIBLE_DAYS = 183;
 
 async function openHistory(){
   showScreen("screen-teacher-history");
-  const el=document.getElementById("history-list"); el.innerHTML='<p class="sub">Loading…</p>';
+  const el=document.getElementById("history-list"); el.innerHTML='<p class="sub">'+t("teacher_history.loading", 'Loading…')+'</p>';
   try{
     const r=await Backend.listSessions();
     const cutoff = Date.now() - REPORT_VISIBLE_DAYS*24*60*60*1000;
@@ -124,11 +124,11 @@ async function openHistory(){
       const school = run.school ? " · "+run.school : "";
       const who = run.teacherName ? " · "+escapeHtml(run.teacherName) : "";
       div.innerHTML='<span><b>'+run.code+'</b>'+school+'<br><small class="hint">'+fmtDate(run.runAt)+(cnt?" · "+cnt:"")+who+'</small></span>';
-      const btn=document.createElement("button"); btn.className="btn-outline"; btn.style.flex="0 0 auto"; btn.textContent="Download CSV";
+      const btn=document.createElement("button"); btn.className="btn-outline"; btn.style.flex="0 0 auto"; btn.textContent=t("reports.download_csv", "Download CSV");
       btn.onclick=()=>buildAndDownloadCSV(run.runId, run.code, null, run.school);
       div.appendChild(btn);
       if(isOwner()){
-        const del=document.createElement("button"); del.className="btn-danger"; del.style.flex="0 0 auto"; del.textContent="Delete";
+        const del=document.createElement("button"); del.className="btn-danger"; del.style.flex="0 0 auto"; del.textContent=t("reports.delete", "Delete");
         del.onclick=()=>deleteRunFromHistory(run);
         div.appendChild(del);
       }
@@ -150,8 +150,8 @@ async function deleteRunFromHistory(run){
     (run.studentCount||0)+" student record(s) will be erased. This cannot be undone — download the CSV first if you might need it.\n\n"+
     "Type the session code to confirm:");
   if(typed===null) return;
-  if(String(typed).trim().toUpperCase()!==String(run.code).toUpperCase()){ alert("That didn't match — nothing was deleted."); return; }
+  if(String(typed).trim().toUpperCase()!==String(run.code).toUpperCase()){ alert(t("reports.didn_t_match_nothing_was_deleted", "That didn't match — nothing was deleted.")); return; }
   try{ await Backend.deleteRun(run.runId); }
-  catch(e){ alert("Delete failed: "+e.message); return; }
+  catch(e){ alert(t("editor.delete_failed", "Delete failed: ")+e.message); return; }
   openHistory();
 }

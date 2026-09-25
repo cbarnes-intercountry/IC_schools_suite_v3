@@ -389,8 +389,8 @@ async function runImageSearch(page){
   const grid=document.getElementById("img-results");
   const more=document.getElementById("img-more");
   more.style.display="none";
-  if(!query){ status.textContent="Type something to search for."; grid.innerHTML=""; return; }
-  status.textContent="Searching\u2026";
+  if(!query){ status.textContent=t("media.type_something_search", "Type something to search for."); grid.innerHTML=""; return; }
+  status.textContent=t("media.searching", "Searching\u2026");
   if(page===0) grid.innerHTML="";
   if(EDIT_INDEX>=0 && TEACHER.questions[EDIT_INDEX]) TEACHER.questions[EDIT_INDEX].imageSearch=query;
 
@@ -428,7 +428,7 @@ async function runImageSearch(page){
       ? escapeHtml(firstError)+" \u2014 try again shortly, or use the upload tile."
       : "Nothing found for \u201c"+escapeHtml(query)+"\u201d. Try a plainer, more concrete word \u2014 something you could photograph.";
     if(noKey && !firstError){
-      status.innerHTML += '<br><b>Unsplash isn\u2019t set up yet</b>, so only the Creative Commons archives were searched. '+
+      status.innerHTML += '<br><b>'+t("media.unsplash_isn_u2019t_set_up_yet", 'Unsplash isn\u2019t set up yet')+'</b>, so only the Creative Commons archives were searched. '+
         'An owner can add the Unsplash key in Admin \u2192 Image Search.';
     }
     document.getElementById("img-source-note").textContent="";
@@ -562,7 +562,7 @@ async function uploadQMedia(file, kind, label){
   const status=document.getElementById("qe-"+kind+"-status");
   const urlBox=document.getElementById("qe-"+kind+"-url");
   if(!await mediaReady()){
-    status.textContent="File upload isn't available — check the media token in the database.";
+    status.textContent=t("media.file_upload_isn_t_available_check", "File upload isn't available — check the media token in the database.");
     return;
   }
   const MAX=10*1024*1024;
@@ -570,7 +570,7 @@ async function uploadQMedia(file, kind, label){
     status.textContent="That clip is "+(file.size/1048576).toFixed(1)+" MB — please keep audio under 10 MB.";
     return;
   }
-  status.textContent="Uploading…";
+  status.textContent=t("media.uploading", "Uploading…");
   try{
     let payload;
     if(kind==="image"){ payload=await compressImage(file); }
@@ -581,7 +581,7 @@ async function uploadQMedia(file, kind, label){
     const url=await uploadToGitHub(payload.base64,payload.ext);
     if(urlBox) urlBox.value=url;
     previewQMedia(kind,url,label);
-    status.textContent="✓ Uploaded. It may take a few seconds to become visible.";
+    status.textContent=t("media.uploaded_may_take_few_seconds_become", "✓ Uploaded. It may take a few seconds to become visible.");
   }catch(e){
     status.textContent="✗ "+(e.message||e);
   }
@@ -610,9 +610,9 @@ async function chooseImage(r){
     // Unsplash asks that its photos be served from its own CDN, so this one is linked, not copied.
     finalUrl = r.full || r.thumb;
     notifyUnsplashUse(r);            // fire and forget: their download count, not our concern
-    status.textContent="\u2713 Added from Unsplash \u2014 the credit shows under the picture.";
+    status.textContent=t("media.added_unsplash_credit_shows_under_picture", "\u2713 Added from Unsplash \u2014 the credit shows under the picture.");
   } else {
-    status.textContent="Copying the picture into your library\u2026";
+    status.textContent=t("media.copying_picture_into_library", "Copying the picture into your library\u2026");
     try{
       if(!await mediaReady()) throw new Error("no media token");
       const payload=await urlToCompressedImage(r.full || r.thumb);
@@ -684,7 +684,7 @@ function clearQMedia(kind){
   const picker=document.getElementById("qe-"+kind+"-file"); if(picker) picker.value="";
   previewQMedia(kind,"");
   const status=document.getElementById("qe-"+kind+"-status");
-  if(status) status.textContent="Removed — save the question to confirm.";
+  if(status) status.textContent=t("media.removed_save_question_confirm", "Removed — save the question to confirm.");
 }
 
 // Drag-and-drop onto either tile, plus paste-an-image anywhere in the builder.

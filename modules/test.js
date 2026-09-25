@@ -32,9 +32,9 @@ async function loadTeacherQuizList(){
     const [qs, ss] = await Promise.all([Backend.listQuizzes(), Backend.listSchools()]);
     TEACHER_QUIZZES = qs.quizzes || [];
     const schoolSel = document.getElementById("teacher-school-select");
-    schoolSel.innerHTML = '<option value="">— select a school —</option>';
+    schoolSel.innerHTML = '<option value="">'+t("poll.select_school", '— select a school —')+'</option>';
     (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; schoolSel.appendChild(o); });
-    document.getElementById("teacher-quiz-select").innerHTML = '<option value="">— select a school first —</option>';
+    document.getElementById("teacher-quiz-select").innerHTML = '<option value="">'+t("poll.select_school_first", '— select a school first —')+'</option>';
   }catch(e){ console.warn(e); }
 }
 
@@ -45,7 +45,7 @@ function filterTeacherQuizzes(){
   const qSel = document.getElementById("teacher-quiz-select");
   TEACHER.questions = []; TEACHER.school = school;
   teacherResetStep2();
-  qSel.innerHTML = '<option value="">— select a quiz —</option>';
+  qSel.innerHTML = '<option value="">'+t("test.select_quiz", '— select a quiz —')+'</option>';
   if(!school) return;
   // Only quizzes. This used to exclude polls by name, which let every later kind through —
   // role plays turned up in the Launch Test list. Name what belongs, not what does not.
@@ -59,10 +59,10 @@ function filterTeacherQuizzes(){
 async function loadQuizForTeacher(){
   const key = document.getElementById("teacher-quiz-select").value;
   const status = document.getElementById("teacher-quiz-status");
-  if(!key){ alert("Pick a school and a quiz first."); return; }
+  if(!key){ alert(t("test.pick_school_quiz_first", "Pick a school and a quiz first.")); return; }
   try{
     const quiz = await Backend.getQuiz(key);
-    if(!quiz){ alert("That quiz could not be found."); TEACHER.questions=[]; return; }
+    if(!quiz){ alert(t("test.quiz_could_found", "That quiz could not be found.")); TEACHER.questions=[]; return; }
     TEACHER.questions = (quiz.questions||[]).map(q=>Object.assign({},q,{id:q.id||"q_"+uid(6)}));
     // The run is tagged with the school the teacher selected (a quiz may serve several schools).
     TEACHER.school = document.getElementById("teacher-school-select").value || quizSchools(quiz)[0] || "";
@@ -71,7 +71,7 @@ async function loadQuizForTeacher(){
     document.getElementById("teacher-select-quiz-btn").style.display = "none";
     document.getElementById("setup-step2").style.display = "block";
     applyPerQuestionTimerLock();
-  }catch(e){ alert("Load failed: "+e.message); }
+  }catch(e){ alert(t("poll.load_failed", "Load failed: ")+e.message); }
 }
 
 
@@ -79,7 +79,7 @@ async function loadQuizForTeacher(){
 // Open the waiting room: session is created in "waiting" status so students who join
 // wait in the lobby. The teacher starts the actual test with teacherBeginQuiz().
 async function teacherStartTest(){
-  if(TEACHER.questions.length===0){ alert("Choose a quiz from the dropdown first."); return; }
+  if(TEACHER.questions.length===0){ alert(t("test.choose_quiz_dropdown_first", "Choose a quiz from the dropdown first.")); return; }
   const settings={
     paced:document.getElementById("opt-paced").checked,
     teams:document.getElementById("opt-teams").checked,
@@ -97,7 +97,7 @@ async function teacherStartTest(){
   TEACHER.settings=settings;
   TEACHER.runId = TEACHER.sessionCode + "-" + Date.now().toString(36).toUpperCase();
   try{ await Backend.createSession(TEACHER.runId, TEACHER.sessionCode, settings, TEACHER.questions); }
-  catch(e){ alert("Couldn't open the waiting room: "+e.message); return; }
+  catch(e){ alert(t("test.couldn_t_open_waiting_room", "Couldn't open the waiting room: ")+e.message); return; }
   document.getElementById("dash-lobby").style.display="block";
   document.getElementById("dash-running").style.display="none";
   TEAM_DRAFT={ count:2, map:{} };
@@ -121,7 +121,7 @@ async function teacherBeginQuiz(){
     TEACHER.settings.teamMap=topUpTeams(Object.assign({}, TEAM_DRAFT.map||{}), DASH_PARTICIPANTS, TEAM_DRAFT.count);
   }
   try{ await Backend.updateMeta(TEACHER.runId, TEACHER.settings); }
-  catch(e){ alert("Couldn't start test: "+e.message); return; }
+  catch(e){ alert(t("test.couldn_t_start_test", "Couldn't start test: ")+e.message); return; }
   showDashboardRunning();
   startTeacherCountdown();
 }
@@ -200,7 +200,7 @@ async function teacherTogglePause(){
   const paused = !TEACHER.settings.paused;
   TEACHER.settings.paused = paused;
   try{ await Backend.updateMeta(TEACHER.runId, TEACHER.settings); }
-  catch(e){ TEACHER.settings.paused=!paused; alert("Couldn't "+(paused?"pause":"resume")+": "+e.message); return; }
+  catch(e){ TEACHER.settings.paused=!paused; alert(t("test.couldn_t", "Couldn't ")+(paused?"pause":"resume")+": "+e.message); return; }
   const btn=document.getElementById("dash-pause-btn");
   btn.innerHTML = paused ? "&#9654; Resume Test" : "&#9208; Pause Timers";
   btn.className = paused ? "btn-primary" : "btn-secondary";
@@ -357,7 +357,7 @@ function renderDashboardList(){
       });
       qg.appendChild(track);
     } else {
-      const none=document.createElement("span"); none.className="qnone"; none.textContent="Not started";
+      const none=document.createElement("span"); none.className="qnone"; none.textContent=t("test.started", "Not started");
       qg.appendChild(none);
     }
 
@@ -366,9 +366,9 @@ function renderDashboardList(){
     const pill=document.createElement("span");
     const waiting = (TEACHER.settings||{}).status==="waiting";
     if(alerts>0){ pill.className="pill alert"; pill.textContent="⚠ "+alerts+" alert"+(alerts===1?"":"s"); }
-    else if(p.result){ pill.className="pill done"; pill.textContent="✓ Done"; }
-    else if(stale){ pill.className="pill alert"; pill.textContent="⚠ Dropped"; }
-    else if(waiting){ pill.className="pill wait"; pill.textContent="In waiting room"; }
+    else if(p.result){ pill.className="pill done"; pill.textContent=t("test.done", "✓ Done"); }
+    else if(stale){ pill.className="pill alert"; pill.textContent=t("test.dropped", "⚠ Dropped"); }
+    else if(waiting){ pill.className="pill wait"; pill.textContent=t("test.waiting_room", "In waiting room"); }
     else { pill.className="pill live"; pill.innerHTML='<i></i>In test'; }
     st.appendChild(pill);
 
@@ -379,7 +379,7 @@ function renderDashboardList(){
     const ac=document.createElement("span"); ac.className="ac";
     if(alerts>0){
       const btn=document.createElement("button"); btn.className="btn-outline btn-mini";
-      btn.textContent="Reset"; btn.title="Clear these alerts — monitoring stays on";
+      btn.textContent=t("test.reset", "Reset"); btn.title="Clear these alerts — monitoring stays on";
       btn.onclick=()=>resetCheatFor(p.studentId);
       ac.appendChild(btn);
     }else{
@@ -402,15 +402,15 @@ function renderDashboardList(){
 // Teacher clears a student's alerts (e.g. an accidental tab-switch), keeping monitoring live.
 async function resetCheatFor(studentId){
   const p=DASH_PARTICIPANTS.find(x=>x.studentId===studentId); if(!p) return;
-  if(!confirm("Clear "+displayName(p.surname,p.firstName)+"'s cheat alerts?\n\nMonitoring stays on, so any new alert will still appear.")) return;
+  if(!confirm(t("test.clear", "Clear ")+displayName(p.surname,p.firstName)+"'s cheat alerts?\n\nMonitoring stays on, so any new alert will still appear.")) return;
   const total=rawCheatAlerts(p).length;
   try{ await Backend.resetCheat(TEACHER.runId, studentId, total); }
-  catch(e){ alert("Reset failed: "+e.message); return; }
+  catch(e){ alert(t("test.reset_failed", "Reset failed: ")+e.message); return; }
   p.cheatBaseline=total; renderDashboardList();  // reflect immediately (live listener will confirm)
 }
 
 async function teacherEndTest(){
-  if(!confirm("End the test for all students now?")) return;
+  if(!confirm(t("test.end_test_all_students_now", "End the test for all students now?"))) return;
   TEACHER.settings.status="ended";
   try{ await Backend.updateMeta(TEACHER.runId, TEACHER.settings); }catch(e){ console.warn(e); }
   document.getElementById("recap-code").textContent=TEACHER.sessionCode;
@@ -518,7 +518,7 @@ function askForName(msg){
   const first=!box || box.style.display!=="block";
   if(box) box.style.display="block";
   document.getElementById("join-status").textContent = msg || "";
-  document.getElementById("join-btn").textContent = "Join";
+  document.getElementById("join-btn").textContent = t("test.join", "Join");
   if(first){ const s=document.getElementById("s-surname"); if(s&&s.focus) try{ s.focus(); }catch(e){} }
 }
 
@@ -526,7 +526,7 @@ async function studentJoin(){
   const code=document.getElementById("s-session-code").value.trim().toUpperCase();
   let surname=document.getElementById("s-surname").value.trim();
   let firstName=document.getElementById("s-firstname").value.trim();
-  if(!code){ document.getElementById("join-status").textContent="Enter the session code your teacher is showing."; return; }
+  if(!code){ document.getElementById("join-status").textContent=t("test.enter_session_code_teacher_showing", "Enter the session code your teacher is showing."); return; }
   document.getElementById("join-status").textContent="";
   // A name is required for tests and named polls, but an anonymous poll needs only the code —
   // so the session is resolved first and the name checked afterwards (see below).
@@ -539,8 +539,8 @@ async function studentJoin(){
   STUDENT.id = Backend.uid() || localStorage.getItem("examFB_id_"+code) || ("s_"+uid(8));
   localStorage.setItem("examFB_id_"+code, STUDENT.id);
   let session;
-  try{ session=await Backend.getActiveSession(code); }catch(e){ alert("Couldn't reach the session: "+e.message); return; }
-  if(!session||!session.meta||!session.runId){ alert("Session not found. Check the code with your teacher."); return; }
+  try{ session=await Backend.getActiveSession(code); }catch(e){ alert(t("test.couldn_t_reach_session", "Couldn't reach the session: ")+e.message); return; }
+  if(!session||!session.meta||!session.runId){ alert(t("test.session_found_check_code_teacher", "Session not found. Check the code with your teacher.")); return; }
   STUDENT.runId=session.runId; STUDENT.meta=session.meta;
 
   // ---- Any registered activity: poll, role play, whatever comes next ----
@@ -549,7 +549,7 @@ async function studentJoin(){
   const act = activity(session.meta.kind);
   if(act && act.join){
     const what = (act.label||"session").toLowerCase();
-    if(session.meta.status==="ended"){ alert("That "+what+" has finished."); return; }
+    if(session.meta.status==="ended"){ alert(t("test.that", "That ")+what+" has finished."); return; }
     if(act.anonymous && act.anonymous(session.meta)){
       // Nothing identifying is stored, and the name boxes are never shown.
       surname=""; firstName=""; STUDENT.surname=""; STUDENT.firstName=""; STUDENT.name="";
@@ -560,6 +560,17 @@ async function studentJoin(){
     return;
   }
 
+  // Unreachable in practice: "quiz" is registered at the bottom of this file, so the branch
+  // above handles it. Kept as a named failure rather than a silent fall-through, because a
+  // session whose kind nothing claims is a data problem, not a student problem.
+  alert(t("test.session_kind_app_does_recognise_please", "This session is a kind the app does not recognise. Please check with your teacher."));
+}
+
+/* A student joining a test. Registered as the "quiz" activity, so the router above reaches it
+   the same way it reaches a poll or a role play. */
+async function testStudentJoin(session, surname, firstName){
+  const code = STUDENT.sessionCode;
+  if(session.meta.status==="ended"){ alert(t("test.test_already_ended_please_check_teacher", "That test has already ended. Please check with your teacher.")); return; }
   if(!surname||!firstName){ askForName("Enter your surname and first name to join this test."); return; }
   const questions=session.questions||[];
   STUDENT.order = STUDENT.meta.randomizeQuestions ? shuffle(questions.map((_,i)=>i)) : questions.map((_,i)=>i);
@@ -615,7 +626,7 @@ function startStudentStatusPolling(){
     if(meta.status==="waiting" && !STUDENT.testStarted){
       if(startBtn) startBtn.style.display="none";
       if(startHint) startHint.style.display="none";
-      if(waitStatus) waitStatus.textContent="Waiting for your teacher to start the test…";
+      if(waitStatus) waitStatus.textContent=t("test.waiting_teacher_start_test", "Waiting for your teacher to start the test…");
     }
     // Teacher has started: drop the student straight into the test. There is no tap to make
     // here any more — the teacher's launch is the only start signal. Full screen is the one
@@ -636,7 +647,7 @@ function startStudentStatusPolling(){
     if(meta.status==="ended" && !STUDENT.testStarted && !STUDENT.finished){
       if(startBtn) startBtn.style.display="none";
       if(startHint) startHint.style.display="none";
-      if(waitStatus) waitStatus.textContent="This test has already ended. Please check with your teacher.";
+      if(waitStatus) waitStatus.textContent=t("test.test_already_ended_please_check_teacher_2", "This test has already ended. Please check with your teacher.");
     }
     // End the test for students who are taking it.
     if(meta.status==="ended" && STUDENT.testStarted && !STUDENT.finished){ studentSubmitTest(true); }
@@ -816,13 +827,19 @@ function renderCurrentQuestion(){
   } else if(q.type==="tf"){
     area.innerHTML=["True","False"].map(opt=>'<button type="button" class="option-btn '+(existing===opt?"selected":"")+'"'+dis+' onclick="selectAnswer(\''+opt+'\', this)">'+opt+'</button>').join("");
   } else if(q.type==="text"){
-    area.innerHTML='<input type="text" id="free-answer"'+dis+' value="'+escapeHtml(existing||"")+'" oninput="STUDENT.answers[STUDENT.currentPos]=this.value; refreshPalette(); syncProgress();">';
+    // NO_KEYBOARD_HELP is not decoration: with autocapitalise on, a student who does not
+    // know that nationalities take a capital types "french" and the phone hands them the
+    // mark. See core/answers.js.
+    area.innerHTML='<input type="text" id="free-answer" '+NO_KEYBOARD_HELP+dis+' value="'+escapeHtml(existing||"")+'" oninput="STUDENT.answers[STUDENT.currentPos]=this.value; refreshPalette(); syncProgress();">';
   } else if(q.type==="numeric"){
-    area.innerHTML='<input type="number" step="any" id="free-answer"'+dis+' value="'+escapeHtml(existing||"")+'" oninput="STUDENT.answers[STUDENT.currentPos]=this.value; refreshPalette(); syncProgress();">';
+    // Deliberately not type="number": that lets the browser normalise or discard what was
+    // typed before marking sees it, and whether 3,5 survives depends on the phone's locale.
+    // We take the raw string and judge it ourselves. inputmode keeps the numeric keypad.
+    area.innerHTML='<input type="text" inputmode="decimal" id="free-answer" '+NO_KEYBOARD_HELP+dis+' value="'+escapeHtml(existing||"")+'" oninput="STUDENT.answers[STUDENT.currentPos]=this.value; refreshPalette(); syncProgress();">';
   } else if(q.type==="order"){
     renderOrderArea(pos, q, locked);
   }
-  if(locked){ const note=document.createElement("p"); note.className="sub"; note.style.color="var(--danger)"; note.textContent="Time's up on this question — it's locked."; area.appendChild(note); }
+  if(locked){ const note=document.createElement("p"); note.className="sub"; note.style.color="var(--danger)"; note.textContent=t("test.time_s_up_question_s_locked", "Time's up on this question — it's locked."); area.appendChild(note); }
   setupQuestionTimer(pos, q, locked);
   renderPalette();
 }
@@ -845,7 +862,7 @@ function renderOrderArea(pos, q, locked){
     list.appendChild(row);
   });
   area.innerHTML="";
-  const hint=document.createElement("small"); hint.className="hint"; hint.textContent="Drag the rows (or use ▲▼) to put them in the correct order.";
+  const hint=document.createElement("small"); hint.className="hint"; hint.textContent=t("test.drag_rows_use_put_them_correct", "Drag the rows (or use ▲▼) to put them in the correct order.");
   area.appendChild(hint); area.appendChild(list);
   if(!locked && typeof Sortable!=="undefined"){
     if(STUDENT._sortable){ try{ STUDENT._sortable.destroy(); }catch(e){} }
@@ -932,12 +949,10 @@ function scoreAnswers(questions, order, answers, timeSpent){
     const given=answers?answers[pos]:undefined;
     let isCorrect=false; totalPossible+=(q.points||0);
     if(q.type==="mcq"||q.type==="tf"){ isCorrect=given!==undefined&&given===q.correct; }
-    else if(q.type==="text"){
-      const g=(given||"").trim();
-      if(q.caseSensitive===false){ const norm=g.toLowerCase(); isCorrect=(q.correct||[]).some(c=>String(c).trim().toLowerCase()===norm); }
-      else { isCorrect=(q.correct||[]).some(c=>String(c).trim()===g); }
-    }
-    else if(q.type==="numeric"){ if(given!==undefined&&given!=="") isCorrect=Math.abs(parseFloat(given)-q.correct)<=(q.tolerance||0); }
+    // Both of these live in core/answers.js, because the Excel import has to agree with
+    // marking about what a number is. See that file before loosening anything here.
+    else if(q.type==="text"){ isCorrect=matchTextAnswer(given, q.correct, q.caseSensitive); }
+    else if(q.type==="numeric"){ isCorrect=markNumeric(given, q.correct, q.tolerance, answerLang(q)); }
     else if(q.type==="order"){ const corr=q.correct||q.items||[]; isCorrect=Array.isArray(given)&&given.length===corr.length&&given.every((v,idx)=>v===corr[idx]); }
     const pointsAwarded=isCorrect?(q.points||0):0; score+=pointsAwarded;
     return { questionIndex:qIndex, answer:given===undefined?"":given, isCorrect, pointsAwarded, timeSpentSec:(timeSpent&&timeSpent[pos])||0 };
@@ -948,7 +963,7 @@ function scoreAnswers(questions, order, answers, timeSpent){
 
 // Confirmation before a student submits manually (auto-submit on time-up/teacher-end skips this).
 function studentConfirmSubmit(){
-  if(STUDENT.isPaused){ alert("The test is paused by your teacher. Please wait."); return; }
+  if(STUDENT.isPaused){ alert(t("test.test_paused_teacher_please_wait", "The test is paused by your teacher. Please wait.")); return; }
   const total=STUDENT.order.length;
   const answered=STUDENT.order.filter((_,i)=>STUDENT.answers[i]!==undefined && STUDENT.answers[i]!=="").length;
   const unanswered=total-answered;
@@ -992,3 +1007,34 @@ async function studentSubmitTest(auto){
   document.getElementById("fb-time").textContent=Math.floor(totalSec/60)+":"+String(totalSec%60).padStart(2,"0");
   showScreen("screen-student-feedback");
 }
+
+
+/* Picking a test back up after the teacher left the dashboard. The run's own record is the
+   source of truth — questions, settings and pace all come back from the database, not from
+   whatever this browser last remembered. Moved here from core/session.js in v3.3: it was the
+   core's default branch, which is precisely what a registered activity is for. */
+function testRejoin(s, run){
+  TEACHER.sessionCode = run.code || s.code;
+  TEACHER.runId = s.runId;
+  TEACHER.questions = run.questions || [];
+  TEACHER.settings = run.meta;
+  TEACHER.school = run.meta.school || "";
+  const dashCode=document.getElementById("dash-session-code");
+  if(dashCode) dashCode.textContent = TEACHER.sessionCode;
+  showScreen("screen-teacher-dashboard");
+  restoreDashboardForState();
+  startDashboardPolling();
+}
+
+/* The test, registered like everything else. It was the default path until v3.3, which meant
+   the contract was true of every activity except the one it was designed around. `keeps:true`
+   because a finished test is archived: it holds marks, and the marks are the point. */
+registerActivity("quiz", {
+  join: testStudentJoin,
+  teacher: teacherCreateSession,
+  score: scoreAnswers,
+  finish: teacherEndTest,
+  rejoin: testRejoin,
+  label: "Test",
+  keeps: true
+});

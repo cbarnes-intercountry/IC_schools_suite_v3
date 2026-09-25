@@ -71,7 +71,7 @@ function builderIsDirty(){
    beforeunload further down — that one can only show the browser's fixed wording. */
 function leaveBuilder(target){
   if(builderIsDirty() && !confirm(
-      "You have changes that haven't been saved.\n\n"+
+      t("editor.changes_haven_t_been_saved", "You have changes that haven't been saved.\n\n")+
       "Leaving now discards them \u2014 nothing is kept until you press \u201cSave "+
       (BUILDER_MODE==="poll"?"Poll":"Quiz")+"\u201d.\n\nLeave without saving?")) return;
   BUILDER_CLEAN="";
@@ -123,9 +123,9 @@ async function saveQuizToLibrary(){
   if(EDIT_INDEX>=0 && EDIT_INDEX<TEACHER.questions.length && !commitCurrentQuestion()) return;
   const name = document.getElementById("quiz-save-name").value.trim();
   const schools = getCheckedSchools();
-  if(!name){ alert("Give the "+L.one+" a name first."); return; }
-  if(schools.length===0){ alert("Tick at least one school to assign this "+L.one+" to (manage schools on the Admin page)."); return; }
-  if(TEACHER.questions.length===0){ alert("Add or import some questions first."); return; }
+  if(!name){ alert(t("editor.give", "Give the ")+L.one+" a name first."); return; }
+  if(schools.length===0){ alert(t("editor.tick_least_one_school_assign", "Tick at least one school to assign this ")+L.one+" to (manage schools on the Admin page)."); return; }
+  if(TEACHER.questions.length===0){ alert(t("editor.add_import_some_questions_first", "Add or import some questions first.")); return; }
   // Belt and braces: the dropdown already hides the wrong types, but an Excel or JSON
   // import can still bring in questions that don't belong in this bank.
   const strays = TEACHER.questions.filter(q=> isPollType(q.type) !== (mode==="poll"));
@@ -140,19 +140,19 @@ async function saveQuizToLibrary(){
     await Backend.saveQuiz(quizKey(name), name, TEACHER.questions, schools, mode);
     markBuilderSaved();     // before leaving, so the exit guard stays quiet
     loadQuizList();
-    alert('Saved "'+name+'" for '+schools.join(", ")+' ('+TEACHER.questions.length+' questions).');
+    alert(t("editor.saved", 'Saved "')+name+'" for '+schools.join(", ")+' ('+TEACHER.questions.length+' questions).');
     showScreen("screen-admin");
-  }catch(e){ alert("Save failed: "+e.message); }
+  }catch(e){ alert(t("editor.save_failed", "Save failed: ")+e.message); }
 }
 
 // Load a saved set into the builder, prefilling its name + assigned schools.
 async function loadSetFromLibrary(mode){
   const L = SETLABEL[mode] || SETLABEL.quiz;
   const key = document.getElementById(L.sel).value;
-  if(!key){ alert("Pick a saved "+L.one+" first."); return; }
+  if(!key){ alert(t("editor.pick_saved", "Pick a saved ")+L.one+" first."); return; }
   try{
     const rec = await Backend.getQuiz(key);
-    if(!rec){ alert("That "+L.one+" could not be found."); loadQuizList(); return; }
+    if(!rec){ alert(t("test.that", "That ")+L.one+" could not be found."); loadQuizList(); return; }
     BUILDER_MODE = setKind(rec)==="poll" ? "poll" : "quiz";
     TEACHER.questions = (rec.questions||[]).map(q=>Object.assign({},q,{id:q.id||"q_"+uid(6)}));
     document.getElementById("quiz-save-name").value = rec.name || "";
@@ -161,7 +161,7 @@ async function loadSetFromLibrary(mode){
     renderQBank();
     showScreen("screen-admin-builder");
     markBuilderSaved();        // freshly loaded = nothing changed yet
-  }catch(e){ alert("Load failed: "+e.message); }
+  }catch(e){ alert(t("poll.load_failed", "Load failed: ")+e.message); }
 }
 
 function loadQuizFromLibrary(){ return loadSetFromLibrary("quiz"); }
@@ -170,15 +170,15 @@ function loadQuizFromLibrary(){ return loadSetFromLibrary("quiz"); }
 async function exportSavedSet(mode){
   const L = SETLABEL[mode] || SETLABEL.quiz;
   const key = document.getElementById(L.sel).value;
-  if(!key){ alert("Pick a saved "+L.one+" to export."); return; }
+  if(!key){ alert(t("editor.pick_saved", "Pick a saved ")+L.one+" to export."); return; }
   try{
     const rec = await Backend.getQuiz(key);
-    if(!rec){ alert("That "+L.one+" could not be found."); return; }
+    if(!rec){ alert(t("test.that", "That ")+L.one+" could not be found."); return; }
     const payload = { name:rec.name, kind:setKind(rec), schools:quizSchools(rec), questions:rec.questions||[], exportedAt:new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
     a.download = setKind(rec) + "_" + quizKey(rec.name||"set") + ".json"; a.click();
-  }catch(e){ alert("Export failed: "+e.message); }
+  }catch(e){ alert(t("editor.export_failed", "Export failed: ")+e.message); }
 }
 
 function exportSavedQuiz(){ return exportSavedSet("quiz"); }
@@ -188,9 +188,9 @@ async function deleteSetFromLibrary(mode){
   const L = SETLABEL[mode] || SETLABEL.quiz;
   const sel = document.getElementById(L.sel);
   const key = sel.value;
-  if(!key){ alert("Pick a saved "+L.one+" to delete."); return; }
-  if(!confirm('Delete saved '+L.one+' "'+sel.options[sel.selectedIndex].textContent+'"?')) return;
-  try{ await Backend.deleteQuiz(key); loadQuizList(); }catch(e){ alert("Delete failed: "+e.message); }
+  if(!key){ alert(t("editor.pick_saved", "Pick a saved ")+L.one+" to delete."); return; }
+  if(!confirm(t("editor.delete_saved", 'Delete saved ')+L.one+' "'+sel.options[sel.selectedIndex].textContent+'"?')) return;
+  try{ await Backend.deleteQuiz(key); loadQuizList(); }catch(e){ alert(t("editor.delete_failed", "Delete failed: ")+e.message); }
 }
 
 function deleteQuizFromLibrary(){ return deleteSetFromLibrary("quiz"); }
@@ -205,7 +205,7 @@ function renderQBank(){
   const list = document.getElementById("qbank-list");
   list.innerHTML = "";
   if(TEACHER.questions.length===0){
-    list.innerHTML='<p class="sub">No questions yet. Use “+ Add Question”.</p>';
+    list.innerHTML='<p class="sub">'+t("editor.no_questions_yet", "No questions yet. Use “+ Add Question”.")+'</p>';
     document.getElementById("qe-card").style.display="none";
     return;
   }
@@ -222,7 +222,7 @@ function renderQBank(){
     div.appendChild(num); div.appendChild(txt);
     // Results are live by default now, so flag the exception instead: a lost tick stays obvious.
     if(isPollType(q.type) && q.hideResults){
-      const lv=document.createElement("span"); lv.className="qtag"; lv.textContent="HIDDEN";
+      const lv=document.createElement("span"); lv.className="qtag"; lv.textContent=t("editor.hidden", "HIDDEN");
       lv.style.background="var(--amber-soft)"; lv.style.borderColor="var(--amber)"; lv.style.color="var(--amber)";
       lv.title="Results stay hidden until you press Reveal";
       div.appendChild(lv);
@@ -232,7 +232,7 @@ function renderQBank(){
   });
 }
 
-function removeQuestion(i){ if(!confirm("Delete this question?")) return; TEACHER.questions.splice(i,1); renderQBank(); }
+function removeQuestion(i){ if(!confirm(t("editor.delete_question", "Delete this question?"))) return; TEACHER.questions.splice(i,1); renderQBank(); }
 
 
 // Open the editor at index i. With no valid index, append a new blank question and edit that.
@@ -269,7 +269,7 @@ function readQuestionFromForm(){
   const text=document.getElementById("qe-text").value.trim();
   const points=parseFloat(document.getElementById("qe-points").value)||0;
   const timeLimitSec=Math.max(0, parseInt(document.getElementById("qe-qtime").value,10)||0);
-  if(!text){ alert("Please enter the question text."); return null; }
+  if(!text){ alert(t("editor.please_enter_question_text", "Please enter the question text.")); return null; }
   const cur=TEACHER.questions[EDIT_INDEX]||{};
   const q={ id:cur.id||("q_"+uid(6)), type, text, points, timeLimitSec, image:document.getElementById("qe-image-url").value.trim()||null,
               audio:document.getElementById("qe-audio-url").value.trim()||null };
@@ -284,22 +284,22 @@ function readQuestionFromForm(){
       const checked=row.querySelector("input[type=radio]").checked;
       if(val){ opts.push(val); if(checked) correctIdx=opts.length-1; }
     });
-    if(opts.length<2||correctIdx===null){ alert("Add at least 2 options and select the correct one."); return null; }
+    if(opts.length<2||correctIdx===null){ alert(t("editor.add_least_2_options_select_correct", "Add at least 2 options and select the correct one.")); return null; }
     q.options=opts; q.correct=opts[correctIdx];
   } else if(type==="tf"){ q.options=["True","False"]; q.correct=document.getElementById("tf-correct").value; }
   else if(type==="text"){
     const accepted=[]; document.querySelectorAll("#text-answers .qe-answer-row input[type=text]").forEach(inp=>{ const v=inp.value.trim(); if(v) accepted.push(v); });
-    if(accepted.length===0){ alert("Add at least one acceptable answer."); return null; }
+    if(accepted.length===0){ alert(t("editor.add_least_one_acceptable_answer", "Add at least one acceptable answer.")); return null; }
     q.correct=accepted; q.caseSensitive=document.getElementById("text-casesens").checked;
   }
   else if(type==="order"){
     const items=[]; document.querySelectorAll("#order-items .qe-answer-row input[type=text]").forEach(inp=>{ const v=inp.value.trim(); if(v) items.push(v); });
-    if(items.length<2){ alert("Add at least 2 items (in the correct order)."); return null; }
+    if(items.length<2){ alert(t("editor.add_least_2_items_correct_order", "Add at least 2 items (in the correct order).")); return null; }
     q.items=items; q.correct=items.slice();
   }
   else if(type==="poll"){
     const opts=[]; document.querySelectorAll("#poll-opts .qe-answer-row input[type=text]").forEach(inp=>{ const v=inp.value.trim(); if(v) opts.push(v); });
-    if(opts.length<2){ alert("A poll needs at least 2 choices."); return null; }
+    if(opts.length<2){ alert(t("editor.poll_needs_least_2_choices", "A poll needs at least 2 choices.")); return null; }
     q.options=opts; q.hideResults=document.getElementById("poll-hideresults").checked;
     q.points=0; q.correct=null;   // opinion vote: nothing to mark
   }
@@ -334,42 +334,43 @@ function renderQEditorOptions(q){
   const type=document.getElementById("qe-type").value;
   const area=document.getElementById("qe-options-area");
   if(type==="mcq"){
-    area.innerHTML='<label>Answer options (select the correct one)</label><div id="mcq-opts"></div>'+
-      '<button type="button" class="btn-outline" onclick="addMCQOption()">+ Add option</button>';
+    area.innerHTML='<label>'+t("editor.answer_options_select_correct_one", 'Answer options (select the correct one)')+'</label><div id="mcq-opts"></div>'+
+      '<button type="button" class="btn-outline" onclick="addMCQOption()">'+t("editor.add_option", "+ Add option")+'</button>';
     if(q.type==="mcq"&&q.options){ q.options.forEach(o=>addMCQOption(o, o===q.correct)); }
     else { addMCQOption(); addMCQOption(); }
   } else if(type==="tf"){
     const c=(q.type==="tf"?q.correct:"True");
-    area.innerHTML='<label>Correct answer</label><select id="tf-correct"><option value="True"'+(c==="True"?" selected":"")+'>True</option><option value="False"'+(c==="False"?" selected":"")+'>False</option></select>';
+    area.innerHTML='<label>'+t("editor.correct_answer", 'Correct answer')+'</label><select id="tf-correct"><option value="True"'+(c==="True"?" selected":"")+'>'+t("editor.true", 'True')+'</option><option value="False"'+(c==="False"?" selected":"")+'>'+t("editor.false", 'False')+'</option></select>';
   } else if(type==="text"){
-    area.innerHTML='<label>Acceptable answers (any one counts as correct)</label><div id="text-answers"></div>'+
-      '<button type="button" class="btn-outline" onclick="addTextAnswer()">+ Add acceptable answer</button>'+
-      '<div class="toggle-row" style="margin-top:10px;"><span>Case sensitive (exact match — capitals &amp; special characters must match)</span>'+
+    area.innerHTML='<label>'+t("editor.acceptable_answers_any_one_counts_correct", 'Acceptable answers (any one counts as correct)')+'</label><div id="text-answers"></div>'+
+      '<button type="button" class="btn-outline" onclick="addTextAnswer()">'+t("editor.add_acceptable_answer", "+ Add acceptable answer")+'</button>'+
+      '<div class="toggle-row" style="margin-top:10px;"><span>Case sensitive (exact match — capitals &amp; accents must match)'+
+      '<br><small class="hint">'+t("editor.leave_turn_off_only_item_where", 'Leave this on. Turn it off only for an item where either capital is genuinely correct — accents are never ignored either way.')+'</small></span>'+
       '<label class="switch"><input type="checkbox" id="text-casesens"><span class="slider"></span></label></div>';
     const accepted=(q.type==="text"&&Array.isArray(q.correct))?q.correct:null;
     if(accepted&&accepted.length){ accepted.forEach(a=>addTextAnswer(a)); } else { addTextAnswer(); }
     document.getElementById("text-casesens").checked = (q.type==="text") ? (q.caseSensitive!==false) : true;
     } else if(type==="order"){
-    area.innerHTML='<label>Items in the CORRECT order (students see them shuffled and drag to reorder)</label><div id="order-items"></div>'+
-      '<button type="button" class="btn-outline" onclick="addOrderItem()">+ Add item</button>';
+    area.innerHTML='<label>'+t("editor.items_correct_order_students_see_them", 'Items in the CORRECT order (students see them shuffled and drag to reorder)')+'</label><div id="order-items"></div>'+
+      '<button type="button" class="btn-outline" onclick="addOrderItem()">'+t("editor.add_item", "+ Add item")+'</button>';
     const items=(q.type==="order"&&q.items)?q.items:null;
     if(items&&items.length){ items.forEach(it=>addOrderItem(it)); } else { addOrderItem(); addOrderItem(); addOrderItem(); }
   } else if(type==="poll"){
-    area.innerHTML='<label>Choices (no correct answer &mdash; this is an opinion vote)</label><div id="poll-opts"></div>'+
-      '<button type="button" class="btn-outline" onclick="addPollOption()">+ Add choice</button>'+
-      '<div class="toggle-row" style="margin-top:10px;"><span>Hide results until I press Reveal<br><small class="hint">On = the class sees only a response counter until you press Reveal</small></span>'+
+    area.innerHTML='<label>'+t("editor.choices_no_correct_answer", "Choices (no correct answer \u2014 this is an opinion vote)")+'</label><div id="poll-opts"></div>'+
+      '<button type="button" class="btn-outline" onclick="addPollOption()">'+t("editor.add_choice", "+ Add choice")+'</button>'+
+      '<div class="toggle-row" style="margin-top:10px;"><span>'+t("editor.hide_results_until_i_press_reveal", 'Hide results until I press Reveal')+'<br><small class="hint">'+t("editor.class_sees_only_response_counter_until", 'On = the class sees only a response counter until you press Reveal')+'</small></span>'+
       '<label class="switch"><input type="checkbox" id="poll-hideresults"><span class="slider"></span></label></div>';
     const opts=(q.type==="poll"&&q.options)?q.options:null;
     if(opts&&opts.length){ opts.forEach(o=>addPollOption(o)); } else { addPollOption(); addPollOption(); }
     document.getElementById("poll-hideresults").checked = (q.type==="poll") ? !!q.hideResults : false;
   } else if(type==="cloud"){
     const mw=(q.type==="cloud"&&q.maxWords)?q.maxWords:1;
-    area.innerHTML='<label>Words per student</label>'+
-      '<select id="cloud-maxwords"><option value="1"'+(mw==1?" selected":"")+'>1 word</option>'+
-      '<option value="2"'+(mw==2?" selected":"")+'>Up to 2 words</option>'+
-      '<option value="3"'+(mw==3?" selected":"")+'>Up to 3 words</option></select>'+
-      '<small class="hint">Words are matched ignoring capitals and accents, so &ldquo;Assurance&rdquo; and &ldquo;assurance&rdquo; combine into one entry.</small>'+
-      '<div class="toggle-row" style="margin-top:10px;"><span>Hide results until I press Reveal<br><small class="hint">On = the cloud stays hidden until you press Reveal</small></span>'+
+    area.innerHTML='<label>'+t("editor.words_per_student", 'Words per student')+'</label>'+
+      '<select id="cloud-maxwords"><option value="1"'+(mw==1?" selected":"")+'>'+t("editor.1_word", '1 word')+'</option>'+
+      '<option value="2"'+(mw==2?" selected":"")+'>'+t("editor.up_2_words", 'Up to 2 words')+'</option>'+
+      '<option value="3"'+(mw==3?" selected":"")+'>'+t("editor.up_3_words", 'Up to 3 words')+'</option></select>'+
+      '<small class="hint">'+t("editor.words_matched_ignoring_capitals", "Words are matched ignoring capitals and accents, so “Assurance” and “assurance” combine into one entry.")+'</small>'+
+      '<div class="toggle-row" style="margin-top:10px;"><span>'+t("editor.hide_results_until_i_press_reveal", 'Hide results until I press Reveal')+'<br><small class="hint">'+t("editor.cloud_stays_hidden_until_press_reveal", 'On = the cloud stays hidden until you press Reveal')+'</small></span>'+
       '<label class="switch"><input type="checkbox" id="cloud-hideresults"><span class="slider"></span></label></div>';
     document.getElementById("cloud-hideresults").checked = (q.type==="cloud") ? !!q.hideResults : false;
   }
@@ -394,7 +395,9 @@ function addMCQOption(value, checked){
 function addTextAnswer(value){
   const wrap=document.getElementById("text-answers");
   const row=document.createElement("div"); row.className="qe-answer-row";
-  row.innerHTML='<input type="text" placeholder="Accepted answer"><button type="button" class="btn-outline" style="padding:6px 10px;" onclick="this.parentElement.remove()">x</button>';
+  // Same keyboard rule as the student's field, for the same reason in reverse: an author
+  // typing "risk" must not have it stored as "Risk" by a phone or tablet.
+  row.innerHTML='<input type="text" placeholder="Accepted answer" '+NO_KEYBOARD_HELP+'><button type="button" class="btn-outline" style="padding:6px 10px;" onclick="this.parentElement.remove()">x</button>';
   if(value!==undefined) row.querySelector("input[type=text]").value=value;
   wrap.appendChild(row);
 }
@@ -411,7 +414,7 @@ function addOrderItem(value){
 function editorAddQuestion(){ if(!commitCurrentQuestion()) return; TEACHER.questions.push(blankQuestion()); openQuestionEditor(TEACHER.questions.length-1); }
 
 function editorDeleteCurrent(){
-  if(!confirm("Delete this question?")) return;
+  if(!confirm(t("editor.delete_question", "Delete this question?"))) return;
   TEACHER.questions.splice(EDIT_INDEX,1);
   if(TEACHER.questions.length===0){ EDIT_INDEX=-1; renderQBank(); return; }
   openQuestionEditor(Math.min(EDIT_INDEX, TEACHER.questions.length-1));

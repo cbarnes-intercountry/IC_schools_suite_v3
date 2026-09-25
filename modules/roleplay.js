@@ -105,9 +105,9 @@ async function loadRoleplaySetList(){
     const [qs, ss] = await Promise.all([Backend.listQuizzes(), Backend.listSchools()]);
     RP.sets = (qs.quizzes||[]).filter(q=>q.kind==="roleplay");
     const sel=document.getElementById("rp-school-select");
-    sel.innerHTML = '<option value="">— select a school —</option>';
+    sel.innerHTML = '<option value="">'+t("poll.select_school", '— select a school —')+'</option>';
     (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); });
-    document.getElementById("rp-set-select").innerHTML = '<option value="">— select a school first —</option>';
+    document.getElementById("rp-set-select").innerHTML = '<option value="">'+t("poll.select_school_first", '— select a school first —')+'</option>';
   }catch(e){ console.warn(e); }
 }
 
@@ -125,8 +125,8 @@ async function rpSetPicked(){
   const key=document.getElementById("rp-set-select").value;
   if(!key){ rpResetStep2(); return; }
   let rec=null;
-  try{ rec=await Backend.getQuiz(key); }catch(e){ alert("Couldn't load that set: "+e.message); return; }
-  if(!rec){ alert("That set has gone."); return; }
+  try{ rec=await Backend.getQuiz(key); }catch(e){ alert(t("rp.couldn_t_load_set", "Couldn't load that set: ")+e.message); return; }
+  if(!rec){ alert(t("rp.set_gone", "That set has gone.")); return; }
   RP.scenarios=rec.questions||[]; RP.name=rec.name||"Role play";
   const first=rpScenarioAt(RP.scenarios,0);
   const core=rpCoreRoles(first).length, extra=rpExtraRole(first);
@@ -137,7 +137,7 @@ async function rpSetPicked(){
 }
 
 async function rpStartSession(){
-  if(!RP.scenarios.length){ alert("Choose a set of scenarios first."); return; }
+  if(!RP.scenarios.length){ alert(t("rp.choose_set_scenarios_first", "Choose a set of scenarios first.")); return; }
   const meta = {
     kind:"roleplay", status:"waiting", scenarioIndex:0, round:0,
     title:RP.name||"Role play", school:RP.school||"",
@@ -147,7 +147,7 @@ async function rpStartSession(){
   };
   RP.runId = RP.sessionCode+"-"+Date.now().toString(36).toUpperCase();
   try{ await Backend.createSession(RP.runId, RP.sessionCode, meta, RP.scenarios); }
-  catch(e){ alert("Couldn't open the role play: "+e.message); return; }
+  catch(e){ alert(t("rp.couldn_t_open_role_play", "Couldn't open the role play: ")+e.message); return; }
   RP.meta=meta;
   document.getElementById("rp-live-code").textContent=RP.sessionCode;
   document.getElementById("rp-title").textContent=RP.name||"Role play";
@@ -192,7 +192,7 @@ function renderRpRoster(){
   document.getElementById("rp-count").textContent = n+" joined";
   el.innerHTML = RP.participants.slice().sort(bySurname)
     .map(p=>'<span class="chip">'+escapeHtml(displayName(p.surname,p.firstName))+'</span>').join("") ||
-    '<p class="sub">Waiting for students to join…</p>';
+    '<p class="sub">'+t("rp.waiting_students_join", 'Waiting for students to join…')+'</p>';
   document.getElementById("rp-deal-btn").disabled = n<2;
   if(RP.meta && RP.meta.round>0) renderRpGroups();
 }
@@ -235,7 +235,7 @@ async function rpPickScenario(){
 async function rpPushMeta(changes){
   const meta=Object.assign({}, RP.meta||{}, changes);
   try{ await Backend.updateMeta(RP.runId, meta); }
-  catch(e){ alert("Couldn't update the role play: "+e.message); return; }
+  catch(e){ alert(t("rp.couldn_t_update_role_play", "Couldn't update the role play: ")+e.message); return; }
   RP.meta=meta;
   renderRpGroups();
 }
@@ -262,11 +262,11 @@ function renderRpGroups(){
 
   const obs=Object.keys(observers).map(id=>escapeHtml(observers[id]||"?"));
   const obsHtml = obs.length
-    ? '<div class="rp-group rp-group-obs"><div class="rp-group-no">Listening task</div><div class="rp-member">'+
+    ? '<div class="rp-group rp-group-obs"><div class="rp-group-no">'+t("rp.listening_task", 'Listening task')+'</div><div class="rp-member">'+
       obs.join("<br>")+'</div></div>' : "";
 
   const box=document.getElementById("rp-groups");
-  if(box) box.innerHTML = (html+obsHtml) || '<p class="sub">Nobody has joined yet.</p>';
+  if(box) box.innerHTML = (html+obsHtml) || '<p class="sub">'+t("rp.nobody_joined_yet", 'Nobody has joined yet.')+'</p>';
 }
 
 /* The projector view: the shared situation and who is with whom, big enough to read from
@@ -290,7 +290,7 @@ function rpToggleProject(){
 }
 
 async function rpEnd(){
-  if(!confirm("End the role play?\n\nNothing is marked and nothing is kept — the cards disappear from every phone.")) return;
+  if(!confirm(t("rp.end_role_play_nothing_marked_nothing", "End the role play?\n\nNothing is marked and nothing is kept — the cards disappear from every phone."))) return;
   try{
     await Backend.updateMeta(RP.runId, Object.assign({}, RP.meta||{}, { status:"ended" }));
     // Role play produces no results, and the group lists name students. Like a poll, the run
@@ -377,10 +377,10 @@ function renderRpCard(){
 
   // The listening task: a noticing job, never a judgement of the people speaking.
   if(!mine){
-    document.getElementById("rp-card-role").textContent="Listening";
+    document.getElementById("rp-card-role").textContent=t("rp.listening", "Listening");
     document.getElementById("rp-card-group").textContent="";
     document.getElementById("rp-card-brief").textContent=
-      "Sit with a group and listen. Write down three useful phrases you hear — expressions you could use yourself next time.";
+      t("rp.sit_group_listen_write_down_three", "Sit with a group and listen. Write down three useful phrases you hear — expressions you could use yourself next time.");
     document.getElementById("rp-card-secret").style.display="none";
     document.getElementById("rp-card-useful").style.display="none";
     document.getElementById("rp-card-partners").textContent="";

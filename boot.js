@@ -9,6 +9,7 @@
 
 /* ---------- Boot ---------- */
 window.addEventListener("DOMContentLoaded", () => {
+  initUiLang();       // put the page into its language before anything is read
   Backend.init();
   refreshModeBadge();
   teacherAuthBoot();   // recognise a signed-in teacher

@@ -1,10 +1,31 @@
-# Classroom Exam App — v3.1.1
+# Classroom Exam App — v3.3
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
-**v3.1.1 fixes a bug in it**: saved role plays were coming back from the database labelled
+**v3.1.1 fixed a bug in it**: saved role plays were coming back from the database labelled
 "quiz", so they appeared in the Test Creator list and never in their own — which looked like
 they were not saving at all.
+
+**v3.2 makes short-answer marking strict**, in `core/answers.js`. An answer is matched against
+exactly what the author typed, in the language of the test: no case folding, no accent
+stripping, no typo tolerance, and a number that is not written the way that language writes
+numbers is wrong. Every field where an answer is typed — the student's and the author's — now
+turns the phone keyboard's autocapitalise, autocorrect and spellcheck off, because otherwise
+the keyboard answers the capitalisation questions for the student. Do not loosen any of this
+without reading the decisions log entry of 2026-09-25.
+
+**v3.3 takes the English out of the code.** 479 strings now live in `lang/en.js`, reached by a
+semantic key (`role.i_m_teacher`, never `"I'm the Teacher"`). The English also stays in the
+markup as the fallback, so the page reads correctly before a script has run — and `lang/en.js`
+is GENERATED from that markup rather than typed twice, with a test that fails the moment the
+two disagree. `lang/fr.js` holds every key with an empty value; an empty value falls back to
+English, so French can be filled in a screen at a time instead of all at once. The picker is on
+the first screen, and a teacher's choice is stored on their own record so it follows them
+between devices.
+
+**Also in v3.3:** the test module registers itself like every other activity (the core no
+longer has a default path, and no core file names an activity), and the Excel template gains a
+`Scenarios` sheet for role plays plus a `Language` column that decides how numbers are marked.
 
 ## Running it
 
@@ -96,7 +117,7 @@ From the folder *above* this one:
 node "_test v3.0.js"
 ```
 
-446 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+564 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
 
 ## Running a role play

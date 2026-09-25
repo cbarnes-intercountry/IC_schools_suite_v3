@@ -58,7 +58,7 @@ function isOwner(){ return !!(TEACHER_USER && TEACHER_USER.role==="owner"); }
 
 function requireOwner(action){
   if(isOwner()) return true;
-  alert("Only an owner can "+action+".\n\nAsk whoever manages the app to do it, or to make you an owner.");
+  alert(t("auth.only_owner", "Only an owner can ")+action+".\n\nAsk whoever manages the app to do it, or to make you an owner.");
   return false;
 }
 
@@ -95,6 +95,7 @@ async function teacherAcceptUser(user){
     badge.style.display="inline-block";
   }
   applyRoleVisibility();
+  applyTeacherUiLang(rec);   // their interface language follows them between devices
   return true;
 }
 
@@ -145,9 +146,9 @@ let TEACHER_LIST=[];
 
 async function sendTeacherReset(t){
   if(!requireOwner("send a password reset")) return;
-  if(!t.email){ alert("No email address on this account."); return; }
-  try{ await firebase.auth().sendPasswordResetEmail(t.email); alert("Password reset email sent to "+t.email+"."); }
-  catch(e){ alert("Couldn't send the reset email: "+e.message); }
+  if(!t.email){ alert(t("auth.no_email_address_account", "No email address on this account.")); return; }
+  try{ await firebase.auth().sendPasswordResetEmail(t.email); alert(t("auth.password_reset_email_sent", "Password reset email sent to ")+t.email+"."); }
+  catch(e){ alert(t("auth.couldn_t_send_reset_email", "Couldn't send the reset email: ")+e.message); }
 }
 
 // "I'm the Teacher" — if this browser is already signed in, go straight to the session screen
@@ -178,9 +179,9 @@ async function teacherSignIn(){
   const status=document.getElementById("signin-status");
   const email=(document.getElementById("t-email").value||"").trim();
   const pass=document.getElementById("t-pass").value||"";
-  if(!teacherAuthAvailable()){ status.textContent="Sign-in isn't available (Firebase not configured) — use the password below."; return; }
-  if(!email || !pass){ status.textContent="Enter your email and password."; return; }
-  status.textContent="Signing in…";
+  if(!teacherAuthAvailable()){ status.textContent=t("auth.sign_isn_t_available_firebase_configured", "Sign-in isn't available (Firebase not configured) — use the password below."); return; }
+  if(!email || !pass){ status.textContent=t("auth.enter_email_password", "Enter your email and password."); return; }
+  status.textContent=t("auth.signing", "Signing in…");
   try{
     const res = await firebase.auth().signInWithEmailAndPassword(email, pass);
     if(await teacherAcceptUser(res.user)){
@@ -191,13 +192,13 @@ async function teacherSignIn(){
   }catch(e){
     const code=(e&&e.code)||"";
     if(code==="auth/invalid-credential" || code==="auth/wrong-password" || code==="auth/user-not-found"){
-      status.textContent="✗ Email or password not recognised.";
+      status.textContent=t("auth.email_password_recognised", "✗ Email or password not recognised.");
     } else if(code==="auth/too-many-requests"){
-      status.textContent="✗ Too many attempts. Wait a few minutes, or reset your password.";
+      status.textContent=t("auth.too_many_attempts_wait_few_minutes", "✗ Too many attempts. Wait a few minutes, or reset your password.");
     } else if(code==="auth/user-disabled"){
-      status.textContent="✗ This account has been disabled.";
+      status.textContent=t("auth.account_been_disabled", "✗ This account has been disabled.");
     } else if(code==="auth/operation-not-allowed"){
-      status.textContent="✗ Email/password sign-in isn't enabled in Firebase (Authentication → Sign-in method).";
+      status.textContent=t("auth.email_password_sign_isn_t_enabled", "✗ Email/password sign-in isn't enabled in Firebase (Authentication → Sign-in method).");
     } else {
       status.textContent="✗ Sign-in failed: "+((e&&e.message)||e);
     }
@@ -208,8 +209,8 @@ async function teacherSignIn(){
 async function teacherResetPassword(){
   const status=document.getElementById("signin-status");
   const email=(document.getElementById("t-email").value||"").trim();
-  if(!teacherAuthAvailable()){ status.textContent="Not available offline."; return; }
-  if(!email){ status.textContent="Type your email address first, then click reset."; return; }
+  if(!teacherAuthAvailable()){ status.textContent=t("auth.available_offline", "Not available offline."); return; }
+  if(!email){ status.textContent=t("auth.type_email_address_first_then_click", "Type your email address first, then click reset."); return; }
   try{
     await firebase.auth().sendPasswordResetEmail(email);
     status.textContent="Reset email sent to "+email+" — check your inbox (and spam).";
@@ -236,7 +237,7 @@ async function teacherAuthBoot(){
   if(!teacherAuthAvailable()){
     // The blocking screen is already up; this just stops the form pretending it can help.
     if(ready) ready.style.display="none";
-    if(status) status.textContent="Can't reach the database — signing in isn't possible.";
+    if(status) status.textContent=t("auth.t_reach_database_signing_isn_t", "Can't reach the database — signing in isn't possible.");
     return;
   }
   const u = firebase.auth().currentUser;

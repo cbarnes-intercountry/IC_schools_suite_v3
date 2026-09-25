@@ -133,7 +133,7 @@ function renderTeamLeaderboard(){
     body.innerHTML=members.map(m=>{
       const idle=(m.answers||[]).length===0;
       return '<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;'+(idle?'opacity:.55;':'')+'">'+
-        '<span>'+escapeHtml(displayName(m.surname,m.firstName))+(idle?' <small class="hint">(not counted — no answers)</small>':'')+'</span>'+
+        '<span>'+escapeHtml(displayName(m.surname,m.firstName))+(idle?' <small class="hint">'+t("groups.counted_no_answers", '(not counted — no answers)')+'</small>':'')+'</span>'+
         '<span class="mono">'+m.score+'/'+m.totalPossible+' · '+Math.round(m.percentage)+'%</span></div>';
     }).join("");
     if(g.idle>0){
@@ -208,7 +208,7 @@ function showStudentTeam(meta){
   if(!team){ box.style.display="none"; return; }
   box.style.display="block";
   box.innerHTML='<div style="padding:12px;border:2px solid var(--ink);border-radius:12px;">'+
-    '<div class="sub" style="margin:0 0 4px;">Your team</div>'+
+    '<div class="sub" style="margin:0 0 4px;">'+t("groups.team", 'Your team')+'</div>'+
     '<div style="font-size:1.6rem;font-weight:800;">'+escapeHtml(team)+'</div>'+
-    '<small class="hint">You answer on your own phone. Your team\u2019s score is the average of everyone in it.</small></div>';
+    '<small class="hint">'+t("groups.answer_own_phone_team_u2019s_score", 'You answer on your own phone. Your team\u2019s score is the average of everyone in it.')+'</small></div>';
 }

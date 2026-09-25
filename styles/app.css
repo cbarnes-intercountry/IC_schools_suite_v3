@@ -470,3 +470,15 @@
   font-size:clamp(15px,1.6vw,22px); }
 .rp-proj-no{ display:inline-block; min-width:1.6em; font-weight:800; color:var(--magenta); }
 .rp-proj-hint{ margin-top:28px !important; font-size:14px !important; opacity:.55 !important; }
+
+/* Language picker — small, quiet, and on the screen every route passes through. Sized for a
+   thumb rather than a mouse: this gets used on a phone as often as on a laptop. */
+.lang-pick{ display:inline-flex; align-items:center; gap:6px; margin-inline-start:10px; }
+.lang-pick select{
+  min-height:38px; padding:4px 10px; width:auto; margin:0;
+  font-size:.9rem; border-radius:8px;
+}
+.visually-hidden{
+  position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}

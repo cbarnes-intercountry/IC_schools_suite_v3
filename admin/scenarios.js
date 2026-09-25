@@ -45,10 +45,10 @@ async function newScenarioSet(){
 
 async function loadScenarioSet(){
   const key=document.getElementById("rp-library-select").value;
-  if(!key){ alert("Pick a saved role play first."); return; }
+  if(!key){ alert(t("scenarios.pick_saved_role_play_first", "Pick a saved role play first.")); return; }
   let rec=null;
-  try{ rec=await Backend.getQuiz(key); }catch(e){ alert("Couldn't load it: "+e.message); return; }
-  if(!rec){ alert("That set has gone."); return; }
+  try{ rec=await Backend.getQuiz(key); }catch(e){ alert(t("scenarios.couldn_t_load", "Couldn't load it: ")+e.message); return; }
+  if(!rec){ alert(t("scenarios.set_gone", "That set has gone.")); return; }
   SCEN = { key:key, name:rec.name||"", schools:quizSchools(rec), list:(rec.questions||[]).slice(),
            index:0, clean:"" };
   if(!SCEN.list.length) SCEN.list=[blankScenario()];
@@ -60,9 +60,9 @@ async function loadScenarioSet(){
 async function deleteScenarioSet(){
   if(!requireOwner("delete a saved role play")) return;
   const sel=document.getElementById("rp-library-select");
-  const key=sel.value; if(!key){ alert("Pick a saved role play first."); return; }
-  if(!confirm("Delete “"+sel.options[sel.selectedIndex].text+"” for good?")) return;
-  try{ await Backend.deleteQuiz(key); }catch(e){ alert("Couldn't delete it: "+e.message); return; }
+  const key=sel.value; if(!key){ alert(t("scenarios.pick_saved_role_play_first", "Pick a saved role play first.")); return; }
+  if(!confirm(t("scenarios.delete", "Delete “")+sel.options[sel.selectedIndex].text+"” for good?")) return;
+  try{ await Backend.deleteQuiz(key); }catch(e){ alert(t("scenarios.couldn_t_delete", "Couldn't delete it: ")+e.message); return; }
   await loadQuizList();   // the shared filler, so every bank list stays in step
 }
 
@@ -74,7 +74,7 @@ async function renderScenarioSchools(){
   box.innerHTML = list.length ? list.map(n=>
     '<label class="chk"><input type="checkbox" value="'+escapeHtml(n)+'"'+
     (SCEN.schools.indexOf(n)>=0?" checked":"")+' onchange="readScenarioSchools()"> '+escapeHtml(n)+'</label>'
-  ).join("") : '<p class="sub">No schools yet — add one in Admin first.</p>';
+  ).join("") : '<p class="sub">'+t("scenarios.no_schools_yet_add_one_admin", 'No schools yet — add one in Admin first.')+'</p>';
 }
 function readScenarioSchools(){
   SCEN.schools = Array.prototype.slice
@@ -108,8 +108,8 @@ function addScenario(){
 }
 
 function deleteScenario(){
-  if(SCEN.list.length<=1){ alert("A set needs at least one scenario."); return; }
-  if(!confirm("Delete this scenario from the set?")) return;
+  if(SCEN.list.length<=1){ alert(t("scenarios.set_needs_least_one_scenario", "A set needs at least one scenario.")); return; }
+  if(!confirm(t("scenarios.delete_scenario_set", "Delete this scenario from the set?"))) return;
   SCEN.list.splice(SCEN.index,1);
   SCEN.index=Math.max(0, SCEN.index-1);
   renderScenarioList(); writeScenarioForm();
@@ -205,33 +205,33 @@ async function saveScenarioSet(){
   readScenarioForm();
   SCEN.name=document.getElementById("rp-set-name").value.trim();
   readScenarioSchools();
-  if(!SCEN.name){ alert("Give the set a name."); return; }
-  if(!SCEN.schools.length){ alert("Tick at least one school, or teachers won't find it."); return; }
+  if(!SCEN.name){ alert(t("scenarios.give_set_name", "Give the set a name.")); return; }
+  if(!SCEN.schools.length){ alert(t("scenarios.tick_least_one_school_teachers_won", "Tick at least one school, or teachers won't find it.")); return; }
   const problems=scenarioProblems(SCEN.list);
   if(problems.length){
-    if(!confirm("This set isn't finished:\n\n"+problems.slice(0,8).join("\n")+
+    if(!confirm(t("scenarios.set_isn_t_finished", "This set isn't finished:\n\n")+problems.slice(0,8).join("\n")+
       (problems.length>8?"\n…and "+(problems.length-8)+" more":"")+"\n\nSave it anyway?")) return;
   }
   const key=SCEN.key || quizKey(SCEN.name);
   try{ await Backend.saveQuiz(key, SCEN.name, SCEN.list, SCEN.schools, "roleplay"); }
-  catch(e){ alert("Couldn't save: "+e.message); return; }
+  catch(e){ alert(t("scenarios.couldn_t_save", "Couldn't save: ")+e.message); return; }
   SCEN.key=key; markScenariosSaved();
   await loadQuizList();   // the shared filler, so every bank list stays in step
-  alert("Saved “"+SCEN.name+"”.");
+  alert(t("scenarios.saved", "Saved “")+SCEN.name+"”.");
   showScreen("screen-admin");
 }
 
 function leaveScenarioEditor(){
   readScenarioForm();
   if(scenariosAreDirty() &&
-     !confirm("Leave without saving?\n\nNothing is kept until you press Save Role Play.")) return;
+     !confirm(t("scenarios.leave_without_saving_nothing_kept_until", "Leave without saving?\n\nNothing is kept until you press Save Role Play."))) return;
   showScreen("screen-admin");
 }
 
 /* ---------- Excel ---------- */
 
 function importScenariosFromExcel(){
-  if(typeof XLSX==="undefined"){ alert("Excel library didn't load (needs internet)."); return; }
+  if(typeof XLSX==="undefined"){ alert(t("scenarios.excel_library_didn_t_load_needs", "Excel library didn't load (needs internet).")); return; }
   const input=document.createElement("input"); input.type="file"; input.accept=".xlsx,.xls,.csv";
   input.onchange=e=>{
     const file=e.target.files[0]; if(!file) return;
@@ -243,7 +243,7 @@ function importScenariosFromExcel(){
         const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{defval:""});
         const {scenarios,errors}=parseScenarioRows(rows);
         if(!scenarios.length){
-          alert("No scenarios found.\n\n"+(errors.join("\n")||
+          alert(t("scenarios.no_scenarios_found", "No scenarios found.\n\n")+(errors.join("\n")||
             "The sheet needs one row per role, with columns Scenario, Situation, Role and Brief."));
           return;
         }
@@ -253,8 +253,8 @@ function importScenariosFromExcel(){
         SCEN.list = onlyBlank ? scenarios : SCEN.list.concat(scenarios);
         SCEN.index = 0;
         renderScenarioList(); writeScenarioForm();
-        alert("Imported "+scenarios.length+" scenario(s)."+(errors.length?"\n\nSkipped:\n"+errors.join("\n"):""));
-      }catch(err){ alert("Couldn't read that file: "+err.message); }
+        alert(t("import.imported", "Imported ")+scenarios.length+" scenario(s)."+(errors.length?"\n\nSkipped:\n"+errors.join("\n"):""));
+      }catch(err){ alert(t("import.couldn_t_read_file", "Couldn't read that file: ")+err.message); }
     };
     reader.readAsArrayBuffer(file);
   };

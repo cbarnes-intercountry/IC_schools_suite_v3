@@ -108,7 +108,7 @@ async function refreshOpenRunBanner(){
   const s=active[0];
   OPEN_RUN=s;
   const act = activity(s.kind);
-  const what = (act && act.label) || "Test";
+  const what = (act && act.label) || "Session";
   document.getElementById("home-rejoin-detail").textContent =
     what+" "+s.code+" — "+s.studentCount+" student"+(s.studentCount===1?"":"s")+
     " joined, started "+fmtDate(s.runAt)+".";
@@ -120,25 +120,17 @@ async function refreshOpenRunBanner(){
    source of truth — questions, settings and pace all come back from the database, not from
    whatever this browser last remembered. */
 async function rejoinOpenRun(){
-  if(!OPEN_RUN){ alert("That session is no longer open."); return; }
+  if(!OPEN_RUN){ alert(t("session.session_no_longer_open", "That session is no longer open.")); return; }
   const s=OPEN_RUN;
   let run=null;
-  try{ run=await Backend.getRun(s.runId); }catch(e){ alert("Couldn't reopen the session: "+e.message); return; }
-  if(!run || !run.meta || run.meta.status==="ended"){ alert("That session has already ended."); refreshOpenRunBanner(); return; }
+  try{ run=await Backend.getRun(s.runId); }catch(e){ alert(t("session.couldn_t_reopen_session", "Couldn't reopen the session: ")+e.message); return; }
+  if(!run || !run.meta || run.meta.status==="ended"){ alert(t("session.session_already_ended", "That session has already ended.")); refreshOpenRunBanner(); return; }
   // Each activity says how it picks itself back up; the core does not know their names.
+  // Every activity is registered, the test included since v3.3, so there is no default branch
+  // here any more — an unregistered kind is a data problem and says so.
   const act = activity(s.kind);
   if(act && act.rejoin) return act.rejoin(s, run);
-
-  TEACHER.sessionCode = run.code || s.code;
-  TEACHER.runId = s.runId;
-  TEACHER.questions = run.questions || [];
-  TEACHER.settings = run.meta;
-  TEACHER.school = run.meta.school || "";
-  const dashCode=document.getElementById("dash-session-code");
-  if(dashCode) dashCode.textContent = TEACHER.sessionCode;
-  showScreen("screen-teacher-dashboard");
-  restoreDashboardForState();
-  startDashboardPolling();
+  alert(t("session.session_kind_app_does_recognise_so", "That session is a kind the app does not recognise, so it cannot be reopened."));
 }
 
 
@@ -178,10 +170,10 @@ async function confirmNoOpenRun(what){
   if(!open.length) return true;
   const s=open[0];
   const act = activity(s.kind);
-  const kind = (act && act.label ? act.label : "Test").toLowerCase();
+  const kind = (act && act.label ? act.label : "session").toLowerCase();
   const where = s.status==="active" ? "in progress" : "waiting for students";
   const ok = confirm(
-    "You already have a "+kind+" open.\n\n"+
+    t("session.already", "You already have a ")+kind+" open.\n\n"+
     s.code+" — "+s.studentCount+" student"+(s.studentCount===1?"":"s")+" joined, "+where+".\n\n"+
     "Starting a new "+what+" will end it. Any answers already given are kept and will still "+
     "appear in the archive"+(activityKeepsNothing(s.kind)?", but a "+kind+" keeps nothing, so its responses go when it closes":"")+".\n\n"+
@@ -192,7 +184,7 @@ async function confirmNoOpenRun(what){
     const meta=Object.assign({}, (run&&run.meta)||{}, { status:"ended", endedBy:"superseded" });
     await Backend.updateMeta(s.runId, meta);
     if(activityKeepsNothing(s.kind)) await Backend.deleteRun(s.runId);
-  }catch(e){ alert("Couldn't close the old session: "+e.message); return false; }
+  }catch(e){ alert(t("session.couldn_t_close_old_session", "Couldn't close the old session: ")+e.message); return false; }
   return true;
 }
 
@@ -202,17 +194,17 @@ function renderJoinQR(){
   document.getElementById("dash-join-code").textContent=TEACHER.sessionCode;
   const holder=document.getElementById("qr-code"); holder.innerHTML="";
   if(location.protocol==="file:"){
-    holder.innerHTML='<p style="color:var(--danger);font-weight:600;max-width:400px;">This file is open locally (file://...), so the QR link won\'t work on other devices. Host it (GitHub Pages) and open that URL. Students can still type the code <b>'+TEACHER.sessionCode+'</b> manually.</p>';
+    holder.innerHTML='<p style="color:var(--danger);font-weight:600;max-width:400px;">This file is open locally (file://...), so the QR link won\'t work on other devices. Host it (GitHub Pages) and open that URL. Students can still type the code <b>'+TEACHER.sessionCode+'</b> '+t("session.manually", 'manually.')+'</p>';
     return;
   }
   if(typeof QRCode!=="undefined") new QRCode(holder,{text:getJoinUrl(),width:180,height:180,correctLevel:QRCode.CorrectLevel.M});
-  else holder.textContent="(QR library failed to load — share the code manually)";
+  else holder.textContent=t("session.qr_library_failed_load_share_code", "(QR library failed to load — share the code manually)");
 }
 
 function copyJoinLink(){
-  if(location.protocol==="file:"){ alert("Open the hosted URL first — there's no shareable link from a local file."); return; }
+  if(location.protocol==="file:"){ alert(t("session.open_hosted_url_first_there_s", "Open the hosted URL first — there's no shareable link from a local file.")); return; }
   const url=getJoinUrl();
-  navigator.clipboard ? navigator.clipboard.writeText(url).then(()=>alert("Link copied:\n"+url)) : prompt("Copy this link:",url);
+  navigator.clipboard ? navigator.clipboard.writeText(url).then(()=>alert(t("session.link_copied", "Link copied:\n")+url)) : prompt("Copy this link:",url);
 }
 
 // Enlarge the QR to (near) full screen so the class can scan it from a distance.
@@ -229,7 +221,7 @@ function openQRFullscreen(which){
     const s=Math.max(220, Math.min(Math.min(window.innerWidth, window.innerHeight)-180, 440));
     new QRCode(holder,{text:url,width:s,height:s,correctLevel:QRCode.CorrectLevel.M});
   } else {
-    holder.innerHTML='<p class="sub" style="max-width:320px;">QR needs the hosted URL. Students can type the code above.</p>';
+    holder.innerHTML='<p class="sub" style="max-width:320px;">'+t("session.qr_needs_hosted_url_students_type", 'QR needs the hosted URL. Students can type the code above.')+'</p>';
   }
   overlay.style.display="flex";
 }
@@ -249,16 +241,16 @@ function getQRBlob(sel, cb){
 function copyQRImage(sel, ev){
   if(ev) ev.stopPropagation();
   getQRBlob(sel, async(blob)=>{
-    if(!blob){ alert("QR image isn't available yet — make sure you're on the hosted URL."); return; }
+    if(!blob){ alert(t("session.qr_image_isn_t_available_yet", "QR image isn't available yet — make sure you're on the hosted URL.")); return; }
     try{
       if(navigator.clipboard && window.ClipboardItem){
         await navigator.clipboard.write([new ClipboardItem({[blob.type||"image/png"]:blob})]);
-        alert("QR image copied — paste it into your slides, email or chat.");
+        alert(t("session.qr_image_copied_paste_into_slides", "QR image copied — paste it into your slides, email or chat."));
       } else { throw new Error("no image clipboard"); }
     }catch(e){
       const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
       a.download="join-qr-"+(TEACHER.sessionCode||"code")+".png"; a.click();
-      alert("Your browser can't copy images to the clipboard, so the QR was downloaded as a PNG — attach or paste that instead.");
+      alert(t("session.browser_t_copy_images_clipboard_so", "Your browser can't copy images to the clipboard, so the QR was downloaded as a PNG — attach or paste that instead."));
     }
   });
 }

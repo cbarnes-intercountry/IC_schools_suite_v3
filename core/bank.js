@@ -49,7 +49,7 @@ function applyPerQuestionTimerLock(){
   const n=(TEACHER.questions||[]).filter(q=>(parseInt(q.timeLimitSec,10)||0)>0).length;
   if(n>0){
     fld.value=0; fld.disabled=true; fld.style.opacity="0.45"; fld.style.cursor="not-allowed";
-    hint.innerHTML="<strong>Overall limit switched off.</strong> "+n+" question"+(n===1?" has":"s have")+
+    hint.innerHTML="<strong>"+t("bank.overall_limit_switched_off", "Overall limit switched off.")+"</strong> "+n+" question"+(n===1?" has":"s have")+
       " its own time limit, and the two clocks can’t run together. Per-question limits only apply in free navigation — in teacher-paced mode they are ignored.";
   } else {
     fld.disabled=false; fld.style.opacity=""; fld.style.cursor="";

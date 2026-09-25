@@ -48,9 +48,9 @@ async function loadPollSetList(){
     const [qs, ss] = await Promise.all([Backend.listQuizzes(), Backend.listSchools()]);
     POLL.sets = (qs.quizzes||[]).filter(q=>q.kind==="poll");
     const sel=document.getElementById("poll-school-select");
-    sel.innerHTML = '<option value="">— select a school —</option>';
+    sel.innerHTML = '<option value="">'+t("poll.select_school", '— select a school —')+'</option>';
     (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); });
-    document.getElementById("poll-set-select").innerHTML = '<option value="">— select a school first —</option>';
+    document.getElementById("poll-set-select").innerHTML = '<option value="">'+t("poll.select_school_first", '— select a school first —')+'</option>';
   }catch(e){ console.warn(e); }
 }
 
@@ -68,7 +68,7 @@ function filterPollSets(){
   const sel=document.getElementById("poll-set-select");
   POLL.questions=[]; POLL.school=school;
   pollResetStep2();
-  sel.innerHTML='<option value="">— select a poll —</option>';
+  sel.innerHTML='<option value="">'+t("poll.select_poll", '— select a poll —')+'</option>';
   const hint=document.getElementById("poll-none-hint");
   hint.style.display="none";
   if(!school) return;
@@ -84,12 +84,12 @@ function filterPollSets(){
 async function loadPollSet(){
   const key=document.getElementById("poll-set-select").value;
   const status=document.getElementById("poll-set-status");
-  if(!key){ alert("Pick a school and a poll first."); return; }
+  if(!key){ alert(t("poll.pick_school_poll_first", "Pick a school and a poll first.")); return; }
   try{
     const set=await Backend.getQuiz(key);
-    if(!set){ alert("That poll could not be found."); return; }
+    if(!set){ alert(t("poll.poll_could_found", "That poll could not be found.")); return; }
     const qs=(set.questions||[]).filter(q=>isPollType(q.type));
-    if(qs.length===0){ alert("That set has no poll questions in it."); return; }
+    if(qs.length===0){ alert(t("poll.set_no_poll_questions", "That set has no poll questions in it.")); return; }
     POLL.questions=qs.map(q=>Object.assign({},q,{id:q.id||"q_"+uid(6)}));
     POLL.name=set.name||"Live poll";
     POLL.school=document.getElementById("poll-school-select").value || quizSchools(set)[0] || "";
@@ -97,12 +97,12 @@ async function loadPollSet(){
     status.style.display="flex";
     document.getElementById("poll-select-btn").style.display="none";
     document.getElementById("poll-step2").style.display="block";
-  }catch(e){ alert("Load failed: "+e.message); }
+  }catch(e){ alert(t("poll.load_failed", "Load failed: ")+e.message); }
 }
 
 // Open the poll: created in "waiting" so students gather before the first question shows.
 async function pollStartSession(){
-  if(POLL.questions.length===0){ alert("Choose a poll set first."); return; }
+  if(POLL.questions.length===0){ alert(t("poll.choose_poll_set_first", "Choose a poll set first.")); return; }
   const anonymous=document.getElementById("poll-anon").checked;
   POLL.settings={
     kind:"poll", anonymous, status:"waiting", currentIndex:0,
@@ -113,7 +113,7 @@ async function pollStartSession(){
   };
   POLL.runId = POLL.sessionCode+"-"+Date.now().toString(36).toUpperCase();
   try{ await Backend.createSession(POLL.runId, POLL.sessionCode, POLL.settings, POLL.questions); }
-  catch(e){ alert("Couldn't open the poll: "+e.message); return; }
+  catch(e){ alert(t("poll.couldn_t_open_poll", "Couldn't open the poll: ")+e.message); return; }
   document.getElementById("poll-live-code").textContent=POLL.sessionCode;
   document.getElementById("poll-live-mode").textContent=anonymous?"Anonymous":"Named";
   document.getElementById("poll-title").textContent=POLL.name||"Live poll";
@@ -132,16 +132,16 @@ function pollJoinUrl(){ return location.origin+location.pathname+"?join="+encode
 
 function copyPollJoinLink(){
   const url=pollJoinUrl();
-  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(()=>alert("Join link copied:\n"+url),()=>prompt("Copy this link:",url));
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(()=>alert(t("poll.join_link_copied", "Join link copied:\n")+url),()=>prompt("Copy this link:",url));
   else prompt("Copy this link:",url);
 }
 
 function renderPollQR(){
   const box=document.getElementById("poll-qr");
   box.innerHTML="";
-  if(typeof QRCode==="undefined"){ box.innerHTML='<p class="sub">QR needs internet — students can type the code.</p>'; return; }
+  if(typeof QRCode==="undefined"){ box.innerHTML='<p class="sub">'+t("poll.qr_needs_internet_students_type_code", 'QR needs internet — students can type the code.')+'</p>'; return; }
   try{ new QRCode(box,{ text:pollJoinUrl(), width:190, height:190, correctLevel:QRCode.CorrectLevel.M }); }
-  catch(e){ box.innerHTML='<p class="sub">QR unavailable — students can type the code.</p>'; }
+  catch(e){ box.innerHTML='<p class="sub">'+t("poll.qr_unavailable_students_type_code", 'QR unavailable — students can type the code.')+'</p>'; }
 }
 
 function pollWatchParticipants(){
@@ -164,7 +164,7 @@ async function pollBegin(){
   POLL.settings.currentIndex=0;
   POLL.settings.startedAt=Date.now();
   pollArmDeadline(0);
-  try{ await Backend.updateMeta(POLL.runId, POLL.settings); }catch(e){ alert("Couldn't start: "+e.message); return; }
+  try{ await Backend.updateMeta(POLL.runId, POLL.settings); }catch(e){ alert(t("poll.couldn_t_start", "Couldn't start: ")+e.message); return; }
   document.getElementById("poll-lobby").style.display="none";
   document.getElementById("poll-stage").style.display="block";
   document.getElementById("poll-controls").style.display="block";
@@ -212,7 +212,7 @@ async function pollToggleReveal(){
 // Word removal is recorded in meta, so it sticks for every viewer and can't be undone
 // by a late vote for the same word.
 async function pollRemoveWord(word){
-  if(!confirm('Remove "'+word+'" from the cloud?\n\nThis cannot be undone for this poll.')) return;
+  if(!confirm(t("poll.remove", 'Remove "')+word+'" from the cloud?\n\nThis cannot be undone for this poll.')) return;
   const i=String(POLL.settings.currentIndex||0);
   POLL.settings.removed=POLL.settings.removed||{};
   const list=(POLL.settings.removed[i]||[]).slice();
@@ -283,7 +283,7 @@ function renderPollStage(){
 
   const box=document.getElementById("poll-results");
   if(!revealed){
-    box.innerHTML='<div class="poll-hidden-note">Voting is open &mdash; results hidden.<br><span class="poll-count">'+
+    box.innerHTML='<div class="poll-hidden-note">'+t("poll.voting_open_results_hidden", "Voting is open \u2014 results hidden.")+'<br><span class="poll-count">'+
       votes.length+' of '+(joined||0)+' voted</span></div>';
   } else if(q.type==="cloud"){
     box.innerHTML='<div class="cloud" id="poll-cloud"></div>';
@@ -328,7 +328,7 @@ function renderPollCloud(counts){
   if(!box) return;
   const entries=Object.keys(counts).map(k=>[k,counts[k]]).sort((a,b)=>b[1]-a[1]);
   box.innerHTML="";
-  if(entries.length===0){ box.innerHTML='<p class="cloud-empty">No words yet.</p>'; return; }
+  if(entries.length===0){ box.innerHTML='<p class="cloud-empty">'+t("poll.no_words_yet", 'No words yet.')+'</p>'; return; }
   const max=entries[0][1];
   entries.forEach(([word,n],i)=>{
     const b=document.createElement("button");
@@ -348,7 +348,7 @@ function renderPollRoster(){
   const hint=document.getElementById("poll-roster-hint");
   const list=document.getElementById("poll-roster");
   if(POLL.settings.anonymous){
-    hint.textContent="Anonymous poll — you can see how many have voted, not who.";
+    hint.textContent=t("poll.anonymous_poll_see_how_many_voted", "Anonymous poll — you can see how many have voted, not who.");
     list.innerHTML="";
     return;
   }
@@ -358,9 +358,9 @@ function renderPollRoster(){
     const v=p.progress && p.progress.votes && p.progress.votes[String(idx)];
     (v!==undefined&&v!==null&&v!=="" ? voted : waiting).push(displayName(p.surname,p.firstName));
   });
-  hint.textContent="Still to vote on this question:";
+  hint.textContent=t("poll.still_vote_question", "Still to vote on this question:");
   list.innerHTML = waiting.length===0
-    ? '<p class="sub" style="margin:0;">Everyone connected has voted.</p>'
+    ? '<p class="sub" style="margin:0;">'+t("poll.everyone_connected_voted", 'Everyone connected has voted.')+'</p>'
     : '<p class="sub" style="margin:0;">'+waiting.map(escapeHtml).join(" &middot; ")+'</p>';
 }
 
@@ -415,7 +415,7 @@ document.addEventListener("keydown", e=>{
 // Deliberately destructive: poll responses are never kept. Deleting the run also frees
 // the join code and leaves no named opinion data behind.
 async function pollClose(){
-  if(!confirm("Close this poll?\n\nStudents are released and every response is deleted from the database. You'll get a debrief on screen for the discussion, but once you leave it the results are gone for good.")) return;
+  if(!confirm(t("poll.close_poll_students_released_every_response", "Close this poll?\n\nStudents are released and every response is deleted from the database. You'll get a debrief on screen for the discussion, but once you leave it the results are gone for good."))) return;
   pollStopTimerTick();
   if(POLL.unsub){ POLL.unsub(); POLL.unsub=null; }
   // Snapshot what we already have in memory. The debrief is rendered from this, so the
@@ -454,9 +454,9 @@ function renderPollDebrief(questions, participants, removed){
   });
   const sub=document.getElementById("poll-debrief-sub"); if(sub) sub.textContent="";
   document.getElementById("poll-debrief-note").textContent =
-    "These results exist only on this screen. They were deleted from the database when you closed the poll, so screenshot anything you want to keep before pressing Done.";
+    t("poll.these_results_exist_only_screen_they", "These results exist only on this screen. They were deleted from the database when you closed the poll, so screenshot anything you want to keep before pressing Done.");
   body.innerHTML="";
-  if(questions.length===0){ body.innerHTML='<p class="sub">Nothing to show.</p>'; return; }
+  if(questions.length===0){ body.innerHTML='<p class="sub">'+t("poll.nothing_show", 'Nothing to show.')+'</p>'; return; }
 
   const SERIES=["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8"];
   const list=document.createElement("div"); list.className="debrief-list";
@@ -473,7 +473,7 @@ function renderPollDebrief(questions, participants, removed){
     const peek=document.createElement("span");
     if(votes.length===0){
       peek.className="debrief-peek";
-      peek.innerHTML='<em style="font-style:normal;font-size:.78rem;font-family:\'Space Mono\',monospace;color:var(--ink-soft);">No responses</em>';
+      peek.innerHTML='<em style="font-style:normal;font-size:.78rem;font-family:\'Space Mono\',monospace;color:var(--ink-soft);">'+t("poll.no_responses", 'No responses')+'</em>';
     } else if(q.type==="cloud"){
       const counts=pollTallyCloud(votes, removed[String(idx)]);
       const top=Object.keys(counts).map(k=>[k,counts[k]]).sort((a,b)=>b[1]-a[1]);
@@ -506,11 +506,11 @@ function renderPollDebrief(questions, participants, removed){
     // --- the detail, built once and revealed on click ---
     const det=document.createElement("div"); det.className="debrief-detail"; det.style.display="none";
     if(votes.length===0){
-      det.innerHTML='<p class="sub" style="margin:0;">No responses.</p>';
+      det.innerHTML='<p class="sub" style="margin:0;">'+t("poll.no_responses_2", 'No responses.')+'</p>';
     } else if(q.type==="cloud"){
       const counts=pollTallyCloud(votes, removed[String(idx)]);
       const entries=Object.keys(counts).map(k=>[k,counts[k]]).sort((a,b)=>b[1]-a[1]);
-      if(entries.length===0){ det.innerHTML='<p class="sub" style="margin:0;">No words.</p>'; }
+      if(entries.length===0){ det.innerHTML='<p class="sub" style="margin:0;">'+t("poll.no_words", 'No words.')+'</p>'; }
       else {
         const max=entries[0][1];
         const cl=document.createElement("div"); cl.className="cloud";
@@ -622,10 +622,10 @@ function renderPollStudent(){
   const body=document.getElementById("pv-body");
   const status=document.getElementById("pv-status");
   if(PSTU.meta.status==="waiting"){
-    document.getElementById("pv-qpos").textContent="Waiting";
-    document.getElementById("pv-question").textContent="You're in. Waiting for your teacher to start…";
+    document.getElementById("pv-qpos").textContent=t("poll.waiting", "Waiting");
+    document.getElementById("pv-question").textContent=t("poll.re_waiting_teacher_start", "You're in. Waiting for your teacher to start…");
     paintQuestionMedia(null, "pv-img", "pv-audio-wrap");
-    body.innerHTML=""; status.textContent="Keep this page open.";
+    body.innerHTML=""; status.textContent=t("poll.keep_page_open", "Keep this page open.");
     return;
   }
   const idx=PSTU.meta.currentIndex||0;
@@ -641,12 +641,12 @@ function renderPollStudent(){
     const mine=PSTU.votes[String(idx)];
     const shown=Array.isArray(mine)?mine.join(", "):mine;
     body.innerHTML='<div class="vote-done">Vote recorded'+(shown?': <b>'+escapeHtml(String(shown))+'</b>':'')+'</div>';
-    status.textContent="Wait for the next question.";
+    status.textContent=t("poll.wait_next_question", "Wait for the next question.");
     return;
   }
   if(closed==="locked"||closed==="expired"){
     body.innerHTML='<div class="vote-locked">'+(closed==="expired"?"Time’s up":"Voting closed")+' — you can’t answer this one.</div>';
-    status.textContent="Wait for the next question.";
+    status.textContent=t("poll.wait_next_question", "Wait for the next question.");
     return;
   }
 
@@ -657,7 +657,7 @@ function renderPollStudent(){
       rows.push('<input type="text" id="pv-word-'+i+'" placeholder="'+(i===0?"Your word":"Another word (optional)")+'" autocomplete="off" maxlength="28" style="margin-bottom:8px;">');
     }
     body.innerHTML=rows.join("")+
-      '<button class="btn-primary" style="width:100%;" onclick="pollSubmitCloud()">Send</button>';
+      '<button class="btn-primary" style="width:100%;" onclick="pollSubmitCloud()">'+t("poll.send", 'Send')+'</button>';
     status.textContent = max===1 ? "One word." : "Up to "+max+" words — one per box.";
   } else {
     (q.options||[]).forEach(opt=>{
@@ -667,7 +667,7 @@ function renderPollStudent(){
       b.onclick=()=>pollSubmitChoice(opt);
       body.appendChild(b);
     });
-    status.textContent="Tap your answer. You can't change it afterwards.";
+    status.textContent=t("poll.tap_answer_t_change_afterwards", "Tap your answer. You can't change it afterwards.");
   }
 }
 
@@ -691,7 +691,7 @@ async function pollSubmitCloud(){
     const n=normWord(el?el.value:"");
     if(n && words.indexOf(n)<0) words.push(n);
   }
-  if(words.length===0){ alert("Type at least one word."); return; }
+  if(words.length===0){ alert(t("poll.type_least_one_word", "Type at least one word.")); return; }
   PSTU.votes[String(idx)]=words;
   await pollSaveVotes();
   renderPollStudent();
@@ -699,7 +699,7 @@ async function pollSubmitCloud(){
 
 function pollSaveVotes(){
   return Backend.saveProgress(PSTU.runId, STUDENT.id, STUDENT.surname||"", STUDENT.firstName||"", { votes:PSTU.votes })
-    .catch(e=>{ console.warn(e); alert("Couldn't send your answer — check your connection and try again."); });
+    .catch(e=>{ console.warn(e); alert(t("poll.couldn_t_send_answer_check_connection", "Couldn't send your answer — check your connection and try again.")); });
 }
 
 /* ---------- the contract ---------- */
