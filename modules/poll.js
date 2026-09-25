@@ -37,7 +37,7 @@ async function pollCreateSession(){
   POLL = { sessionCode:code, runId:null, questions:[], settings:{}, school:"", sets:[],
            participants:[], unsub:null, timerInt:null, projecting:false };
   const c=document.getElementById("poll-setup-code");
-  c.textContent="Code · "+code; c.style.display="inline-block";
+  c.textContent=t("poll.code_is", "Code \u00b7 {code}", {code:code}); c.style.display="inline-block";
   pollResetStep2();
   await loadPollSetList();
   showScreen("screen-poll-setup");
@@ -76,7 +76,7 @@ function filterPollSets(){
   if(mine.length===0){ hint.style.display="block"; return; }
   mine.forEach(q=>{
     const o=document.createElement("option"); o.value=q.key;
-    o.textContent=q.name+" ("+q.count+" question"+(q.count===1?"":"s")+")";
+    o.textContent=q.name+" ("+t("poll.n_questions", "{count} {questions}", { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })+")";
     sel.appendChild(o);
   });
 }
@@ -91,9 +91,9 @@ async function loadPollSet(){
     const qs=(set.questions||[]).filter(q=>isPollType(q.type));
     if(qs.length===0){ alert(t("poll.set_no_poll_questions", "That set has no poll questions in it.")); return; }
     POLL.questions=qs.map(q=>Object.assign({},q,{id:q.id||"q_"+uid(6)}));
-    POLL.name=set.name||"Live poll";
+    POLL.name=set.name||t("poll.live_poll", "Live poll");
     POLL.school=document.getElementById("poll-school-select").value || quizSchools(set)[0] || "";
-    status.textContent="✓ Selected — "+POLL.questions.length+" question"+(POLL.questions.length===1?"":"s")+".";
+    status.textContent=t("poll.selected_n_questions", "\u2713 Selected \u2014 {count} {questions}.", { count:POLL.questions.length, questions: plural(POLL.questions.length, t("poll.question", "question"), t("poll.questions", "questions")) });
     status.style.display="flex";
     document.getElementById("poll-select-btn").style.display="none";
     document.getElementById("poll-step2").style.display="block";
@@ -106,7 +106,7 @@ async function pollStartSession(){
   const anonymous=document.getElementById("poll-anon").checked;
   POLL.settings={
     kind:"poll", anonymous, status:"waiting", currentIndex:0,
-    school:POLL.school||"", title:POLL.name||"Live poll",
+    school:POLL.school||"", title:POLL.name||t("poll.live_poll", "Live poll"),
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
     locked:{}, revealed:{}, deadlines:{}, removed:{}, startedAt:null
@@ -115,10 +115,11 @@ async function pollStartSession(){
   try{ await Backend.createSession(POLL.runId, POLL.sessionCode, POLL.settings, POLL.questions); }
   catch(e){ alert(t("poll.couldn_t_open_poll", "Couldn't open the poll: ")+e.message); return; }
   document.getElementById("poll-live-code").textContent=POLL.sessionCode;
-  document.getElementById("poll-live-mode").textContent=anonymous?"Anonymous":"Named";
-  document.getElementById("poll-title").textContent=POLL.name||"Live poll";
+  document.getElementById("poll-live-mode").textContent=anonymous?t("poll.anonymous", "Anonymous"):t("poll.named", "Named");
+  document.getElementById("poll-title").textContent=POLL.name||t("poll.live_poll", "Live poll");
   document.getElementById("poll-title-meta").textContent=
-    POLL.questions.length+" question"+(POLL.questions.length===1?"":"s")+(POLL.school?" · "+POLL.school:"");
+    t("poll.n_questions", "{count} {questions}", { count:POLL.questions.length, questions: plural(POLL.questions.length, t("poll.question", "question"), t("poll.questions", "questions")) })
+    + (POLL.school ? " \u00b7 "+POLL.school : "");
   document.getElementById("poll-join-code").textContent=POLL.sessionCode;
   document.getElementById("poll-lobby").style.display="block";
   document.getElementById("poll-stage").style.display="none";
@@ -132,8 +133,8 @@ function pollJoinUrl(){ return location.origin+location.pathname+"?join="+encode
 
 function copyPollJoinLink(){
   const url=pollJoinUrl();
-  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(()=>alert(t("poll.join_link_copied", "Join link copied:\n")+url),()=>prompt("Copy this link:",url));
-  else prompt("Copy this link:",url);
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(()=>alert(t("poll.join_link_copied", "Join link copied:\n")+url),()=>prompt(t("poll.copy_this_link", "Copy this link:"),url));
+  else prompt(t("poll.copy_this_link", "Copy this link:"),url);
 }
 
 function renderPollQR(){
@@ -152,14 +153,17 @@ function pollWatchParticipants(){
     const lc=document.getElementById("poll-lobby-count");
     if(lc) lc.textContent = n;
     const ll=document.getElementById("poll-lobby-count-label");
-    if(ll) ll.textContent = n===1 ? "student connected" : "students connected";
+    if(ll) ll.textContent = plural(n, t("poll.student_connected", "student connected"), t("poll.students_connected", "students connected"));
     renderPollStage();
   });
 }
 
 async function pollBegin(){
   const n=POLL.participants.length;
-  if(!confirm((n===0?"Nobody has joined yet. ":n+" student(s) connected. ")+"Start the poll now?")) return;
+  if(!confirm((n===0
+    ? t("poll.nobody_joined_yet", "Nobody has joined yet.")
+    : t("poll.n_students_connected", "{count} {students} connected.", { count:n, students: plural(n, t("poll.student", "student"), t("poll.students", "students")) }))
+    + " " + t("poll.start_the_poll_now", "Start the poll now?"))) return;
   POLL.settings.status="active";
   POLL.settings.currentIndex=0;
   POLL.settings.startedAt=Date.now();
@@ -212,7 +216,7 @@ async function pollToggleReveal(){
 // Word removal is recorded in meta, so it sticks for every viewer and can't be undone
 // by a late vote for the same word.
 async function pollRemoveWord(word){
-  if(!confirm(t("poll.remove", 'Remove "')+word+'" from the cloud?\n\nThis cannot be undone for this poll.')) return;
+  if(!confirm(t("poll.remove_word_confirm", "Remove \u201c{word}\u201d from the cloud?\n\nThis cannot be undone for this poll.", {word:word}))) return;
   const i=String(POLL.settings.currentIndex||0);
   POLL.settings.removed=POLL.settings.removed||{};
   const list=(POLL.settings.removed[i]||[]).slice();
@@ -266,25 +270,29 @@ function renderPollStage(){
   document.getElementById("poll-question").textContent=q.text||"";
   paintQuestionMedia(q, "poll-img", "poll-audio-wrap");
   const stateBadge=document.getElementById("poll-state-badge");
-  stateBadge.textContent=locked?"Locked":"Open";
+  stateBadge.textContent=locked?t("poll.locked", "Locked"):t("poll.open", "Open");
   stateBadge.className="badge"+(locked?" demo":" live");
   document.getElementById("poll-count-big").textContent = votes.length;
   document.getElementById("poll-response-count").textContent =
-    joined ? ("of "+joined+" voted") : (q.type==="cloud" ? "words in" : "response"+(votes.length===1?"":"s"));
-  document.getElementById("poll-proj-qpos").textContent="Q "+(idx+1)+" / "+POLL.questions.length;
-  document.getElementById("poll-proj-lock").innerHTML = locked ? "&#128275; Unlock" : "&#128274; Lock";
-  document.getElementById("poll-lock-btn").innerHTML = locked ? "&#128275; Unlock Question" : "&#128274; Lock Question";
-  document.getElementById("poll-reveal-btn").textContent = revealed ? "Hide Results" : "Reveal Results";
+    joined
+      ? t("poll.of_n_voted", "of {joined} voted", {joined:joined})
+      : (q.type==="cloud"
+          ? t("poll.words_in", "words in")
+          : plural(votes.length, t("poll.response", "response"), t("poll.responses", "responses")));
+  document.getElementById("poll-proj-qpos").textContent=t("poll.q_x_of_y", "Q {n} / {total}", {n:idx+1, total:POLL.questions.length});
+  document.getElementById("poll-proj-lock").textContent = locked ? t("poll.unlock", "\ud83d\udd13 Unlock") : t("poll.lock", "\ud83d\udd12 Lock");
+  document.getElementById("poll-lock-btn").textContent = locked ? t("poll.unlock_question", "\ud83d\udd13 Unlock Question") : t("poll.lock_question", "\ud83d\udd12 Lock Question");
+  document.getElementById("poll-reveal-btn").textContent = revealed ? t("poll.hide_results", "Hide Results") : t("poll.reveal_results", "Reveal Results");
   // The projected bar mirrors the desk controls. It stays usable even when the question is
   // set to show results live, so results can still be hidden again mid-discussion.
   const pr=document.getElementById("poll-proj-reveal");
-  pr.textContent = revealed ? "Hide" : "Reveal";
+  pr.textContent = revealed ? t("poll.hide", "Hide") : t("poll.reveal", "Reveal");
   pr.className = revealed ? "btn-outline" : "btn-secondary";
 
   const box=document.getElementById("poll-results");
   if(!revealed){
     box.innerHTML='<div class="poll-hidden-note">'+t("poll.voting_open_results_hidden", "Voting is open \u2014 results hidden.")+'<br><span class="poll-count">'+
-      votes.length+' of '+(joined||0)+' voted</span></div>';
+      escapeHtml(t("poll.n_of_m_voted", "{votes} of {joined} voted", {votes:votes.length, joined:joined||0}))+'</span></div>';
   } else if(q.type==="cloud"){
     box.innerHTML='<div class="cloud" id="poll-cloud"></div>';
     renderPollCloud(pollTallyCloud(votes, metaMap(POLL.settings,"removed")[String(idx)]));
@@ -338,7 +346,7 @@ function renderPollCloud(counts){
     // Size by frequency, floor high enough that a single mention is still readable.
     const scale=1+1.9*(max>1?(n-1)/(max-1):0);
     b.style.fontSize=(POLL.projecting?2.1:1.15)*scale+"rem";
-    b.title=n+(n===1?" mention":" mentions")+" — click to remove";
+    b.title=t("poll.n_mentions_click_remove", "{count} {mentions} \u2014 click to remove", { count:n, mentions: plural(n, t("poll.mention", "mention"), t("poll.mentions", "mentions")) });
     b.onclick=()=>pollRemoveWord(word);
     box.appendChild(b);
   });
@@ -518,7 +526,7 @@ function renderPollDebrief(questions, participants, removed){
           const sp=document.createElement("span");
           sp.className="cloud-word"; sp.style.cursor="default";
           sp.textContent=word;
-          sp.title=cnt+(cnt===1?" mention":" mentions");
+          sp.title=t("poll.n_mentions", "{count} {mentions}", { count:cnt, mentions: plural(cnt, t("poll.mention", "mention"), t("poll.mentions", "mentions")) });
           sp.style.color="var("+SERIES[i%SERIES.length]+")";
           // em, not rem, so the whole cloud scales with the container in projection mode
           sp.style.fontSize=(1+1.4*(max>1?(cnt-1)/(max-1):0))+"em";
@@ -592,7 +600,7 @@ function pollStudentEnd(){
   paintQuestionMedia(null, "pv-img", "pv-audio-wrap");
   // A closed poll gets its own screen: the question card has nothing left to say.
   const answered=Object.keys(PSTU.votes||{}).length, total=(PSTU.questions||[]).length;
-  document.getElementById("pd-count").textContent=answered+" of "+total;
+  document.getElementById("pd-count").textContent=t("poll.n_of_m", "{answered} of {total}", {answered:answered, total:total});
   showScreen("screen-poll-done");
 }
 
@@ -645,7 +653,9 @@ function renderPollStudent(){
     return;
   }
   if(closed==="locked"||closed==="expired"){
-    body.innerHTML='<div class="vote-locked">'+(closed==="expired"?"Time’s up":"Voting closed")+' — you can’t answer this one.</div>';
+    body.innerHTML='<div class="vote-locked">'+escapeHtml(
+      (closed==="expired" ? t("poll.times_up", "Time\u2019s up") : t("poll.voting_closed", "Voting closed"))
+      + " " + t("poll.cant_answer_this_one", "\u2014 you can\u2019t answer this one."))+'</div>';
     status.textContent=t("poll.wait_next_question", "Wait for the next question.");
     return;
   }
@@ -654,11 +664,13 @@ function renderPollStudent(){
     const max=Math.max(1, Math.min(3, q.maxWords||1));
     const rows=[];
     for(let i=0;i<max;i++){
-      rows.push('<input type="text" id="pv-word-'+i+'" placeholder="'+(i===0?"Your word":"Another word (optional)")+'" autocomplete="off" maxlength="28" style="margin-bottom:8px;">');
+      rows.push('<input type="text" id="pv-word-'+i+'" placeholder="'+escapeHtml(i===0?t("poll.your_word", "Your word"):t("poll.another_word_optional", "Another word (optional)"))+'" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="28" style="margin-bottom:8px;">');
     }
     body.innerHTML=rows.join("")+
       '<button class="btn-primary" style="width:100%;" onclick="pollSubmitCloud()">'+t("poll.send", 'Send')+'</button>';
-    status.textContent = max===1 ? "One word." : "Up to "+max+" words — one per box.";
+    status.textContent = max===1
+      ? t("poll.one_word", "One word.")
+      : t("poll.up_to_n_words", "Up to {max} words \u2014 one per box.", {max:max});
   } else {
     (q.options||[]).forEach(opt=>{
       const b=document.createElement("button");

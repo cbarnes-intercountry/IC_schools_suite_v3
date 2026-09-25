@@ -39,7 +39,7 @@ function teacherCheckAllowed(email){
   const e=(email||"").toLowerCase();
   if(TEACHER_LOGIN.allowedDomains && TEACHER_LOGIN.allowedDomains.length){
     const ok = TEACHER_LOGIN.allowedDomains.some(d=>e.endsWith("@"+String(d).toLowerCase()));
-    if(!ok) return "This account isn't permitted to run tests ("+e+").";
+    if(!ok) return t("auth.not_permitted_to_run_tests", "This account isn't permitted to run tests ({reason}).", {reason:e});
   }
   return null;
 }
@@ -67,7 +67,7 @@ async function teacherAcceptUser(user){
   const problem = teacherCheckAllowed(user.email);
   if(problem) return teacherRejectUser(problem);
 
-  const label = user.displayName || (user.email||"").split("@")[0] || "Teacher";
+  const label = user.displayName || (user.email||"").split("@")[0] || t("auth.default_teacher_name", "Teacher");
   let rec=null;
   try{ rec = await Backend.getTeacher(user.uid); }
   catch(e){ console.warn("teacher lookup failed", e); }
@@ -80,18 +80,18 @@ async function teacherAcceptUser(user){
     if(count===0){
       rec={ email:user.email||"", name:label, role:"owner", active:true, addedAt:Date.now(), addedBy:"bootstrap" };
       try{ await Backend.setTeacher(user.uid, rec); }
-      catch(e){ return teacherRejectUser("Couldn't set up the first owner account: "+e.message); }
+      catch(e){ return teacherRejectUser(t("auth.owner_setup_failed", "Couldn't set up the first owner account: {why}", {why:e.message})); }
     } else {
-      return teacherRejectUser("This account hasn't been given access yet. An owner needs to add it in Admin → Teacher Accounts.");
+      return teacherRejectUser(t("auth.no_access_yet", "This account hasn't been given access yet. An owner needs to add it in Admin \u2192 Teacher Accounts."));
     }
   }
-  if(rec.active===false) return teacherRejectUser("This account has been deactivated.");
+  if(rec.active===false) return teacherRejectUser(t("auth.account_deactivated", "This account has been deactivated."));
 
   TEACHER_USER = { name: rec.name || label, email: user.email || "", uid: user.uid,
                    role: rec.role==="owner" ? "owner" : "user" };
   const badge=document.getElementById("teacher-identity");
   if(badge){
-    badge.textContent = TEACHER_USER.name + (isOwner() ? " · Owner" : "");
+    badge.textContent = TEACHER_USER.name + (isOwner() ? t("auth.owner_suffix", " \u00b7 Owner") : "");
     badge.style.display="inline-block";
   }
   applyRoleVisibility();
@@ -144,10 +144,10 @@ function secondaryAuth(){
 let TEACHER_LIST=[];
 
 
-async function sendTeacherReset(t){
-  if(!requireOwner("send a password reset")) return;
-  if(!t.email){ alert(t("auth.no_email_address_account", "No email address on this account.")); return; }
-  try{ await firebase.auth().sendPasswordResetEmail(t.email); alert(t("auth.password_reset_email_sent", "Password reset email sent to ")+t.email+"."); }
+async function sendTeacherReset(rec){
+  if(!requireOwner(t("auth.action_send_reset", "send a password reset"))) return;
+  if(!rec.email){ alert(t("auth.no_email_address_account", "No email address on this account.")); return; }
+  try{ await firebase.auth().sendPasswordResetEmail(rec.email); alert(t("auth.password_reset_email_sent", "Password reset email sent to ")+rec.email+"."); }
   catch(e){ alert(t("auth.couldn_t_send_reset_email", "Couldn't send the reset email: ")+e.message); }
 }
 
@@ -200,7 +200,7 @@ async function teacherSignIn(){
     } else if(code==="auth/operation-not-allowed"){
       status.textContent=t("auth.email_password_sign_isn_t_enabled", "✗ Email/password sign-in isn't enabled in Firebase (Authentication → Sign-in method).");
     } else {
-      status.textContent="✗ Sign-in failed: "+((e&&e.message)||e);
+      status.textContent=t("auth.sign_in_failed", "\u2717 Sign-in failed: {why}", {why:(e&&e.message)||e});
     }
   }
 }
@@ -213,9 +213,9 @@ async function teacherResetPassword(){
   if(!email){ status.textContent=t("auth.type_email_address_first_then_click", "Type your email address first, then click reset."); return; }
   try{
     await firebase.auth().sendPasswordResetEmail(email);
-    status.textContent="Reset email sent to "+email+" — check your inbox (and spam).";
+    status.textContent=t("auth.reset_email_sent", "Reset email sent to {email} \u2014 check your inbox (and spam).", {email:email});
   }catch(e){
-    status.textContent="✗ Couldn't send reset email: "+((e&&e.message)||e);
+    status.textContent=t("auth.reset_email_failed", "\u2717 Couldn't send reset email: {why}", {why:(e&&e.message)||e});
   }
 }
 
@@ -243,7 +243,7 @@ async function teacherAuthBoot(){
   const u = firebase.auth().currentUser;
   if(u && !u.isAnonymous){
     await teacherAcceptUser(u);
-    if(status) status.textContent="Signed in as "+(u.email||"")+".";
+    if(status) status.textContent=t("auth.signed_in_as", "Signed in as {email}.", {email:u.email||""});
   }
 }
 

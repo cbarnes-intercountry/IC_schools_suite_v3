@@ -57,7 +57,7 @@ function topUpTeams(map, participants, count){
   participants.forEach(p=>{
     if(map[p.studentId] && sizes[map[p.studentId]]!==undefined) return;
     let smallest=teamNameAt(0);
-    for(let i=1;i<n;i++){ const t=teamNameAt(i); if(sizes[t]<sizes[smallest]) smallest=t; }
+    for(let i=1;i<n;i++){ const team=teamNameAt(i); if(sizes[team]<sizes[smallest]) smallest=team; }
     map[p.studentId]=smallest; sizes[smallest]++;
   });
   // Drop anyone who left the lobby, and anyone stranded on a team that no longer exists.
@@ -87,19 +87,21 @@ function renderTeamPreview(){
   const note=document.getElementById("dash-team-note");
   const n=DASH_PARTICIPANTS.length;
   note.textContent = n===0
-    ? "Teams are drawn when students join. Change the number any time before you start."
-    : n+" student"+(n===1?"":"s")+" in "+TEAM_DRAFT.count+" teams — about "+Math.ceil(n/TEAM_DRAFT.count)+" each. Locked once the test starts.";
+    ? t("groups.teams_drawn_when_students_join", "Teams are drawn when students join. Change the number any time before you start.")
+    : t("groups.team_draft_summary", "{count} {students} in {teams} teams \u2014 about {each} each. Locked once the test starts.",
+        { count:n, students: plural(n, t("groups.student", "student"), t("groups.students", "students")),
+          teams: TEAM_DRAFT.count, each: Math.ceil(n/TEAM_DRAFT.count) });
   const wrap=document.getElementById("dash-team-preview");
   wrap.innerHTML="";
   const byTeam={};
   DASH_PARTICIPANTS.forEach(p=>{
-    const t=TEAM_DRAFT.map[p.studentId]; if(!t) return;
-    (byTeam[t]=byTeam[t]||[]).push(displayName(p.surname,p.firstName));
+    const team=TEAM_DRAFT.map[p.studentId]; if(!team) return;
+    (byTeam[team]=byTeam[team]||[]).push(displayName(p.surname,p.firstName));
   });
-  Object.keys(byTeam).sort().forEach(t=>{
+  Object.keys(byTeam).sort().forEach(team=>{
     const d=document.createElement("div");
     d.style.cssText="margin:6px 0;font-size:.9rem;";
-    d.innerHTML="<b>"+escapeHtml(t)+"</b> <span class='sub'>("+byTeam[t].length+")</span> — "+escapeHtml(byTeam[t].join(", "));
+    d.innerHTML="<b>"+escapeHtml(team)+"</b> <span class='sub'>("+byTeam[team].length+")</span> — "+escapeHtml(byTeam[team].join(", "));
     wrap.appendChild(d);
   });
 }
@@ -137,8 +139,10 @@ function renderTeamLeaderboard(){
         '<span class="mono">'+m.score+'/'+m.totalPossible+' · '+Math.round(m.percentage)+'%</span></div>';
     }).join("");
     if(g.idle>0){
-      body.innerHTML+='<p class="sub" style="margin:8px 0 0;">'+g.idle+' member'+(g.idle===1?"":"s")+
-        ' left out of the average — the team is scored on the '+g.scoring+' who answered.</p>';
+      body.innerHTML+='<p class="sub" style="margin:8px 0 0;">'+escapeHtml(
+        t("groups.idle_members_left_out", "{idle} {members} left out of the average \u2014 the team is scored on the {scoring} who answered.",
+          { idle:g.idle, members: plural(g.idle, t("groups.member", "member"), t("groups.members", "members")), scoring:g.scoring })
+      )+'</p>';
     }
     det.appendChild(body);
     list.appendChild(det);
@@ -155,9 +159,9 @@ function renderTeamLeaderboard(){
 function computeTeamStandings(results){
   const byTeam={};
   results.forEach(r=>{
-    const t=r.team; if(!t) return;
-    if(!byTeam[t]) byTeam[t]={ team:t, members:[], scoring:0, pctSum:0, points:0, possible:0 };
-    const g=byTeam[t];
+    const team=r.team; if(!team) return;
+    if(!byTeam[team]) byTeam[team]={ team:team, members:[], scoring:0, pctSum:0, points:0, possible:0 };
+    const g=byTeam[team];
     g.members.push(r);
     g.points+=Number(r.score)||0;
     g.possible+=Number(r.totalPossible)||0;
@@ -189,7 +193,7 @@ function appendTeamBlock(rows, results, nQ){
     rows.push([ g.rank, g.team, g.size, g.scoring, g.average.toFixed(1), g.points, g.possible ]);
   });
   rows.push([]);
-  rows.push(["Counted = members who answered at least one question. The team average ignores the rest."].concat(pad.slice(0,0)));
+  rows.push([t("groups.counted_note", "Counted = members who answered at least one question. The team average ignores the rest.")].concat(pad.slice(0,0)));
 }
 
 

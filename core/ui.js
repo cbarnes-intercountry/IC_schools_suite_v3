@@ -48,7 +48,20 @@ function fmtDate(ts){ try{ return new Date(ts).toLocaleString(); }catch(e){ retu
 
 
 // The chip row mirrors the (hidden) type select, showing only the kinds valid for this bank.
-const TYPE_LABELS={mcq:"Multiple choice",tf:"True / False",text:"Short text",order:"Puzzle",poll:"Poll",cloud:"Word cloud"};
+// A function, not a table: a table built at load time would hold whatever language the page
+// started in, and never change again when the teacher switches.
+function typeLabel(kind){
+  switch(kind){
+    case "mcq":     return t("ui.type_mcq", "Multiple choice");
+    case "tf":      return t("ui.type_tf", "True / False");
+    case "text":    return t("ui.type_text", "Short text");
+    case "numeric": return t("ui.type_numeric", "Number");
+    case "order":   return t("ui.type_order", "Puzzle");
+    case "poll":    return t("ui.type_poll", "Poll");
+    case "cloud":   return t("ui.type_cloud", "Word cloud");
+    default:        return "";
+  }
+}
 
 function isScreenActive(id){ const el=document.getElementById(id); return !!(el && el.classList && el.classList.contains("active")); }
 

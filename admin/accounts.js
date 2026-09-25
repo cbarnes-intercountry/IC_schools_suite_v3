@@ -17,19 +17,19 @@ async function renderTeacherPanel(){
   TEACHER_LIST.sort((a,b)=>String(a.name||a.email||"").localeCompare(String(b.name||b.email||"")));
   if(!TEACHER_LIST.length){ box.innerHTML='<p class="sub">'+t("accounts.no_accounts_yet", 'No accounts yet.')+'</p>'; return; }
   const me=(TEACHER_USER&&TEACHER_USER.uid)||"";
-  const owners=TEACHER_LIST.filter(t=>t.role==="owner" && t.active!==false).length;
+  const owners=TEACHER_LIST.filter(rec=>rec.role==="owner" && rec.active!==false).length;
   box.innerHTML="";
-  TEACHER_LIST.forEach(t=>{
-    const isMe=t.uid===me, off=t.active===false;
+  TEACHER_LIST.forEach(rec=>{
+    const isMe=rec.uid===me, off=rec.active===false;
     const row=document.createElement("div");
     row.className="row";
     row.style.cssText="align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line,#e5e5e5);"+(off?"opacity:.5;":"");
     const who=document.createElement("div"); who.style.flex="1";
-    who.innerHTML="<b>"+escapeHtml(t.name||"(no name)")+"</b>"+(isMe?" <span class='sub'>"+t("accounts.you", "(you)")+"</span>":"")+
-      "<br><small class='sub'>"+escapeHtml(t.email||"")+"</small>";
+    who.innerHTML="<b>"+escapeHtml(rec.name||t("accounts.no_name", "(no name)"))+"</b>"+(isMe?" <span class='sub'>"+t("accounts.you", "(you)")+"</span>":"")+
+      "<br><small class='sub'>"+escapeHtml(rec.email||"")+"</small>";
     const tag=document.createElement("span"); tag.className="qtag";
-    tag.textContent = off ? "DEACTIVATED" : (t.role==="owner" ? "OWNER" : "TEACHER");
-    if(t.role==="owner" && !off){ tag.style.background="var(--success-soft)"; tag.style.borderColor="var(--success)"; tag.style.color="var(--success)"; }
+    tag.textContent = off ? t("accounts.tag_deactivated", "DEACTIVATED") : (rec.role==="owner" ? t("accounts.tag_owner", "OWNER") : t("accounts.tag_teacher", "TEACHER"));
+    if(rec.role==="owner" && !off){ tag.style.background="var(--success-soft)"; tag.style.borderColor="var(--success)"; tag.style.color="var(--success)"; }
     row.appendChild(who); row.appendChild(tag);
 
     const mk=(label,fn,danger)=>{ const b=document.createElement("button");
@@ -37,20 +37,20 @@ async function renderTeacherPanel(){
       b.textContent=label; b.onclick=fn; row.appendChild(b); return b; };
 
     if(!off){
-      if(t.role==="owner"){
+      if(rec.role==="owner"){
         // Never let the last active owner step down — nobody could then manage anything.
-        const b=mk("Make teacher", ()=>setTeacherRole(t, "user"));
-        if(owners<=1){ b.disabled=true; b.style.opacity=".4"; b.title="The last owner can't be demoted."; }
+        const b=mk(t("accounts.make_teacher", "Make teacher"), ()=>setTeacherRole(rec, "user"));
+        if(owners<=1){ b.disabled=true; b.style.opacity=".4"; b.title=t("accounts.last_owner_cannot_be_demoted", "The last owner can't be demoted."); }
       } else {
-        mk("Make owner", ()=>setTeacherRole(t, "owner"));
+        mk(t("accounts.make_owner", "Make owner"), ()=>setTeacherRole(rec, "owner"));
       }
-      mk("Reset password", ()=>sendTeacherReset(t));
+      mk(t("accounts.reset_password", "Reset password"), ()=>sendTeacherReset(rec));
       if(!isMe){
-        const b=mk("Deactivate", ()=>setTeacherActive(t, false), true);
-        if(t.role==="owner" && owners<=1){ b.disabled=true; b.style.opacity=".4"; }
+        const b=mk(t("accounts.deactivate_btn", "Deactivate"), ()=>setTeacherActive(rec, false), true);
+        if(rec.role==="owner" && owners<=1){ b.disabled=true; b.style.opacity=".4"; }
       }
     } else {
-      mk("Reactivate", ()=>setTeacherActive(t, true));
+      mk(t("accounts.reactivate", "Reactivate"), ()=>setTeacherActive(rec, true));
     }
     box.appendChild(row);
   });
@@ -68,12 +68,14 @@ async function loadUnsplashKeyUI(){
     const r=await Backend.getConfig("unsplashKey");
     const key=(r&&r.value)||"";
     box.value=key;
-    st.textContent = key ? "\u2713 A key is set — image search is using Unsplash." : "No key yet — image search is falling back to the Creative Commons archives.";
-  }catch(e){ st.textContent="Couldn\u2019t read the current key: "+e.message; }
+    st.textContent = key
+      ? t("accounts.key_is_set", "\u2713 A key is set \u2014 image search is using Unsplash.")
+      : t("accounts.no_key_yet", "No key yet \u2014 image search is falling back to the Creative Commons archives.");
+  }catch(e){ st.textContent=t("accounts.couldnt_read_key", "Couldn\u2019t read the current key: {why}", {why:e.message}); }
 }
 
 async function saveUnsplashKey(){
-  if(!requireOwner("change the image search key")) return;
+  if(!requireOwner(t("accounts.action_change_image_key", "change the image search key"))) return;
   const box=document.getElementById("unsplash-key");
   const st=document.getElementById("unsplash-status");
   const key=(box.value||"").trim();
@@ -81,13 +83,15 @@ async function saveUnsplashKey(){
   try{
     await Backend.setConfig("unsplashKey", key);
     _unsplashKey=key;                     // drop the cached value so the next search uses it
-    st.textContent = key ? "\u2713 Saved. Try \u201cFind a free image\u201d on any question." : "\u2713 Cleared — image search will use the Creative Commons archives.";
-  }catch(e){ st.textContent="\u2717 Couldn\u2019t save: "+e.message; }
+    st.textContent = key
+      ? t("accounts.key_saved", "\u2713 Saved. Try \u201cFind a free image\u201d on any question.")
+      : t("accounts.key_cleared", "\u2713 Cleared \u2014 image search will use the Creative Commons archives.");
+  }catch(e){ st.textContent=t("accounts.couldnt_save_key", "\u2717 Couldn\u2019t save: {why}", {why:e.message}); }
 }
 
 
 async function addTeacherUI(){
-  if(!requireOwner("add a teacher account")) return;
+  if(!requireOwner(t("accounts.action_add_teacher", "add a teacher account"))) return;
   const st=document.getElementById("teacher-add-status");
   const name=(document.getElementById("teacher-add-name").value||"").trim();
   const email=(document.getElementById("teacher-add-email").value||"").trim();
@@ -108,32 +112,35 @@ async function addTeacherUI(){
     document.getElementById("teacher-add-name").value="";
     document.getElementById("teacher-add-email").value="";
     document.getElementById("teacher-add-pass").value="";
-    st.textContent="✓ "+name+" added. Tell them their password — they should change it on first sign-in.";
+    st.textContent=t("accounts.teacher_added", "\u2713 {name} added. Tell them their password \u2014 they should change it on first sign-in.", {name:name});
     renderTeacherPanel();
   }catch(e){
     const code=(e&&e.code)||"";
     st.textContent = code==="auth/email-already-in-use"
-      ? "✗ That email already has an account. If they should have access, it may just need reactivating below."
-      : code==="auth/invalid-email" ? "✗ That email address isn't valid."
-      : code==="auth/weak-password" ? "✗ Password too weak — use at least 6 characters."
-      : "✗ Couldn't create the account: "+((e&&e.message)||e);
+      ? t("accounts.email_in_use", "\u2717 That email already has an account. If they should have access, it may just need reactivating below.")
+      : code==="auth/invalid-email" ? t("accounts.email_invalid", "\u2717 That email address isn\u2019t valid.")
+      : code==="auth/weak-password" ? t("accounts.password_weak", "\u2717 Password too weak \u2014 use at least 6 characters.")
+      : t("accounts.create_failed", "\u2717 Couldn\u2019t create the account: {why}", {why:(e&&e.message)||e});
   }
 }
 
 
-async function setTeacherRole(t, role){
-  if(!requireOwner("change a teacher's role")) return;
-  if(!confirm((role==="owner"?"Make ":"Remove owner rights from ")+(t.name||t.email)+
-    (role==="owner"?" an owner? They'll be able to delete results and manage accounts.":"? They'll keep normal teacher access."))) return;
-  try{ await Backend.setTeacher(t.uid, { role }); renderTeacherPanel(); }
+async function setTeacherRole(rec, role){
+  if(!requireOwner(t("accounts.action_change_role", "change a teacher's role"))) return;
+  if(!confirm(role==="owner"
+    ? t("accounts.make_owner_confirm", "Make {who} an owner? They\u2019ll be able to delete results and manage accounts.", {who:rec.name||rec.email})
+    : t("accounts.remove_owner_confirm", "Remove owner rights from {who}? They\u2019ll keep normal teacher access.", {who:rec.name||rec.email}))) return;
+  try{ await Backend.setTeacher(rec.uid, { role }); renderTeacherPanel(); }
   catch(e){ alert(t("accounts.couldn_t_change_role", "Couldn't change the role: ")+e.message); }
 }
 
 
-async function setTeacherActive(t, active){
-  if(!requireOwner("deactivate or reactivate an account")) return;
-  if(!active && !confirm(t("accounts.deactivate", "Deactivate ")+(t.name||t.email)+"?\n\nThey'll be signed out and refused access at the next attempt. Their quizzes and past results are kept.\n\nThe Firebase login itself still exists — delete it in the Firebase console to free the email address.")) return;
-  try{ await Backend.setTeacher(t.uid, { active:!!active }); renderTeacherPanel(); }
+async function setTeacherActive(rec, active){
+  if(!requireOwner(t("accounts.action_deactivate", "deactivate or reactivate an account"))) return;
+  if(!active && !confirm(t("accounts.deactivate_confirm",
+    "Deactivate {who}?\n\nThey\u2019ll be signed out and refused access at the next attempt. Their quizzes and past results are kept.\n\nThe Firebase login itself still exists \u2014 delete it in the Firebase console to free the email address.",
+    {who:rec.name||rec.email}))) return;
+  try{ await Backend.setTeacher(rec.uid, { active:!!active }); renderTeacherPanel(); }
   catch(e){ alert(t("accounts.couldn_t_update_account", "Couldn't update the account: ")+e.message); }
 }
 
@@ -201,14 +208,14 @@ function setCheckedSchools(names){
 }
 
 async function addSchoolUI(){
-  if(!requireOwner("add a school")) return;
+  if(!requireOwner(t("accounts.action_add_school", "add a school"))) return;
   const inp=document.getElementById("school-add-name"); const name=inp.value.trim();
   if(!name){ alert(t("accounts.type_school_name_first", "Type a school name first.")); return; }
   try{ await Backend.addSchool(name); inp.value=""; renderSchools(); }catch(e){ alert(t("accounts.add_failed", "Add failed: ")+e.message); }
 }
 
 async function removeSchoolUI(name){
-  if(!requireOwner("remove a school")) return;
-  if(!confirm(t("poll.remove", 'Remove "')+name+'"? Quizzes already assigned to it keep their label until re-saved.')) return;
+  if(!requireOwner(t("accounts.action_remove_school", "remove a school"))) return;
+  if(!confirm(t("accounts.remove_school_confirm", 'Remove \u201c{name}\u201d? Quizzes already assigned to it keep their label until re-saved.', {name:name}))) return;
   try{ await Backend.removeSchool(name); renderSchools(); }catch(e){ alert(t("accounts.remove_failed", "Remove failed: ")+e.message); }
 }

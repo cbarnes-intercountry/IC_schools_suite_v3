@@ -26,12 +26,15 @@ function importQuestionsPrompt(){
       const dropped=arr.length-keep.length;
       if(keep.length===0){
         alert(BUILDER_MODE==="poll"
-          ? "That file has no poll questions in it."
-          : "That file contains only poll questions — import it from the Poll Creator instead.");
+          ? t("import.file_no_poll_questions", "That file has no poll questions in it.")
+          : t("import.file_only_poll_questions", "That file contains only poll questions \u2014 import it from the Poll Creator instead."));
         return;
       }
       TEACHER.questions=TEACHER.questions.concat(keep); renderQBank();
-      if(dropped) alert(t("import.imported", "Imported ")+keep.length+" question(s).\n\n"+dropped+" were the wrong type for this "+(BUILDER_MODE==="poll"?"poll":"quiz")+" and were skipped.");
+      if(dropped) alert(
+        t("import.imported_n", "Imported {count} {questions}.", { count:keep.length, questions: plural(keep.length, t("poll.question", "question"), t("poll.questions", "questions")) })
+        + "\n\n" + t("import.n_wrong_type_skipped", "{count} were the wrong type for this {what} and were skipped.",
+            { count:dropped, what:setLabel(BUILDER_MODE).one }));
     }catch(err){ alert(t("import.couldn_t_read_file_expecting_json", "Couldn't read that file. Expecting a JSON array of question objects, or a file made by Export.")); } };
     reader.readAsText(file); };
   input.click();
@@ -48,20 +51,21 @@ function importFromExcel(){
       const sheetName=wb.SheetNames.indexOf("Questions")>=0?"Questions":wb.SheetNames[0];
       const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{defval:""});
       const {questions,errors}=parseQuizRows(rows);
-      if(questions.length===0){ alert(t("import.no_valid_questions_found", "No valid questions found.\n\n")+(errors.join("\n")||"Check the template columns.")); return; }
+      if(questions.length===0){ alert(t("import.no_valid_questions_found", "No valid questions found.\n\n")+(errors.join("\n")||t("import.check_template_columns", "Check the template columns."))); return; }
       // Only the kind this bank holds is taken; the rest are reported rather than silently dropped.
       const keep=questions.filter(q=>isPollType(q.type)===(BUILDER_MODE==="poll"));
       const dropped=questions.length-keep.length;
       if(keep.length===0){
         alert(BUILDER_MODE==="poll"
-          ? "That sheet has no poll questions.\n\nSet Type to “poll” or “cloud”, or import it into the Test Creator instead."
-          : "That sheet contains only poll questions.\n\nImport it from the Poll Creator instead (Admin → + Create a New Poll).");
+          ? t("import.sheet_no_poll_questions", "That sheet has no poll questions.\n\nSet Type to \u201cpoll\u201d or \u201ccloud\u201d, or import it into the Test Creator instead.")
+          : t("import.sheet_only_poll_questions", "That sheet contains only poll questions.\n\nImport it from the Poll Creator instead (Admin \u2192 + Create a New Poll)."));
         return;
       }
       TEACHER.questions=TEACHER.questions.concat(keep); renderQBank();
-      let msg="Imported "+keep.length+" question(s).";
-      if(dropped) msg+="\n\n"+dropped+" question(s) were the wrong type for this "+(BUILDER_MODE==="poll"?"poll":"quiz")+" and were skipped.";
-      if(errors.length) msg+="\n\nSkipped rows:\n"+errors.join("\n");
+      let msg=t("import.imported_n", "Imported {count} {questions}.", { count:keep.length, questions: plural(keep.length, t("poll.question", "question"), t("poll.questions", "questions")) });
+      if(dropped) msg+="\n\n"+t("import.n_questions_wrong_type_skipped", "{count} {questions} were the wrong type for this {what} and were skipped.",
+        { count:dropped, questions: plural(dropped, t("poll.question", "question"), t("poll.questions", "questions")), what:setLabel(BUILDER_MODE).one });
+      if(errors.length) msg+="\n\n"+t("import.skipped_rows", "Skipped rows:")+"\n"+errors.join("\n");
       alert(msg);
     }catch(err){ alert(t("import.couldn_t_read_file", "Couldn't read that file: ")+err.message); } };
     reader.readAsArrayBuffer(file); };
@@ -74,9 +78,9 @@ function importFromExcel(){
 function readSheetLang(rows, get, errors){
   const seen=[...new Set((rows||[]).map(r=>get(r,"Language").toLowerCase()).filter(Boolean))];
   const bad=seen.filter(v=>v!=="en"&&v!=="fr"&&v!=="english"&&v!=="french"&&v!=="anglais"&&v!=="français"&&v!=="francais");
-  if(bad.length){ errors.push('Language must be en or fr — "'+bad[0]+'" was not recognised.'); return "en"; }
+  if(bad.length){ errors.push(t("import.language_not_recognised", "Language must be en or fr \u2014 \u201c{value}\u201d was not recognised.", {value:bad[0]})); return "en"; }
   const norm=[...new Set(seen.map(v=>v.startsWith("f")?"fr":"en"))];
-  if(norm.length>1){ errors.push("This sheet mixes English and French rows. One set is written in one language — split them into two sheets."); return "en"; }
+  if(norm.length>1){ errors.push(t("import.sheet_mixes_languages", "This sheet mixes English and French rows. One set is written in one language \u2014 split them into two sheets.")); return "en"; }
   return norm[0]||"en";
 }
 
@@ -89,11 +93,11 @@ function parseQuizRows(rows){
     const typeRaw=get(row,"Type").toLowerCase();
     const text=get(row,"Question");
     if(!typeRaw&&!text) return;
-    if(!text){ errors.push("Row "+rowNum+": missing question text."); return; }
+    if(!text){ errors.push(t("import.row_missing_question_text", "Row {row}: missing question text.", {row:rowNum})); return; }
     const typeMap={"mcq":"mcq","multiple choice":"mcq","true/false":"tf","tf":"tf","true false":"tf","text":"text","short text":"text","short answer":"text","numeric":"numeric","number":"numeric","order":"order","puzzle":"order","ordering":"order",
                    "poll":"poll","vote":"poll","live poll":"poll","cloud":"cloud","wordcloud":"cloud","word cloud":"cloud"};
     const type=typeMap[typeRaw];
-    if(!type){ errors.push("Row "+rowNum+': unknown Type "'+typeRaw+'".'); return; }
+    if(!type){ errors.push(t("import.row_unknown_type", "Row {row}: unknown Type \u201c{type}\u201d.", {row:rowNum, type:typeRaw})); return; }
     const points=parseFloat(get(row,"Points"))||1;
     const timeLimitSec=Math.max(0, parseInt(get(row,"TimeLimitSec"),10)||0);
     const q={ id:"q_"+uid(6), type, text, points, timeLimitSec, lang: lang, image: get(row,"ImageURL")||null, audio: get(row,"AudioURL")||null };
@@ -116,7 +120,7 @@ function parseQuizRows(rows){
       }
       if(type==="poll"){
         const opts=["OptionA","OptionB","OptionC","OptionD","OptionE"].map(c=>get(row,c)).filter(Boolean);
-        if(opts.length<2){ errors.push("Row "+rowNum+": poll needs at least 2 choices in OptionA..E."); return; }
+        if(opts.length<2){ errors.push(t("import.row_poll_needs_choices", "Row {row}: poll needs at least 2 choices in OptionA..E.", {row:rowNum})); return; }
         q.options=opts;
       } else {
         q.maxWords=Math.max(1, Math.min(3, parseInt(get(row,"MaxWords"),10)||1));
@@ -126,20 +130,20 @@ function parseQuizRows(rows){
     }
     if(type==="mcq"){
       const opts=["OptionA","OptionB","OptionC","OptionD","OptionE"].map(c=>get(row,c)).filter(Boolean);
-      if(opts.length<2){ errors.push("Row "+rowNum+": MCQ needs at least 2 options."); return; }
+      if(opts.length<2){ errors.push(t("import.row_mcq_needs_options", "Row {row}: MCQ needs at least 2 options.", {row:rowNum})); return; }
       const correctRaw=get(row,"Correct"); let correct=null;
       const letterIdx="ABCDE".indexOf(correctRaw.toUpperCase());
       if(letterIdx>=0&&letterIdx<opts.length) correct=opts[letterIdx];
       else if(opts.includes(correctRaw)) correct=correctRaw;
-      if(correct===null){ errors.push("Row "+rowNum+': Correct "'+correctRaw+'" must be a letter or match an option.'); return; }
+      if(correct===null){ errors.push(t("import.row_correct_must_match", "Row {row}: Correct \u201c{value}\u201d must be a letter or match an option.", {row:rowNum, value:correctRaw})); return; }
       q.options=opts; q.correct=correct;
     } else if(type==="tf"){
       const c=get(row,"Correct").toLowerCase();
-      if(c!=="true"&&c!=="false"){ errors.push("Row "+rowNum+": True/False Correct must be True or False."); return; }
+      if(c!=="true"&&c!=="false"){ errors.push(t("import.row_tf_correct", "Row {row}: True/False Correct must be True or False.", {row:rowNum})); return; }
       q.options=["True","False"]; q.correct=c==="true"?"True":"False";
     } else if(type==="text"){
       const accepted=get(row,"Correct").split(",").map(s=>s.trim()).filter(Boolean);
-      if(accepted.length===0){ errors.push("Row "+rowNum+": text question needs an accepted answer."); return; }
+      if(accepted.length===0){ errors.push(t("import.row_text_needs_answer", "Row {row}: text question needs an accepted answer.", {row:rowNum})); return; }
       q.correct=accepted;
       const cs=get(row,"CaseSensitive").toLowerCase();
       q.caseSensitive = !(cs==="false"||cs==="no"||cs==="0"); // default case-sensitive
@@ -148,14 +152,21 @@ function parseQuizRows(rows){
       // was then marked against an answer the author never wrote. Strict, and it says so.
       const rawN=get(row,"Correct").trim();
       const n=parseStrictNumber(rawN,lang);
-      if(n===null){ errors.push("Row "+rowNum+': numeric Correct must be written as a '+(lang==="fr"?"French":"English")+' number — "'+rawN+'" was not accepted (use '+(lang==="fr"?"3,5, not 3.5":"3.5, not 3,5")+').'); return; }
+      if(n===null){ errors.push(t("import.row_numeric_correct",
+        "Row {row}: numeric Correct must be written as a {language} number \u2014 \u201c{value}\u201d was not accepted (use {example}).",
+        { row:rowNum, value:rawN,
+          language: lang==="fr" ? t("import.french", "French") : t("import.english", "English"),
+          example: lang==="fr" ? t("import.example_fr", "3,5, not 3.5") : t("import.example_en", "3.5, not 3,5") })); return; }
       const rawTol=get(row,"Tolerance").trim();
       const tol=rawTol?parseStrictNumber(rawTol,lang):0;
-      if(tol===null){ errors.push("Row "+rowNum+': Tolerance must be written as a '+(lang==="fr"?"French":"English")+' number — "'+rawTol+'" was not accepted.'); return; }
+      if(tol===null){ errors.push(t("import.row_tolerance",
+        "Row {row}: Tolerance must be written as a {language} number \u2014 \u201c{value}\u201d was not accepted.",
+        { row:rowNum, value:rawTol,
+          language: lang==="fr" ? t("import.french", "French") : t("import.english", "English") })); return; }
       q.correct=n; q.tolerance=tol;
     } else if(type==="order"){
       const items=["OptionA","OptionB","OptionC","OptionD","OptionE"].map(c=>get(row,c)).filter(Boolean);
-      if(items.length<2){ errors.push("Row "+rowNum+": puzzle needs at least 2 items (in OptionA..E, correct order)."); return; }
+      if(items.length<2){ errors.push(t("import.row_puzzle_needs_items", "Row {row}: puzzle needs at least 2 items (in OptionA..E, correct order).", {row:rowNum})); return; }
       q.items=items; q.correct=items.slice();
     }
     questions.push(q);
@@ -179,8 +190,8 @@ function parseScenarioRows(rows){
     const label=get(row,"Role");
     const brief=get(row,"Brief");
     if(!title && !label && !brief) return;                       // a spacer row
-    if(!title){ errors.push("Row "+rowNum+": no Scenario name, so this role belongs to nothing."); return; }
-    if(!label){ errors.push("Row "+rowNum+': scenario "'+title+'" has a role with no name.'); return; }
+    if(!title){ errors.push(t("import.row_no_scenario_name", "Row {row}: no Scenario name, so this role belongs to nothing.", {row:rowNum})); return; }
+    if(!label){ errors.push(t("import.row_role_no_name", "Row {row}: scenario \u201c{title}\u201d has a role with no name.", {row:rowNum, title:title})); return; }
     if(!byTitle[title]){
       byTitle[title]={ id:"sc_"+uid(6), title:title, lang:lang, situation:get(row,"Situation"), roles:[] };
       order.push(title);
@@ -193,14 +204,14 @@ function parseScenarioRows(rows){
     byTitle[title].roles.push(role);
   });
 
-  order.forEach(t=>{
-    const sc=byTitle[t];
-    if(!sc.situation) errors.push('Scenario "'+t+'": no Situation, so nobody sees the shared setup.');
+  order.forEach(title=>{
+    const sc=byTitle[title];
+    if(!sc.situation) errors.push(t("import.scenario_no_situation", "Scenario \u201c{title}\u201d: no Situation, so nobody sees the shared setup.", {title:title}));
     if(sc.roles.filter(r=>!r.optional).length<2){
-      errors.push('Scenario "'+t+'": needs at least two roles that are not optional — skipped.');
+      errors.push(t("import.scenario_needs_two_roles", "Scenario \u201c{title}\u201d: needs at least two roles that are not optional \u2014 skipped.", {title:title}));
       return;
     }
-    if(sc.roles.length>3) errors.push('Scenario "'+t+'": only the first three roles are used.');
+    if(sc.roles.length>3) errors.push(t("import.scenario_only_three_roles", "Scenario \u201c{title}\u201d: only the first three roles are used.", {title:title}));
     sc.roles=sc.roles.slice(0,3);
     scenarios.push(sc);
   });

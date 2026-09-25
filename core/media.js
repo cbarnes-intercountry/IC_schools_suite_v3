@@ -35,7 +35,7 @@ function paintImageCredit(q, img){
     el.style.cssText="display:block;margin-top:4px;opacity:.65;font-size:.72rem;";
     if(img.parentNode) img.parentNode.insertBefore(el, img.nextSibling);
   }
-  el.textContent="Image: "+credit;
+  el.textContent=t("media.image_credit", "Image: {credit}", {credit:credit});
   el.style.display="block";
 }
 
@@ -248,7 +248,7 @@ function openImagePicker(){
   const withTopic=draft.imageSearch ? base : applyQuizTopic(base, IMG_TOPIC);
   if(note){
     note.style.display = (IMG_TOPIC && withTopic!==base) ? "block" : "none";
-    note.textContent = "Added \u201c"+IMG_TOPIC+"\u201d from the rest of this quiz \u2014 delete it if it\u2019s pulling the wrong way.";
+    note.textContent = t("media.topic_added_note", "Added \u201c{topic}\u201d from the rest of this quiz \u2014 delete it if it\u2019s pulling the wrong way.", {topic:IMG_TOPIC});
   }
   document.getElementById("img-q").value = withTopic;
   document.getElementById("img-results").innerHTML="";
@@ -286,8 +286,8 @@ async function searchUnsplash(query, page){
   const url="https://api.unsplash.com/search/photos?query="+encodeURIComponent(query)+
     "&per_page="+IMG_PAGE_SIZE+"&page="+(page+1)+"&content_filter=high&orientation=landscape";
   const res=await fetch(url,{ headers:{ "Authorization":"Client-ID "+key, "Accept-Version":"v1" } });
-  if(res.status===401) throw new Error("the Unsplash key was rejected");
-  if(res.status===403) throw new Error("Unsplash's hourly limit is used up");
+  if(res.status===401) throw new Error(t("media.unsplash_key_rejected", "the Unsplash key was rejected"));
+  if(res.status===403) throw new Error(t("media.unsplash_hourly_limit", "Unsplash\u2019s hourly limit is used up"));
   if(!res.ok) throw new Error("Unsplash "+res.status);
   const j=await res.json();
   return (j.results||[]).map(r=>({
@@ -425,11 +425,11 @@ async function runImageSearch(page){
 
   if(!results.length){
     status.innerHTML = firstError
-      ? escapeHtml(firstError)+" \u2014 try again shortly, or use the upload tile."
-      : "Nothing found for \u201c"+escapeHtml(query)+"\u201d. Try a plainer, more concrete word \u2014 something you could photograph.";
+      ? escapeHtml(t("media.error_try_again", "{why} \u2014 try again shortly, or use the upload tile.", {why:firstError}))
+      : escapeHtml(t("media.nothing_found_for", "Nothing found for \u201c{query}\u201d. Try a plainer, more concrete word \u2014 something you could photograph.", {query:query}));
     if(noKey && !firstError){
       status.innerHTML += '<br><b>'+t("media.unsplash_isn_u2019t_set_up_yet", 'Unsplash isn\u2019t set up yet')+'</b>, so only the Creative Commons archives were searched. '+
-        'An owner can add the Unsplash key in Admin \u2192 Image Search.';
+        escapeHtml(t("media.owner_can_add_key", "An owner can add the Unsplash key in Admin \u2192 Image Search."));
     }
     document.getElementById("img-source-note").textContent="";
     return;
@@ -438,9 +438,9 @@ async function runImageSearch(page){
   // Say when the phrase was widened, so a teacher isn't puzzled by results that only loosely
   // match what they typed.
   status.textContent = (usedQuery!==query)
-    ? "Nothing for \u201c"+query+"\u201d, so this is \u201c"+usedQuery+"\u201d."
+    ? t("media.widened_query", "Nothing for \u201c{query}\u201d, so this is \u201c{used}\u201d.", {query:query, used:usedQuery})
     : "";
-  document.getElementById("img-source-note").textContent="From "+usedSource+" \u00b7 tap a picture to use it";
+  document.getElementById("img-source-note").textContent=t("media.from_source_tap", "From {source} \u00b7 tap a picture to use it", {source:usedSource});
   renderImageResults(results, page===0);
   more.style.display="inline-block";
 }
@@ -459,12 +459,12 @@ function renderImageResults(results, replace){
     img.onerror=()=>{ cell.remove(); };     // a thumbnail that won't load is no use to anyone
     const cap=document.createElement("span");
     cap.style.cssText="display:block;padding:6px 8px;font-size:.78rem;line-height:1.3;";
-    cap.textContent=(r.title||"Untitled").slice(0,60);
+    cap.textContent=(r.title||t("media.untitled", "Untitled")).slice(0,60);
     if(r.needsCredit){
       const lic=document.createElement("small");
       lic.className="hint";
       lic.style.display="block";
-      lic.textContent="credit: "+(r.creator||"unknown")+" ("+r.license+")";
+      lic.textContent=t("media.credit_line", "credit: {who} ({licence})", {who:r.creator||t("media.unknown_creator", "unknown"), licence:r.license});
       cap.appendChild(lic);
     }
     cell.appendChild(img); cell.appendChild(cap);
@@ -510,7 +510,7 @@ function fileToBase64(file){
   return new Promise((resolve,reject)=>{
     const r=new FileReader();
     r.onload=()=>resolve(String(r.result).split(",")[1]);
-    r.onerror=()=>reject(new Error("Couldn't read that file."));
+    r.onerror=()=>reject(new Error(t("media.couldnt_read_file", "Couldn\u2019t read that file.")));
     r.readAsDataURL(file);
   });
 }
@@ -528,10 +528,10 @@ function compressImage(file, maxW=1000, quality=0.72){
         cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
         resolve({ base64:cv.toDataURL("image/jpeg",quality).split(",")[1], ext:"jpg" });
       };
-      img.onerror=()=>reject(new Error("That image couldn't be read."));
+      img.onerror=()=>reject(new Error(t("media.image_couldnt_be_read", "That image couldn\u2019t be read.")));
       img.src=e.target.result;
     };
-    r.onerror=()=>reject(new Error("Couldn't read that file."));
+    r.onerror=()=>reject(new Error(t("media.couldnt_read_file", "Couldn\u2019t read that file.")));
     r.readAsDataURL(file);
   });
 }
@@ -567,7 +567,7 @@ async function uploadQMedia(file, kind, label){
   }
   const MAX=10*1024*1024;
   if(kind==="audio" && file.size>MAX){
-    status.textContent="That clip is "+(file.size/1048576).toFixed(1)+" MB — please keep audio under 10 MB.";
+    status.textContent=t("media.clip_too_big", "That clip is {mb} MB \u2014 please keep audio under 10 MB.", {mb:(file.size/1048576).toFixed(1)});
     return;
   }
   status.textContent=t("media.uploading", "Uploading…");
@@ -601,8 +601,9 @@ async function chooseImage(r){
   closeImagePicker();
 
   const credit = r.needsCredit
-    ? (r.source==="Unsplash" ? "Photo by "+(r.creator||"Unsplash photographer")+" on Unsplash"
-                             : (r.creator||"Unknown")+(r.license?" ("+r.license+")":""))
+    ? (r.source==="Unsplash"
+        ? t("media.photo_by_on_unsplash", "Photo by {who} on Unsplash", {who:r.creator||t("media.an_unsplash_photographer", "Unsplash photographer")})
+        : (r.creator||t("media.unknown_creator_cap", "Unknown"))+(r.license?" ("+r.license+")":""))
     : "";
 
   let finalUrl="", copied=false;
@@ -622,8 +623,10 @@ async function chooseImage(r){
       finalUrl=r.full || r.thumb;     // fall back to the original location
     }
     status.textContent = copied
-      ? "\u2713 Added to your library" + (credit ? " \u2014 the credit will show under the picture." : ".")
-      : "\u2713 Added, but linked to its original home rather than copied \u2014 it may stop working if that site removes it.";
+      ? (credit
+          ? t("media.added_with_credit", "\u2713 Added to your library \u2014 the credit will show under the picture.")
+          : t("media.added_to_library", "\u2713 Added to your library."))
+      : t("media.added_but_linked", "\u2713 Added, but linked to its original home rather than copied \u2014 it may stop working if that site removes it.");
   }
 
   if(urlBox) urlBox.value=finalUrl;
@@ -650,9 +653,9 @@ function urlToCompressedImage(url, maxW=1000, quality=0.72){
         cv.width=Math.round(img.width*scale); cv.height=Math.round(img.height*scale);
         cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
         resolve({ base64:cv.toDataURL("image/jpeg",quality).split(",")[1], ext:"jpg" });
-      }catch(e){ reject(new Error("That picture can't be copied from its site.")); }
+      }catch(e){ reject(new Error(t("media.picture_cannot_be_copied", "That picture can\u2019t be copied from its site."))); }
     };
-    img.onerror=()=>reject(new Error("That picture couldn't be loaded."));
+    img.onerror=()=>reject(new Error(t("media.picture_couldnt_load", "That picture couldn\u2019t be loaded.")));
     img.src=url;
   });
 }
@@ -698,7 +701,9 @@ function initQMediaDropZones(){
       off(e);
       const file=(e.dataTransfer&&e.dataTransfer.files||[])[0]; if(!file) return;
       if(!accept.test(file.type||"")){
-        document.getElementById("qe-"+kind+"-status").textContent="That's not a"+(kind==="image"?"n image":" sound")+" file.";
+        document.getElementById("qe-"+kind+"-status").textContent = (kind==="image")
+          ? t("media.not_an_image_file", "That\u2019s not an image file.")
+          : t("media.not_a_sound_file", "That\u2019s not a sound file.");
         return;
       }
       uploadQMedia(file, kind, file.name);
@@ -707,7 +712,7 @@ function initQMediaDropZones(){
   document.addEventListener("paste", e=>{
     const card=document.getElementById("qe-card");
     if(!card || card.style.display==="none") return;
-    const t=e.target, tag=(t&&t.tagName)||"";
+    const el=e.target, tag=(el&&el.tagName)||"";
     if(tag==="INPUT"||tag==="TEXTAREA") return;   // let text paste into the fields
     const item=[...((e.clipboardData&&e.clipboardData.items)||[])].find(i=>i.type.startsWith("image/"));
     if(!item) return;

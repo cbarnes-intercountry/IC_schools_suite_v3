@@ -25,13 +25,25 @@ const ACTIVITIES = {};
    Anything else an activity needs belongs to that activity, not to the core. */
 function registerActivity(id, def){
   if (!id || typeof id !== "string") throw new Error("an activity needs an id");
-  if (ACTIVITIES[id]) throw new Error("activity already registered: " + id);
+  if (ACTIVITIES[id]) // Developer-facing: this never reaches a screen, so it stays in English on purpose.
+    throw new Error("activity already registered: " + id);
   const missing = ["join","teacher","score","finish"].filter(k => typeof def[k] !== "function" && def[k] !== null);
   if (missing.length) throw new Error(id + " is missing: " + missing.join(", "));
   ACTIVITIES[id] = Object.assign({ id: id }, def);
   return ACTIVITIES[id];
 }
 function activity(id){ return ACTIVITIES[id] || null; }
+
+/* What to call this activity in a sentence, in the reader's language.
+
+   `label` stays the plain English name: registration runs as the page loads, so a t() call in
+   the definition would freeze whatever language the page started in and never change again.
+   The lookup happens here instead, when the word is actually needed. */
+function activityLabel(id){
+  const a = activity(id);
+  if (!a) return t("registry.session", "Session");
+  return t("activity." + id, a.label);
+}
 function activityIds(){ return Object.keys(ACTIVITIES); }
 
 /* Does a finished run leave anything behind? A test is archived; a poll and a role play are

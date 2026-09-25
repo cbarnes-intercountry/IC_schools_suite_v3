@@ -15,7 +15,7 @@ async function teacherCreateSession(){
   TEACHER.questions = [];   // teacher chooses a quiz from the library each time
   document.getElementById("dash-session-code").textContent = code;
   const setupCode=document.getElementById("setup-session-code");
-  setupCode.textContent="Code · "+code; setupCode.style.display="inline-block";
+  setupCode.textContent=t("test.code_is", "Code \u00b7 {code}", {code:code}); setupCode.style.display="inline-block";
   // Reset to "no limit" for every new session — browsers otherwise restore the last value typed.
   document.getElementById("opt-time-limit").value = 0;
   applyPerQuestionTimerLock();
@@ -51,7 +51,7 @@ function filterTeacherQuizzes(){
   // role plays turned up in the Launch Test list. Name what belongs, not what does not.
   TEACHER_QUIZZES.filter(q=>q.kind==="quiz" && (q.schools||[]).includes(school)).sort((a,b)=>a.name.localeCompare(b.name)).forEach(q=>{
     const o=document.createElement("option"); o.value=q.key;
-    o.textContent = q.name + " (" + q.count + " question" + (q.count===1?"":"s") + ")";
+    o.textContent = q.name + " (" + t("poll.n_questions", "{count} {questions}", { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) }) + ")";
     qSel.appendChild(o);
   });
 }
@@ -66,7 +66,7 @@ async function loadQuizForTeacher(){
     TEACHER.questions = (quiz.questions||[]).map(q=>Object.assign({},q,{id:q.id||"q_"+uid(6)}));
     // The run is tagged with the school the teacher selected (a quiz may serve several schools).
     TEACHER.school = document.getElementById("teacher-school-select").value || quizSchools(quiz)[0] || "";
-    status.textContent = "\u2713 Selected — " + TEACHER.questions.length + " question" + (TEACHER.questions.length===1?"":"s") + ". Set up below.";
+    status.textContent = t("test.selected_n_questions", "\u2713 Selected \u2014 {count} {questions}. Set up below.", { count:TEACHER.questions.length, questions: plural(TEACHER.questions.length, t("poll.question", "question"), t("poll.questions", "questions")) });
     status.style.display = "flex";
     document.getElementById("teacher-select-quiz-btn").style.display = "none";
     document.getElementById("setup-step2").style.display = "block";
@@ -111,7 +111,10 @@ async function teacherStartTest(){
 // Start the test for everyone in the waiting room.
 async function teacherBeginQuiz(){
   const n=DASH_PARTICIPANTS.length;
-  if(!confirm((n===0?"No students have joined yet. ":n+" student(s) connected. ")+"Start the test for everyone now?")) return;
+  if(!confirm((n===0
+    ? t("test.no_students_joined_yet", "No students have joined yet.")
+    : t("test.n_students_connected", "{count} {students} connected.", { count:n, students: plural(n, t("poll.student", "student"), t("poll.students", "students")) }))
+    + " " + t("test.start_for_everyone_now", "Start the test for everyone now?"))) return;
   TEACHER.settings.status="active";
   TEACHER.settings.currentIndex=0;
   TEACHER.settings.startedAt=Date.now();
@@ -132,8 +135,8 @@ async function teacherBeginQuiz(){
    second, slightly different version of them that drifts out of step over time. */
 function showDashboardRunning(){
   document.getElementById("dash-mode-note").textContent = TEACHER.settings.paced
-    ? "Paced mode: use Next/Previous to move the whole class together."
-    : "Free navigation: students move at their own pace.";
+    ? t("test.paced_mode_note", "Paced mode: use Next/Previous to move the whole class together.")
+    : t("test.free_navigation_note", "Free navigation: students move at their own pace.");
   document.getElementById("dash-pace-controls").style.display = TEACHER.settings.paced?"flex":"none";
   // Offer the pause control only when there is actually a timer to freeze.
   const hasTimers = (TEACHER.settings.timeLimitMin>0) || TEACHER.questions.some(q=>(q.timeLimitSec||0)>0);
@@ -167,7 +170,7 @@ function startTeacherCountdown(){
   const mins=Number(TEACHER.settings.timeLimitMin)||0;
   if(TEACHER.settings.paced || mins<=0){ box.style.display="none"; return; }
   TEACHER_CD.totalSec=mins*60; TEACHER_CD.remainSec=mins*60;
-  document.getElementById("dash-cd-limit").textContent=mins+" min";
+  document.getElementById("dash-cd-limit").textContent=t("test.n_min", "{n} min", {n:mins});
   box.style.display="block";
   renderTeacherCountdown();
   TEACHER_CD.interval=setInterval(()=>{
@@ -187,9 +190,9 @@ function renderTeacherCountdown(){
   document.getElementById("dash-cd-bar").style.width=(TEACHER_CD.totalSec?Math.max(0,Math.min(100,left/TEACHER_CD.totalSec*100)):0)+"%";
   const note=document.getElementById("dash-cd-note");
   let txt="";
-  if(TEACHER.settings.paused) txt="Clock paused — students' timers are frozen too.";
-  else if(out) txt="Time is up — papers were auto-submitted. End the test to see the recap.";
-  else if(low) txt="Under 5 minutes remaining.";
+  if(TEACHER.settings.paused) txt=t("test.clock_paused", "Clock paused \u2014 students\u2019 timers are frozen too.");
+  else if(out) txt=t("test.time_is_up_auto_submitted", "Time is up \u2014 papers were auto-submitted. End the test to see the recap.");
+  else if(low) txt=t("test.under_five_minutes", "Under 5 minutes remaining.");
   note.textContent=txt;
   note.style.color = out?"var(--magenta)":"var(--amber)";
   note.style.display = txt?"block":"none";
@@ -202,11 +205,11 @@ async function teacherTogglePause(){
   try{ await Backend.updateMeta(TEACHER.runId, TEACHER.settings); }
   catch(e){ TEACHER.settings.paused=!paused; alert(t("test.couldn_t", "Couldn't ")+(paused?"pause":"resume")+": "+e.message); return; }
   const btn=document.getElementById("dash-pause-btn");
-  btn.innerHTML = paused ? "&#9654; Resume Test" : "&#9208; Pause Timers";
+  btn.textContent = paused ? t("test.resume_test", "\u25b6 Resume Test") : t("test.pause_timers", "\u23f8 Pause Timers");
   btn.className = paused ? "btn-primary" : "btn-secondary";
   document.getElementById("dash-pause-note").textContent = paused
-    ? "Test is paused — students see a waiting screen and their timers are frozen."
-    : "Freezes the overall and per-question timers for everyone. Students see a \"paused\" screen and can't answer until you resume.";
+    ? t("test.paused_note", "Test is paused \u2014 students see a waiting screen and their timers are frozen.")
+    : t("test.pause_hint", "Freezes the overall and per-question timers for everyone. Students see a \u201cpaused\u201d screen and can\u2019t answer until you resume.");
 }
 
 async function pacedAdvance(dir){
@@ -248,7 +251,7 @@ function stopDashboardPolling(){ if(DASH_UNSUB){ DASH_UNSUB(); DASH_UNSUB=null; 
 // Scored against the teacher's own copy of the questions, so it also works mid-test.
 function participantProgress(p, questions){
   const total=(questions||[]).length;
-  const secs=t=>t?" · "+Math.round(t)+"s":"";
+  const secs=acc=>acc?" · "+Math.round(acc)+"s":"";
   if(p.result){
     const rows=p.result.answers||[];
     const correct=rows.filter(a=>a.isCorrect).length;
@@ -266,11 +269,12 @@ function participantProgress(p, questions){
     const given=answers[pos];
     const has = given!==undefined && given!=="" && !(Array.isArray(given) && given.length===0);
     let cls, what;
-    if(has){ answered++; if(row.isCorrect){ correct++; cls="ok"; what="correct"; } else { cls="no"; what="wrong"; } }
-    else if(at!==undefined && pos<at){ cls="seen"; what="skipped"; }
-    else { cls=""; what="not reached"; }
+    if(has){ answered++; if(row.isCorrect){ correct++; cls="ok"; what=t("test.sq_correct", "correct"); } else { cls="no"; what=t("test.sq_wrong", "wrong"); } }
+    else if(at!==undefined && pos<at){ cls="seen"; what=t("test.sq_skipped", "skipped"); }
+    else { cls=""; what=t("test.sq_not_reached", "not reached"); }
     if(pos===at) cls=(cls+" now").trim();
-    return { cls, tip:"Q"+(pos+1)+" · "+what+secs(spent[pos])+(pos===at?" · here now":"") };
+    return { cls, tip: t("test.sq_tip", "Q{n} \u00b7 {what}", {n:pos+1, what:what}) + secs(spent[pos])
+                      + (pos===at ? t("test.sq_here_now", " \u00b7 here now") : "") };
   });
   return { answered, total:total||order.length, correct, wrong:answered-correct, done:false, cells };
 }
@@ -299,16 +303,16 @@ function shiftQGrid(dir){
 function applyQGrid(){
   const total=(TEACHER.questions||[]).length, vis=qGridVisible(), max=qGridMax();
   if(QGRID_OFFSET>max) QGRID_OFFSET=max;
-  document.querySelectorAll("#dash-student-list .qtrack").forEach(t=>{
-    t.style.transform="translateX("+(-QGRID_OFFSET*QCELL)+"px)";
+  document.querySelectorAll("#dash-student-list .qtrack").forEach(acc=>{
+    acc.style.transform="translateX("+(-QGRID_OFFSET*QCELL)+"px)";
   });
   const prev=document.getElementById("qnav-prev"), next=document.getElementById("qnav-next"),
         label=document.getElementById("qnav-label");
   if(prev) prev.disabled = QGRID_OFFSET<=0;
   if(next) next.disabled = QGRID_OFFSET>=max;
   if(label) label.textContent = total>vis
-    ? "Q"+(QGRID_OFFSET+1)+"–"+Math.min(total, QGRID_OFFSET+vis)+" of "+total
-    : "Questions";
+    ? t("test.q_range_of_total", "Q{from}\u2013{to} of {total}", {from:QGRID_OFFSET+1, to:Math.min(total, QGRID_OFFSET+vis), total:total})
+    : t("test.questions_label", "Questions");
 }
 
 
@@ -365,7 +369,7 @@ function renderDashboardList(){
     const st=document.createElement("span");
     const pill=document.createElement("span");
     const waiting = (TEACHER.settings||{}).status==="waiting";
-    if(alerts>0){ pill.className="pill alert"; pill.textContent="⚠ "+alerts+" alert"+(alerts===1?"":"s"); }
+    if(alerts>0){ pill.className="pill alert"; pill.textContent=t("test.n_alerts_warn", "\u26a0 {count} {alerts}", { count:alerts, alerts: plural(alerts, t("test.alert", "alert"), t("test.alerts", "alerts")) }); }
     else if(p.result){ pill.className="pill done"; pill.textContent=t("test.done", "✓ Done"); }
     else if(stale){ pill.className="pill alert"; pill.textContent=t("test.dropped", "⚠ Dropped"); }
     else if(waiting){ pill.className="pill wait"; pill.textContent=t("test.waiting_room", "In waiting room"); }
@@ -379,7 +383,7 @@ function renderDashboardList(){
     const ac=document.createElement("span"); ac.className="ac";
     if(alerts>0){
       const btn=document.createElement("button"); btn.className="btn-outline btn-mini";
-      btn.textContent=t("test.reset", "Reset"); btn.title="Clear these alerts — monitoring stays on";
+      btn.textContent=t("test.reset", "Reset"); btn.title=t("test.clear_alerts_title", "Clear these alerts \u2014 monitoring stays on");
       btn.onclick=()=>resetCheatFor(p.studentId);
       ac.appendChild(btn);
     }else{
@@ -395,14 +399,14 @@ function renderDashboardList(){
   const doneN=DASH_PARTICIPANTS.filter(p=>p.result).length;
   const alertN=DASH_PARTICIPANTS.filter(p=>effectiveCheatCount(p)>0).length;
   const dB=document.getElementById("dash-done-badge"), aB=document.getElementById("dash-alert-badge");
-  dB.textContent=doneN+" done"; dB.style.display=doneN?"inline-block":"none";
-  aB.textContent=alertN+" alert"+(alertN===1?"":"s"); aB.style.display=alertN?"inline-block":"none";
+  dB.textContent=t("test.n_done", "{count} done", {count:doneN}); dB.style.display=doneN?"inline-block":"none";
+  aB.textContent=t("test.n_alerts", "{count} {alerts}", { count:alertN, alerts: plural(alertN, t("test.alert", "alert"), t("test.alerts", "alerts")) }); aB.style.display=alertN?"inline-block":"none";
 }
 
 // Teacher clears a student's alerts (e.g. an accidental tab-switch), keeping monitoring live.
 async function resetCheatFor(studentId){
   const p=DASH_PARTICIPANTS.find(x=>x.studentId===studentId); if(!p) return;
-  if(!confirm(t("test.clear", "Clear ")+displayName(p.surname,p.firstName)+"'s cheat alerts?\n\nMonitoring stays on, so any new alert will still appear.")) return;
+  if(!confirm(t("test.clear_students_alerts", "Clear {who}\u2019s cheat alerts?\n\nMonitoring stays on, so any new alert will still appear.", {who:displayName(p.surname,p.firstName)}))) return;
   const total=rawCheatAlerts(p).length;
   try{ await Backend.resetCheat(TEACHER.runId, studentId, total); }
   catch(e){ alert(t("test.reset_failed", "Reset failed: ")+e.message); return; }
@@ -469,7 +473,7 @@ function renderRecapTable(){
       +'<span class="mk '+(pass?"pass":"fail")+'">'+r.score+'/'+r.totalPossible+'</span>'
       +'<span class="pc">'+Math.round(r.percentage)+'%</span>'
       +'<span class="al'+(alerts>0?" has":"")+'">'+(alerts>0?alerts:"—")+'</span>'
-      +(done?"":'<span class="rk" style="grid-column:2/-1;color:var(--amber);font-weight:700;">'+escapeHtml(r.status||"Incomplete")+'</span>');
+      +(done?"":'<span class="rk" style="grid-column:2/-1;color:var(--amber);font-weight:700;">'+escapeHtml(r.status||t("test.status_incomplete", "Incomplete"))+'</span>');
     list.appendChild(div);
   });
   // Head state: the active column shows a caret pointing the way it's sorted.
@@ -489,7 +493,7 @@ function startNewTestFromRecap(){
 /* Merge submitted results + progress fallback for disconnected students. Returns an array. */
 function buildEffectiveResults(participants, questions, meta){
   const teamMap=(meta && meta.teamMap) || (TEACHER.settings && TEACHER.settings.teamMap) || {};
-  const tag=(p,r)=>{ const t=teamMap[p.studentId]; if(t) r.team=t; return r; };
+  const tag=(p,r)=>{ const acc=teamMap[p.studentId]; if(acc) r.team=acc; return r; };
   return participants.map(p=>{
     const base=p.cheatBaseline||0;  // teacher-cleared alerts are dropped from reports too
     if(p.result){
@@ -499,11 +503,11 @@ function buildEffectiveResults(participants, questions, meta){
     }
     if(p.progress){
       const scored=scoreAnswers(questions, p.progress.order||[], p.progress.answers||{}, p.progress.timeSpent||{});
-      return tag(p, { surname:p.surname, firstName:p.firstName, status:"Incomplete (disconnected)",
+      return tag(p, { surname:p.surname, firstName:p.firstName, status:t("test.status_incomplete_disconnected", "Incomplete (disconnected)"),
         score:scored.score, totalPossible:scored.totalPossible, percentage:scored.percentage,
         answers:scored.answerRows, cheatAlerts:(p.progress.cheatAlerts||[]).slice(base), finishedAt:p.lastSeen });
     }
-    return tag(p, { surname:p.surname, firstName:p.firstName, status:"Joined (no answers)",
+    return tag(p, { surname:p.surname, firstName:p.firstName, status:t("test.status_joined_no_answers", "Joined (no answers)"),
       score:0, totalPossible:0, percentage:0, answers:[], cheatAlerts:[], finishedAt:p.lastSeen });
   });
 }
@@ -548,13 +552,13 @@ async function studentJoin(){
   // module does not mean editing this function. A test is the default path below.
   const act = activity(session.meta.kind);
   if(act && act.join){
-    const what = (act.label||"session").toLowerCase();
-    if(session.meta.status==="ended"){ alert(t("test.that", "That ")+what+" has finished."); return; }
+    const what = activityLabel(session.meta.kind).toLowerCase();
+    if(session.meta.status==="ended"){ alert(t("test.that_has_finished", "That {what} has finished.", {what:what})); return; }
     if(act.anonymous && act.anonymous(session.meta)){
       // Nothing identifying is stored, and the name boxes are never shown.
       surname=""; firstName=""; STUDENT.surname=""; STUDENT.firstName=""; STUDENT.name="";
     } else if(!act.requiresName || act.requiresName(session.meta)){
-      if(!surname || !firstName){ askForName("This "+what+" needs your name."); return; }
+      if(!surname || !firstName){ askForName(t("test.this_needs_your_name", "This {what} needs your name.", {what:what})); return; }
     }
     await act.join(session, surname, firstName);
     return;
@@ -571,7 +575,7 @@ async function studentJoin(){
 async function testStudentJoin(session, surname, firstName){
   const code = STUDENT.sessionCode;
   if(session.meta.status==="ended"){ alert(t("test.test_already_ended_please_check_teacher", "That test has already ended. Please check with your teacher.")); return; }
-  if(!surname||!firstName){ askForName("Enter your surname and first name to join this test."); return; }
+  if(!surname||!firstName){ askForName(t("test.enter_your_name_to_join", "Enter your surname and first name to join this test.")); return; }
   const questions=session.questions||[];
   STUDENT.order = STUDENT.meta.randomizeQuestions ? shuffle(questions.map((_,i)=>i)) : questions.map((_,i)=>i);
   STUDENT.questions = questions.map(q=> (q.type==="mcq"&&STUDENT.meta.randomizeAnswers) ? Object.assign({},q,{options:shuffle(q.options)}) : q);
@@ -637,8 +641,8 @@ function startStudentStatusPolling(){
       showStudentTeam(meta);
       const resuming=!!STUDENT.resuming;
       if(waitStatus) waitStatus.textContent = resuming
-        ? "You were disconnected — picking up where you left off…"
-        : "Your teacher has started the test. Opening it now…";
+        ? t("test.reconnected_picking_up", "You were disconnected \u2014 picking up where you left off\u2026")
+        : t("test.teacher_started_opening", "Your teacher has started the test. Opening it now\u2026");
       if(startBtn) startBtn.style.display="none";
       if(startHint) startHint.style.display="none";
       studentBeginTest();
@@ -675,9 +679,9 @@ function studentBeginTest(){
 function fillFeedbackPanel(result){
   const rows=(result&&result.answers)||[];
   const correct=rows.filter(r=>r.isCorrect).length;
-  const totalSec=Math.round(rows.reduce((t,r)=>t+(r.timeSpentSec||0),0));
+  const totalSec=Math.round(rows.reduce((acc,r)=>acc+(r.timeSpentSec||0),0));
   document.getElementById("fb-name").textContent=STUDENT.firstName||STUDENT.name;
-  document.getElementById("fb-score").textContent=(result.score||0)+" / "+(result.totalPossible||0)+" pts";
+  document.getElementById("fb-score").textContent=t("test.score_out_of", "{score} / {total} pts", {score:result.score||0, total:result.totalPossible||0});
   document.getElementById("fb-percentage").textContent=Math.round(result.percentage||0)+"%";
   document.getElementById("fb-correct").textContent=correct;
   document.getElementById("fb-missed").textContent=rows.length-correct;
@@ -810,7 +814,7 @@ function renderCurrentQuestion(){
   const pos=STUDENT.currentPos;
   const q=STUDENT.questions[STUDENT.order[pos]];
   const locked=!!(STUDENT.qLocked&&STUDENT.qLocked[pos]);
-  document.getElementById("test-progress").textContent="Question "+(pos+1)+" of "+STUDENT.order.length;
+  document.getElementById("test-progress").textContent=t("test.question_x_of_y", "Question {n} of {total}", {n:pos+1, total:STUDENT.order.length});
   document.getElementById("q-text-display").textContent=q.text;
   // Replay the slide-in so each question feels like a new card.
   const qcard=document.getElementById("q-text-display").parentElement;
@@ -923,7 +927,7 @@ function renderPalette(){
     const b=document.createElement("button"); b.type="button";
     const lockedCls=(STUDENT.qLocked&&STUDENT.qLocked[i])?"locked ":"";
     b.className=lockedCls+(answered?"answered ":"")+(i===STUDENT.currentPos?"current":"");
-    b.title="Question "+(i+1)+(answered?" · answered":"");
+    b.title=t("test.question_n", "Question {n}", {n:i+1}) + (answered ? t("test.dot_answered", " \u00b7 answered") : "");
     b.setAttribute("aria-label", b.title);
     b.appendChild(document.createElement("i"));
     b.onclick=()=>{ if(!STUDENT.paced) goToQuestion(i); };
@@ -934,7 +938,7 @@ function renderPalette(){
   if(next){
     const last = STUDENT.currentPos>=total-1;
     next.disabled = last;
-    next.textContent = last ? "Last question" : "Next question \u2192";
+    next.textContent = last ? t("test.last_question", "Last question") : t("test.next_question", "Next question \u2192");
   }
 }
 
@@ -967,8 +971,9 @@ function studentConfirmSubmit(){
   const total=STUDENT.order.length;
   const answered=STUDENT.order.filter((_,i)=>STUDENT.answers[i]!==undefined && STUDENT.answers[i]!=="").length;
   const unanswered=total-answered;
-  let msg="Submit your test now? You won't be able to change your answers afterwards.";
-  if(unanswered>0) msg=unanswered+" of "+total+" question(s) are still unanswered.\n\n"+msg;
+  let msg=t("test.submit_confirm", "Submit your test now? You won\u2019t be able to change your answers afterwards.");
+  if(unanswered>0) msg=t("test.n_of_m_unanswered", "{count} of {total} {questions} are still unanswered.",
+    { count:unanswered, total:total, questions: plural(unanswered, t("poll.question", "question"), t("poll.questions", "questions")) })+"\n\n"+msg;
   STUDENT._suppressCheat=true;               // the dialog blurs the window; don't log that as a cheat
   const go=confirm(msg);
   STUDENT._suppressCheat=false;
@@ -998,9 +1003,9 @@ async function studentSubmitTest(auto){
   const result={ surname:STUDENT.surname, firstName:STUDENT.firstName, score, totalPossible, percentage, answers:answerRows, cheatAlerts:STUDENT.cheatAlerts, finishedAt:Date.now() };
   try{ await Backend.submitResult(STUDENT.runId, STUDENT.id, STUDENT.surname, STUDENT.firstName, result); }catch(e){ console.warn(e); }
   const correct=answerRows.filter(r=>r.isCorrect).length;
-  const totalSec=Math.round(answerRows.reduce((t,r)=>t+(r.timeSpentSec||0),0));
+  const totalSec=Math.round(answerRows.reduce((acc,r)=>acc+(r.timeSpentSec||0),0));
   document.getElementById("fb-name").textContent=STUDENT.firstName||STUDENT.name;
-  document.getElementById("fb-score").textContent=score+" / "+totalPossible+" pts";
+  document.getElementById("fb-score").textContent=t("test.score_out_of", "{score} / {total} pts", {score:score, total:totalPossible});
   document.getElementById("fb-percentage").textContent=Math.round(percentage)+"%";
   document.getElementById("fb-correct").textContent=correct;
   document.getElementById("fb-missed").textContent=answerRows.length-correct;

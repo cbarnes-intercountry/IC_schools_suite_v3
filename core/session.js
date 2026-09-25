@@ -108,10 +108,12 @@ async function refreshOpenRunBanner(){
   const s=active[0];
   OPEN_RUN=s;
   const act = activity(s.kind);
-  const what = (act && act.label) || "Session";
+  const what = activityLabel(s.kind);
   document.getElementById("home-rejoin-detail").textContent =
-    what+" "+s.code+" — "+s.studentCount+" student"+(s.studentCount===1?"":"s")+
-    " joined, started "+fmtDate(s.runAt)+".";
+    t("session.open_run_detail", "{what} {code} \u2014 {count} {students} joined, started {when}.",
+      { what:what, code:s.code, count:s.studentCount,
+        students: plural(s.studentCount, t("session.student", "student"), t("session.students", "students")),
+        when: fmtDate(s.runAt) });
   box.style.display="block";
 }
 
@@ -144,10 +146,13 @@ async function rejoinPollRun(s, run){
   POLL.projecting = false;
   POLL.participants = [];
   document.getElementById("poll-live-code").textContent = POLL.sessionCode;
-  document.getElementById("poll-live-mode").textContent = POLL.settings.anonymous ? "Anonymous" : "Named";
-  document.getElementById("poll-title").textContent = POLL.name || "Live poll";
+  document.getElementById("poll-live-mode").textContent = POLL.settings.anonymous ? t("poll.anonymous", "Anonymous") : t("poll.named", "Named");
+  document.getElementById("poll-title").textContent = POLL.name || t("poll.live_poll", "Live poll");
   document.getElementById("poll-title-meta").textContent =
-    POLL.questions.length+" question"+(POLL.questions.length===1?"":"s")+(POLL.school?" · "+POLL.school:"");
+    t("session.n_questions", "{count} {questions}",
+      { count: POLL.questions.length,
+        questions: plural(POLL.questions.length, t("session.question", "question"), t("session.questions", "questions")) })
+    + (POLL.school ? " \u00b7 "+POLL.school : "");
   document.getElementById("poll-join-code").textContent = POLL.sessionCode;
   // Rejoin only ever offers an active run, so the stage goes straight back up.
   document.getElementById("poll-lobby").style.display="none";
@@ -170,14 +175,26 @@ async function confirmNoOpenRun(what){
   if(!open.length) return true;
   const s=open[0];
   const act = activity(s.kind);
-  const kind = (act && act.label ? act.label : "session").toLowerCase();
-  const where = s.status==="active" ? "in progress" : "waiting for students";
+  const kind = activityLabel(s.kind).toLowerCase();
+  const where = s.status==="active"
+    ? t("session.in_progress", "in progress")
+    : t("session.waiting_for_students", "waiting for students");
+  // One string per paragraph rather than a dozen joined fragments: French does not keep
+  // English word order, and a translator cannot reorder pieces that arrive separately.
   const ok = confirm(
-    t("session.already", "You already have a ")+kind+" open.\n\n"+
-    s.code+" — "+s.studentCount+" student"+(s.studentCount===1?"":"s")+" joined, "+where+".\n\n"+
-    "Starting a new "+what+" will end it. Any answers already given are kept and will still "+
-    "appear in the archive"+(activityKeepsNothing(s.kind)?", but a "+kind+" keeps nothing, so its responses go when it closes":"")+".\n\n"+
-    "End it and continue?");
+    t("session.already_open", "You already have a {kind} open.", { kind:kind }) + "\n\n" +
+    t("session.open_run_line", "{code} \u2014 {count} {students} joined, {where}.",
+      { code:s.code, count:s.studentCount,
+        students: plural(s.studentCount, t("session.student", "student"), t("session.students", "students")),
+        where:where }) + "\n\n" +
+    (activityKeepsNothing(s.kind)
+      ? t("session.starting_new_ends_it_keeps_nothing",
+          "Starting a new {what} will end it. Any answers already given are kept and will still appear in the archive, but a {kind} keeps nothing, so its responses go when it closes.",
+          { what:what, kind:kind })
+      : t("session.starting_new_ends_it",
+          "Starting a new {what} will end it. Any answers already given are kept and will still appear in the archive.",
+          { what:what })) + "\n\n" +
+    t("session.end_it_and_continue", "End it and continue?"));
   if(!ok) return false;
   try{
     const run=await Backend.getRun(s.runId);
@@ -204,7 +221,7 @@ function renderJoinQR(){
 function copyJoinLink(){
   if(location.protocol==="file:"){ alert(t("session.open_hosted_url_first_there_s", "Open the hosted URL first — there's no shareable link from a local file.")); return; }
   const url=getJoinUrl();
-  navigator.clipboard ? navigator.clipboard.writeText(url).then(()=>alert(t("session.link_copied", "Link copied:\n")+url)) : prompt("Copy this link:",url);
+  navigator.clipboard ? navigator.clipboard.writeText(url).then(()=>alert(t("session.link_copied", "Link copied:\n")+url)) : prompt(t("session.copy_this_link", "Copy this link:"),url);
 }
 
 // Enlarge the QR to (near) full screen so the class can scan it from a distance.

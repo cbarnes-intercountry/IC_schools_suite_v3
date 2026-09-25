@@ -74,7 +74,7 @@ function rpGroupNumbers(groups){
 
 function rpRoleLabel(scenario, r){
   const roles=(scenario&&scenario.roles)||[];
-  return (roles[r] && roles[r].label) || ("Role "+(r+1));
+  return (roles[r] && roles[r].label) || t("rp.role_n", "Role {n}", {n:r+1});
 }
 
 function rpScenarioAt(list, i){ return (list||[])[i] || null; }
@@ -87,7 +87,7 @@ async function rpCreateSession(){
   RP = { sessionCode:code, runId:null, scenarios:[], name:"", school:"", sets:[],
          participants:[], unsub:null, projecting:false };
   const c=document.getElementById("rp-setup-code");
-  c.textContent="Code · "+code; c.style.display="inline-block";
+  c.textContent=t("rp.code_is", "Code \u00b7 {code}", {code:code}); c.style.display="inline-block";
   rpResetStep2();
   await loadRoleplaySetList();
   showScreen("screen-rp-setup");
@@ -115,9 +115,11 @@ function filterRoleplaySets(){
   RP.school=document.getElementById("rp-school-select").value;
   const sel=document.getElementById("rp-set-select");
   const mine=RP.sets.filter(s=>(s.schools||[]).indexOf(RP.school)>=0);
-  sel.innerHTML = '<option value="">'+(mine.length?"— select a set —":"— no role plays for this school —")+'</option>';
+  sel.innerHTML = '<option value="">'+escapeHtml(mine.length
+    ? t("rp.select_a_set", "\u2014 select a set \u2014")
+    : t("rp.no_role_plays_for_school", "\u2014 no role plays for this school \u2014"))+'</option>';
   mine.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
-    o.textContent=s.name+" ("+s.count+" scenario"+(s.count===1?"":"s")+")"; sel.appendChild(o); });
+    o.textContent=s.name+" ("+t("rp.n_scenarios", "{count} {scenarios}", { count:s.count, scenarios: plural(s.count, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) })+")"; sel.appendChild(o); });
   rpResetStep2();
 }
 
@@ -127,12 +129,16 @@ async function rpSetPicked(){
   let rec=null;
   try{ rec=await Backend.getQuiz(key); }catch(e){ alert(t("rp.couldn_t_load_set", "Couldn't load that set: ")+e.message); return; }
   if(!rec){ alert(t("rp.set_gone", "That set has gone.")); return; }
-  RP.scenarios=rec.questions||[]; RP.name=rec.name||"Role play";
+  RP.scenarios=rec.questions||[]; RP.name=rec.name||t("rp.role_play", "Role play");
   const first=rpScenarioAt(RP.scenarios,0);
   const core=rpCoreRoles(first).length, extra=rpExtraRole(first);
   document.getElementById("rp-summary").textContent =
-    RP.scenarios.length+" scenario"+(RP.scenarios.length===1?"":"s")+" · groups of "+core+
-    (extra?" (a spare student joins one group as "+extra.label+")":" (a spare student gets a listening task)");
+    t("rp.setup_summary", "{count} {scenarios} \u00b7 groups of {size}",
+      { count:RP.scenarios.length, size:core,
+        scenarios: plural(RP.scenarios.length, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) })
+    + " " + (extra
+        ? t("rp.spare_joins_as", "(a spare student joins one group as {role})", { role:extra.label })
+        : t("rp.spare_listens", "(a spare student gets a listening task)"));
   document.getElementById("rp-start-btn").disabled = RP.scenarios.length===0;
 }
 
@@ -140,7 +146,7 @@ async function rpStartSession(){
   if(!RP.scenarios.length){ alert(t("rp.choose_set_scenarios_first", "Choose a set of scenarios first.")); return; }
   const meta = {
     kind:"roleplay", status:"waiting", scenarioIndex:0, round:0,
-    title:RP.name||"Role play", school:RP.school||"",
+    title:RP.name||t("rp.role_play", "Role play"), school:RP.school||"",
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
     groups:{}, observers:{}, startedAt:null
@@ -150,7 +156,7 @@ async function rpStartSession(){
   catch(e){ alert(t("rp.couldn_t_open_role_play", "Couldn't open the role play: ")+e.message); return; }
   RP.meta=meta;
   document.getElementById("rp-live-code").textContent=RP.sessionCode;
-  document.getElementById("rp-title").textContent=RP.name||"Role play";
+  document.getElementById("rp-title").textContent=RP.name||t("rp.role_play", "Role play");
   document.getElementById("rp-join-code").textContent=RP.sessionCode;
   document.getElementById("rp-lobby").style.display="block";
   document.getElementById("rp-stage").style.display="none";
@@ -166,7 +172,7 @@ function rpFillScenarioSelect(){
   const sel=document.getElementById("rp-scenario-select");
   if(!sel) return;
   sel.innerHTML = RP.scenarios.map((sc,i)=>
-    '<option value="'+i+'">'+escapeHtml((i+1)+". "+(sc.title||"Untitled"))+'</option>').join("");
+    '<option value="'+i+'">'+escapeHtml((i+1)+". "+(sc.title||t("rp.untitled", "Untitled")))+'</option>').join("");
   sel.value = String((RP.meta&&RP.meta.scenarioIndex)||0);
 }
 
@@ -175,7 +181,7 @@ function rpRenderQR(){
   holder.innerHTML="";
   const url=location.origin+location.pathname+"?join="+encodeURIComponent(RP.sessionCode);
   try{ new QRCode(holder,{text:url,width:180,height:180}); }catch(e){ holder.textContent=url; }
-  const t=document.getElementById("rp-join-url"); if(t) t.textContent=url;
+  const el=document.getElementById("rp-join-url"); if(el) el.textContent=url;
 }
 
 function rpWatchParticipants(){
@@ -189,7 +195,7 @@ function rpWatchParticipants(){
 function renderRpRoster(){
   const n=RP.participants.length;
   const el=document.getElementById("rp-roster");
-  document.getElementById("rp-count").textContent = n+" joined";
+  document.getElementById("rp-count").textContent = t("rp.n_joined", "{count} joined", {count:n});
   el.innerHTML = RP.participants.slice().sort(bySurname)
     .map(p=>'<span class="chip">'+escapeHtml(displayName(p.surname,p.firstName))+'</span>').join("") ||
     '<p class="sub">'+t("rp.waiting_students_join", 'Waiting for students to join…')+'</p>';
@@ -247,11 +253,11 @@ function renderRpGroups(){
   const nums=rpGroupNumbers(groups);
 
   const head=document.getElementById("rp-stage-title");
-  if(head) head.textContent=(sc&&sc.title)||"Scenario";
+  if(head) head.textContent=(sc&&sc.title)||t("rp.scenario_heading", "Scenario");
   const sit=document.getElementById("rp-stage-situation");
   if(sit) sit.textContent=(sc&&sc.situation)||"";
   const rd=document.getElementById("rp-round");
-  if(rd) rd.textContent="Round "+(meta.round||1);
+  if(rd) rd.textContent=t("rp.round_n", "Round {n}", {n:meta.round||1});
 
   const html=nums.map(g=>{
     const rows=rpGroupMembers(groups, g).map(m=>
@@ -279,7 +285,7 @@ function rpToggleProject(){
     const meta=RP.meta||{};
     const sc=rpScenarioAt(RP.scenarios, meta.scenarioIndex||0);
     const groups=metaMap(meta,"groups");
-    document.getElementById("rp-proj-title").textContent=(sc&&sc.title)||"Role play";
+    document.getElementById("rp-proj-title").textContent=(sc&&sc.title)||t("rp.role_play", "Role play");
     document.getElementById("rp-proj-situation").textContent=(sc&&sc.situation)||"";
     document.getElementById("rp-proj-groups").innerHTML=rpGroupNumbers(groups).map(g=>{
       const names=rpGroupMembers(groups, g).map(m=>escapeHtml(m.name)).join(" &middot; ");
@@ -351,7 +357,7 @@ function rpToggleCard(){
   const body=document.getElementById("rp-card-body");
   const btn=document.getElementById("rp-card-toggle");
   if(body) body.style.display = RSTU.hidden ? "none" : "block";
-  if(btn) btn.textContent = RSTU.hidden ? "Show my card" : "Hide my card";
+  if(btn) btn.textContent = RSTU.hidden ? t("rp.show_my_card", "Show my card") : t("rp.hide_my_card", "Hide my card");
   const hint=document.getElementById("rp-card-hidden-hint");
   if(hint) hint.style.display = RSTU.hidden ? "block" : "none";
 }
@@ -372,7 +378,7 @@ function renderRpCard(){
   if(waiting) waiting.style.display="none";
   if(card) card.style.display="block";
 
-  document.getElementById("rp-card-scenario").textContent=(sc&&sc.title)||"Role play";
+  document.getElementById("rp-card-scenario").textContent=(sc&&sc.title)||t("rp.role_play", "Role play");
   document.getElementById("rp-card-situation").textContent=(sc&&sc.situation)||"";
 
   // The listening task: a noticing job, never a judgement of the people speaking.
@@ -388,8 +394,8 @@ function renderRpCard(){
   }
 
   const role=((sc&&sc.roles)||[])[mine.r]||{};
-  document.getElementById("rp-card-role").textContent=role.label||("Role "+(mine.r+1));
-  document.getElementById("rp-card-group").textContent="Group "+mine.g;
+  document.getElementById("rp-card-role").textContent=role.label||t("rp.role_n", "Role {n}", {n:mine.r+1});
+  document.getElementById("rp-card-group").textContent=t("rp.group_n", "Group {n}", {n:mine.g});
   document.getElementById("rp-card-brief").textContent=role.brief||"";
 
   const sec=document.getElementById("rp-card-secret");
@@ -403,7 +409,9 @@ function renderRpCard(){
   // Who you are looking for in the room, and what they are playing.
   const others=rpGroupMembers(groups, mine.g).filter(m=>m.studentId!==STUDENT.id);
   document.getElementById("rp-card-partners").textContent =
-    others.length ? ("With "+others.map(m=>m.name+" ("+rpRoleLabel(sc,m.r)+")").join(", ")) : "Waiting for a partner…";
+    others.length
+      ? t("rp.with_partners", "With {who}", { who: others.map(m=>m.name+" ("+rpRoleLabel(sc,m.r)+")").join(", ") })
+      : t("rp.waiting_for_a_partner", "Waiting for a partner\u2026");
 }
 
 function rpStudentEnd(){
@@ -422,7 +430,7 @@ document.addEventListener("visibilitychange", ()=>{
    holding cards nobody is driving. */
 async function rpRejoin(summary, run){
   RP = { sessionCode: run.code || summary.code, runId: summary.runId,
-         scenarios: run.questions||[], name: (run.meta&&run.meta.title)||"Role play",
+         scenarios: run.questions||[], name: (run.meta&&run.meta.title)||t("rp.role_play", "Role play"),
          school: (run.meta&&run.meta.school)||"", sets:[], participants:[],
          unsub:null, projecting:false, meta: run.meta };
   document.getElementById("rp-live-code").textContent=RP.sessionCode;

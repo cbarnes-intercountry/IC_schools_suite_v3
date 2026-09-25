@@ -9,7 +9,7 @@
 
 // Manual retention: download a JSON backup of every run older than 6 months, then delete them.
 async function archiveOldReports(){
-  if(!requireOwner("purge old reports")) return;
+  if(!requireOwner(t("reports.action_purge", "purge old reports"))) return;
   const st=document.getElementById("archive-status");
   st.textContent=t("reports.checking", "Checking…");
   try{
@@ -17,7 +17,7 @@ async function archiveOldReports(){
     const cutoff=Date.now()-REPORT_VISIBLE_DAYS*24*60*60*1000;
     const old=(r.sessions||[]).filter(x=>(x.runAt||0)<cutoff);
     if(old.length===0){ st.textContent=t("reports.nothing_archive_no_runs_older_than", "Nothing to archive — no runs older than 6 months."); return; }
-    if(!confirm(t("reports.found", "Found ")+old.length+" run(s) older than 6 months. Download a backup and then permanently delete them from the database?")) { st.textContent=t("reports.cancelled", "Cancelled."); return; }
+    if(!confirm(t("reports.archive_confirm", "Found {count} {runs} older than 6 months. Download a backup and then permanently delete them from the database?", { count:old.length, runs: plural(old.length, t("reports.run", "run"), t("reports.runs", "runs")) }))) { st.textContent=t("reports.cancelled", "Cancelled."); return; }
     // Build a full backup (run details + participants) before deleting anything.
     const backup={ exportedAt:new Date().toISOString(), runs:[] };
     for(const run of old){
@@ -32,8 +32,8 @@ async function archiveOldReports(){
     // Delete after the backup download has been triggered.
     let deleted=0;
     for(const run of old){ try{ await Backend.deleteRun(run.runId); deleted++; }catch(e){ console.warn(e); } }
-    st.textContent="Archived and deleted "+deleted+" run(s). Backup file downloaded — store it somewhere safe.";
-  }catch(e){ st.textContent="Archive failed: "+e.message; }
+    st.textContent=t("reports.archived_and_deleted", "Archived and deleted {count} {runs}. Backup file downloaded \u2014 store it somewhere safe.", { count:deleted, runs: plural(deleted, t("reports.run", "run"), t("reports.runs", "runs")) });
+  }catch(e){ st.textContent=t("reports.archive_failed", "Archive failed: {why}", {why:e.message}); }
 }
 
 
@@ -66,7 +66,7 @@ async function buildAndDownloadCSV(runId, code, questionsMaybe, schoolMaybe){
   rows.push(["Students", String(results.length)]);
   rows.push([]);
   rows.push(["Question key"]);
-  questions.forEach((q,i)=>rows.push(["Q"+(i+1), q.text||"", q.type||"", "worth "+(q.points||0)+" pt"+((q.points||0)===1?"":"s"), formatCorrect(q)]));
+  questions.forEach((q,i)=>rows.push(["Q"+(i+1), q.text||"", q.type||"", t("reports.worth_points", "worth {n} {pts}", { n:(q.points||0), pts: plural(q.points||0, t("reports.pt", "pt"), t("reports.pts", "pts")) }), formatCorrect(q)]));
   rows.push([]);
 
   rows.push(["Surname","FirstName","School","SessionCode","Team","Status",
@@ -82,7 +82,7 @@ async function buildAndDownloadCSV(runId, code, questionsMaybe, schoolMaybe){
       const idx=ans.questionIndex;
       if(idx>=0 && idx<nQ) marks[idx]=Number(ans.pointsAwarded)||0;
     });
-    const timeTaken=(r.answers||[]).reduce((t,a)=>t+(a.timeSpentSec||0),0);
+    const timeTaken=(r.answers||[]).reduce((acc,a)=>acc+(a.timeSpentSec||0),0);
     rows.push([ r.surname||"", r.firstName||"", school, code, r.team||"", r.status||"Submitted",
       r.score, r.totalPossible, r.percentage.toFixed(1), timeTaken.toFixed(1),
       (r.cheatAlerts||[]).length, alertDetails, r.finishedAt?fmtDate(r.finishedAt):"" ].concat(marks));
@@ -113,14 +113,20 @@ async function openHistory(){
     const runs=all.filter(x=>(x.runAt||0)>=cutoff).sort((a,b)=>b.runAt-a.runAt);
     const hidden=all.length-runs.length;
     if(runs.length===0){
-      el.innerHTML='<p class="sub">'+(isOwner()?"No quizzes in the last 6 months.":"You haven\u2019t run any tests in the last 6 months.")
-        +(hidden>0?' ('+hidden+' older run(s) are hidden and will be archived/deleted server-side.)':'')+'</p>';
+      el.innerHTML='<p class="sub">'+escapeHtml(
+        (isOwner() ? t("reports.no_quizzes_6_months", "No quizzes in the last 6 months.")
+                   : t("reports.you_no_tests_6_months", "You haven\u2019t run any tests in the last 6 months."))
+        + (hidden>0 ? " " + t("reports.older_hidden_paren", "({count} older {runs} are hidden and will be archived/deleted server-side.)",
+             { count:hidden, runs: plural(hidden, t("reports.run", "run"), t("reports.runs", "runs")) }) : "")
+      )+'</p>';
       return;
     }
     el.innerHTML="";
     runs.forEach(run=>{
       const div=document.createElement("div"); div.className="student-row";
-      const cnt = (run.studentCount!==undefined) ? (run.studentCount+" student"+(run.studentCount===1?"":"s")) : "";
+      const cnt = (run.studentCount!==undefined)
+        ? t("reports.n_students", "{count} {students}", { count:run.studentCount, students: plural(run.studentCount, t("reports.student", "student"), t("reports.students", "students")) })
+        : "";
       const school = run.school ? " · "+run.school : "";
       const who = run.teacherName ? " · "+escapeHtml(run.teacherName) : "";
       div.innerHTML='<span><b>'+run.code+'</b>'+school+'<br><small class="hint">'+fmtDate(run.runAt)+(cnt?" · "+cnt:"")+who+'</small></span>';
@@ -135,8 +141,8 @@ async function openHistory(){
       el.appendChild(div);
     });
     if(hidden>0){ const n=document.createElement("p"); n.className="sub"; n.style.marginTop="10px";
-      n.textContent = hidden+" run(s) older than 6 months are hidden here (archived/deleted server-side)."; el.appendChild(n); }
-  }catch(e){ el.innerHTML='<p class="sub" style="color:var(--danger)">Couldn\'t load history: '+e.message+'</p>'; }
+      n.textContent = t("reports.older_hidden_note", "{count} {runs} older than 6 months are hidden here (archived/deleted server-side).", { count:hidden, runs: plural(hidden, t("reports.run", "run"), t("reports.runs", "runs")) }); el.appendChild(n); }
+  }catch(e){ el.innerHTML='<p class="sub" style="color:var(--danger)">'+escapeHtml(t("reports.couldnt_load_history", "Couldn\u2019t load history: {why}", {why:e.message}))+'</p>'; }
 }
 
 
@@ -144,11 +150,12 @@ async function openHistory(){
    deliberately not undoable — there is no bin to restore from, so the confirmation spells out
    what is about to go and asks for the session code back to make an accidental click unlikely. */
 async function deleteRunFromHistory(run){
-  if(!requireOwner("delete a result")) return;
+  if(!requireOwner(t("reports.action_delete_result", "delete a result"))) return;
   const typed=prompt(
-    "Delete the results for "+run.code+" permanently?\n\n"+
-    (run.studentCount||0)+" student record(s) will be erased. This cannot be undone — download the CSV first if you might need it.\n\n"+
-    "Type the session code to confirm:");
+    t("reports.delete_run_confirm",
+      "Delete the results for {code} permanently?\n\n{count} student {records} will be erased. This cannot be undone \u2014 download the CSV first if you might need it.\n\nType the session code to confirm:",
+      { code:run.code, count:(run.studentCount||0),
+        records: plural(run.studentCount||0, t("reports.record", "record"), t("reports.records", "records")) }));
   if(typed===null) return;
   if(String(typed).trim().toUpperCase()!==String(run.code).toUpperCase()){ alert(t("reports.didn_t_match_nothing_was_deleted", "That didn't match — nothing was deleted.")); return; }
   try{ await Backend.deleteRun(run.runId); }

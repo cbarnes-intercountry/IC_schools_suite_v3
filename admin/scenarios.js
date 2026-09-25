@@ -58,10 +58,10 @@ async function loadScenarioSet(){
 }
 
 async function deleteScenarioSet(){
-  if(!requireOwner("delete a saved role play")) return;
+  if(!requireOwner(t("scenarios.action_delete_set", "delete a saved role play"))) return;
   const sel=document.getElementById("rp-library-select");
   const key=sel.value; if(!key){ alert(t("scenarios.pick_saved_role_play_first", "Pick a saved role play first.")); return; }
-  if(!confirm(t("scenarios.delete", "Delete “")+sel.options[sel.selectedIndex].text+"” for good?")) return;
+  if(!confirm(t("scenarios.delete_set_confirm", "Delete \u201c{name}\u201d for good?", {name:sel.options[sel.selectedIndex].text}))) return;
   try{ await Backend.deleteQuiz(key); }catch(e){ alert(t("scenarios.couldn_t_delete", "Couldn't delete it: ")+e.message); return; }
   await loadQuizList();   // the shared filler, so every bank list stays in step
 }
@@ -89,7 +89,7 @@ function renderScenarioList(){
   box.innerHTML = SCEN.list.map((sc,i)=>
     '<div class="qrow'+(i===SCEN.index?" active":"")+'" onclick="pickScenario('+i+')">'+
     '<span class="qrow-no">'+(i+1)+'</span>'+
-    '<span class="qrow-text">'+escapeHtml(sc.title||"(untitled scenario)")+'</span>'+
+    '<span class="qrow-text">'+escapeHtml(sc.title||t("scenarios.untitled", "(untitled scenario)"))+'</span>'+
     '<span class="qrow-meta">'+rpCoreRoles(sc).length+(rpExtraRole(sc)?"+1":"")+' roles</span>'+
     '</div>').join("");
   const nm=document.getElementById("rp-set-name"); if(nm) nm.value=SCEN.name;
@@ -119,7 +119,7 @@ function moveScenario(dir){
   readScenarioForm();
   const i=SCEN.index, j=i+dir;
   if(j<0 || j>=SCEN.list.length) return;
-  const t=SCEN.list[i]; SCEN.list[i]=SCEN.list[j]; SCEN.list[j]=t;
+  const tmp=SCEN.list[i]; SCEN.list[i]=SCEN.list[j]; SCEN.list[j]=tmp;
   SCEN.index=j; renderScenarioList(); writeScenarioForm();
 }
 
@@ -186,16 +186,22 @@ function countBrief(r){
 function scenarioProblems(list){
   const out=[];
   (list||[]).forEach((sc,i)=>{
-    const where="Scenario "+(i+1)+(sc.title?" ("+sc.title+")":"")+": ";
-    if(!sc.title) out.push(where+"needs a title.");
-    if(!sc.situation) out.push(where+"needs a situation everyone can see.");
+    // "Scenario 2 (Motor claim): needs a title." — the prefix is built once and passed in,
+    // so a translator gets whole sentences rather than a stem and six endings.
+    const where = sc.title
+      ? t("scenarios.where_titled", "Scenario {n} ({title}): ", { n:i+1, title:sc.title })
+      : t("scenarios.where", "Scenario {n}: ", { n:i+1 });
+    if(!sc.title) out.push(where+t("scenarios.needs_a_title", "needs a title."));
+    if(!sc.situation) out.push(where+t("scenarios.needs_a_situation", "needs a situation everyone can see."));
     const roles=sc.roles||[];
-    if(rpCoreRoles(sc).length<2) out.push(where+"needs at least two roles that are not optional.");
+    if(rpCoreRoles(sc).length<2) out.push(where+t("scenarios.needs_two_core_roles", "needs at least two roles that are not optional."));
     roles.forEach((r,j)=>{
-      if(!r.label) out.push(where+"role "+(j+1)+" has no name.");
-      if(!r.brief) out.push(where+'role "'+(r.label||j+1)+'" has no brief.');
+      if(!r.label) out.push(where+t("scenarios.role_has_no_name", "role {n} has no name.", {n:j+1}));
+      if(!r.brief) out.push(where+t("scenarios.role_has_no_brief", "role \u201c{role}\u201d has no brief.", {role:r.label||(j+1)}));
       if((r.brief||"").length>RP_BRIEF_CHARS)
-        out.push(where+'role "'+(r.label||j+1)+'" is '+r.brief.length+" characters — too long to read on a phone mid-conversation.");
+        out.push(where+t("scenarios.role_brief_too_long",
+          "role \u201c{role}\u201d is {chars} characters \u2014 too long to read on a phone mid-conversation.",
+          { role:r.label||(j+1), chars:r.brief.length }));
     });
   });
   return out;
@@ -209,8 +215,9 @@ async function saveScenarioSet(){
   if(!SCEN.schools.length){ alert(t("scenarios.tick_least_one_school_teachers_won", "Tick at least one school, or teachers won't find it.")); return; }
   const problems=scenarioProblems(SCEN.list);
   if(problems.length){
-    if(!confirm(t("scenarios.set_isn_t_finished", "This set isn't finished:\n\n")+problems.slice(0,8).join("\n")+
-      (problems.length>8?"\n…and "+(problems.length-8)+" more":"")+"\n\nSave it anyway?")) return;
+    if(!confirm(t("scenarios.set_isn_t_finished", "This set isn\u2019t finished:\n\n")+problems.slice(0,8).join("\n")+
+      (problems.length>8 ? "\n"+t("scenarios.and_n_more", "\u2026and {n} more", {n:problems.length-8}) : "")+
+      "\n\n"+t("scenarios.save_it_anyway", "Save it anyway?"))) return;
   }
   const key=SCEN.key || quizKey(SCEN.name);
   try{ await Backend.saveQuiz(key, SCEN.name, SCEN.list, SCEN.schools, "roleplay"); }
@@ -244,7 +251,7 @@ function importScenariosFromExcel(){
         const {scenarios,errors}=parseScenarioRows(rows);
         if(!scenarios.length){
           alert(t("scenarios.no_scenarios_found", "No scenarios found.\n\n")+(errors.join("\n")||
-            "The sheet needs one row per role, with columns Scenario, Situation, Role and Brief."));
+            t("scenarios.sheet_shape_hint", "The sheet needs one row per role, with columns Scenario, Situation, Role and Brief.")));
           return;
         }
         readScenarioForm();
@@ -253,7 +260,9 @@ function importScenariosFromExcel(){
         SCEN.list = onlyBlank ? scenarios : SCEN.list.concat(scenarios);
         SCEN.index = 0;
         renderScenarioList(); writeScenarioForm();
-        alert(t("import.imported", "Imported ")+scenarios.length+" scenario(s)."+(errors.length?"\n\nSkipped:\n"+errors.join("\n"):""));
+        alert(t("scenarios.imported_n", "Imported {count} {scenarios}.",
+          { count:scenarios.length, scenarios: plural(scenarios.length, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) })
+        + (errors.length ? "\n\n"+t("scenarios.skipped", "Skipped:")+"\n"+errors.join("\n") : ""));
       }catch(err){ alert(t("import.couldn_t_read_file", "Couldn't read that file: ")+err.message); }
     };
     reader.readAsArrayBuffer(file);

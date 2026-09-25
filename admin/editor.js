@@ -12,8 +12,13 @@
    what the save card says, and which list is refreshed afterwards. */
 let BUILDER_MODE = "quiz";
 
-const SETLABEL = { quiz:{ one:"quiz", Cap:"Quiz", sel:"quiz-library-select" },
-                   poll:{ one:"poll", Cap:"Poll", sel:"poll-library-select" } };
+// Built when asked, not at load: a table of words made once would keep the language the page
+// started in. `sel` is an element id and never changes.
+function setLabel(mode){
+  return (mode==="poll")
+    ? { one: t("editor.a_poll", "poll"), Cap: t("editor.poll_cap", "Poll"), sel: "poll-library-select" }
+    : { one: t("editor.a_quiz", "quiz"), Cap: t("editor.quiz_cap", "Quiz"), sel: "quiz-library-select" };
+}
 
 
 async function loadQuizList(){
@@ -22,17 +27,19 @@ async function loadQuizList(){
     const all = (r.quizzes||[]).sort((a,b)=>a.name.localeCompare(b.name));
     // One select per kind, matched exactly. The old version sorted everything into "poll or
     // else quiz", so any third kind silently joined the quizzes.
-    [["quiz","quiz-library-select","— select a saved quiz —"],
-     ["poll","poll-library-select","— select a saved poll —"],
-     ["roleplay","rp-library-select","— select a saved role play —"]].forEach(([kind,id,placeholder])=>{
+    [["quiz","quiz-library-select",t("editor.select_saved_quiz", "\u2014 select a saved quiz \u2014")],
+     ["poll","poll-library-select",t("editor.select_saved_poll", "\u2014 select a saved poll \u2014")],
+     ["roleplay","rp-library-select",t("editor.select_saved_role_play", "\u2014 select a saved role play \u2014")]].forEach(([kind,id,placeholder])=>{
       const sel=document.getElementById(id);
       if(!sel) return;
-      sel.innerHTML='<option value="">'+placeholder+'</option>';
+      sel.innerHTML='<option value="">'+escapeHtml(placeholder)+'</option>';
       all.filter(q=>q.kind===kind).forEach(q=>{
         const sc=(q.schools||[]).join(", ");
         const opt=document.createElement("option"); opt.value=q.key;
-        const unit = kind==="roleplay" ? " scenario" : " question";
-        opt.textContent = q.name + (sc?" · "+sc:"") + " (" + q.count + unit + (q.count===1?"":"s") + ")";
+        const unit = (kind==="roleplay")
+          ? plural(q.count, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios"))
+          : plural(q.count, t("poll.question", "question"), t("poll.questions", "questions"));
+        opt.textContent = q.name + (sc?" \u00b7 "+sc:"") + " (" + q.count + " " + unit + ")";
         sel.appendChild(opt);
       });
     });
@@ -71,9 +78,9 @@ function builderIsDirty(){
    beforeunload further down — that one can only show the browser's fixed wording. */
 function leaveBuilder(target){
   if(builderIsDirty() && !confirm(
-      t("editor.changes_haven_t_been_saved", "You have changes that haven't been saved.\n\n")+
-      "Leaving now discards them \u2014 nothing is kept until you press \u201cSave "+
-      (BUILDER_MODE==="poll"?"Poll":"Quiz")+"\u201d.\n\nLeave without saving?")) return;
+      t("editor.changes_haven_t_been_saved", "You have changes that haven\u2019t been saved.\n\n")+
+      t("editor.leaving_discards_them", "Leaving now discards them \u2014 nothing is kept until you press \u201cSave {what}\u201d.\n\nLeave without saving?",
+        { what: setLabel(BUILDER_MODE).Cap }))) return;
   BUILDER_CLEAN="";
   showScreen(target||"screen-admin");
 }
@@ -106,53 +113,60 @@ function applyBuilderMode(){
   if(sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].disabled && firstAllowed) sel.value=firstAllowed;
   document.getElementById("qe-points-wrap").style.display = poll ? "none" : "";   // polls are never marked
   renderTypeChips();   // the chip row follows the bank we just switched to
-  document.getElementById("builder-badge").innerHTML = poll ? "Admin &middot; Poll Builder" : "Admin &middot; Question Builder";
-  document.getElementById("quiz-save-label").textContent = poll ? "Save as poll" : "Save as quiz";
-  document.getElementById("quiz-save-btn-text").textContent = poll ? "Save Poll" : "Save Quiz";
-  document.getElementById("quiz-save-name").placeholder = poll ? "e.g. Session 3 — warm-up poll" : "e.g. Marketing Midterm 2026";
+  document.getElementById("builder-badge").textContent = poll
+    ? t("editor.badge_poll_builder", "Admin \u00b7 Poll Builder")
+    : t("editor.badge_question_builder", "Admin \u00b7 Question Builder");
+  document.getElementById("quiz-save-label").textContent = poll ? t("editor.save_as_poll", "Save as poll") : t("editor.save_as_quiz", "Save as quiz");
+  document.getElementById("quiz-save-btn-text").textContent = poll ? t("editor.save_poll_btn", "Save Poll") : t("editor.save_quiz_btn", "Save Quiz");
+  document.getElementById("quiz-save-name").placeholder = poll
+    ? t("editor.ph_poll_name", "e.g. Session 3 \u2014 warm-up poll")
+    : t("editor.ph_quiz_name", "e.g. Marketing Midterm 2026");
   document.getElementById("quiz-save-note").textContent = poll
-    ? "Saved to the Poll Creator and launched from Teacher Home with “New Poll”."
-    : "Saved to the Test Creator and launched with “Launch Test”.";
+    ? t("editor.note_saved_poll", "Saved to the Poll Creator and launched from Teacher Home with \u201cNew Poll\u201d.")
+    : t("editor.note_saved_quiz", "Saved to the Test Creator and launched with \u201cLaunch Test\u201d.");
 }
 
 async function saveQuizToLibrary(){
   const mode = BUILDER_MODE;
-  const L = SETLABEL[mode];
+  const L = setLabel(mode);
   // Commit whatever is open in the editor FIRST. Without this, ticking a box (e.g. "Show
   // results live") and going straight to Save silently discarded that edit.
   if(EDIT_INDEX>=0 && EDIT_INDEX<TEACHER.questions.length && !commitCurrentQuestion()) return;
   const name = document.getElementById("quiz-save-name").value.trim();
   const schools = getCheckedSchools();
-  if(!name){ alert(t("editor.give", "Give the ")+L.one+" a name first."); return; }
-  if(schools.length===0){ alert(t("editor.tick_least_one_school_assign", "Tick at least one school to assign this ")+L.one+" to (manage schools on the Admin page)."); return; }
+  if(!name){ alert(t("editor.give_it_a_name", "Give the {what} a name first.", {what:L.one})); return; }
+  if(schools.length===0){ alert(t("editor.tick_a_school", "Tick at least one school to assign this {what} to (manage schools on the Admin page).", {what:L.one})); return; }
   if(TEACHER.questions.length===0){ alert(t("editor.add_import_some_questions_first", "Add or import some questions first.")); return; }
   // Belt and braces: the dropdown already hides the wrong types, but an Excel or JSON
   // import can still bring in questions that don't belong in this bank.
   const strays = TEACHER.questions.filter(q=> isPollType(q.type) !== (mode==="poll"));
   if(strays.length){
+    const strayCount = { count: strays.length,
+      questions: plural(strays.length, t("poll.question", "question"), t("poll.questions", "questions")) };
     alert(mode==="poll"
-      ? "A poll can only contain Poll and Word Cloud questions.\n\n"+strays.length+" question(s) here are quiz types — remove them, or save this in the Test Creator instead."
-      : "A quiz can't contain Poll or Word Cloud questions — they have no correct answer, so they can't be marked.\n\n"+
-        "Remove those "+strays.length+" question(s), or save this in the Poll Creator instead.");
+      ? t("editor.strays_in_poll", "A poll can only contain Poll and Word Cloud questions.\n\n{count} {questions} here are quiz types \u2014 remove them, or save this in the Test Creator instead.", strayCount)
+      : t("editor.strays_in_quiz", "A quiz can\u2019t contain Poll or Word Cloud questions \u2014 they have no correct answer, so they can\u2019t be marked.\n\nRemove those {count} {questions}, or save this in the Poll Creator instead.", strayCount));
     return;
   }
   try{
     await Backend.saveQuiz(quizKey(name), name, TEACHER.questions, schools, mode);
     markBuilderSaved();     // before leaving, so the exit guard stays quiet
     loadQuizList();
-    alert(t("editor.saved", 'Saved "')+name+'" for '+schools.join(", ")+' ('+TEACHER.questions.length+' questions).');
+    alert(t("editor.saved_for_schools", "Saved \u201c{name}\u201d for {schools} ({count} {questions}).",
+      { name:name, schools:schools.join(", "), count:TEACHER.questions.length,
+        questions: plural(TEACHER.questions.length, t("poll.question", "question"), t("poll.questions", "questions")) }));
     showScreen("screen-admin");
   }catch(e){ alert(t("editor.save_failed", "Save failed: ")+e.message); }
 }
 
 // Load a saved set into the builder, prefilling its name + assigned schools.
 async function loadSetFromLibrary(mode){
-  const L = SETLABEL[mode] || SETLABEL.quiz;
+  const L = setLabel(mode);
   const key = document.getElementById(L.sel).value;
-  if(!key){ alert(t("editor.pick_saved", "Pick a saved ")+L.one+" first."); return; }
+  if(!key){ alert(t("editor.pick_a_saved_first", "Pick a saved {what} first.", {what:L.one})); return; }
   try{
     const rec = await Backend.getQuiz(key);
-    if(!rec){ alert(t("test.that", "That ")+L.one+" could not be found."); loadQuizList(); return; }
+    if(!rec){ alert(t("editor.that_could_not_be_found", "That {what} could not be found.", {what:L.one})); loadQuizList(); return; }
     BUILDER_MODE = setKind(rec)==="poll" ? "poll" : "quiz";
     TEACHER.questions = (rec.questions||[]).map(q=>Object.assign({},q,{id:q.id||"q_"+uid(6)}));
     document.getElementById("quiz-save-name").value = rec.name || "";
@@ -168,12 +182,12 @@ function loadQuizFromLibrary(){ return loadSetFromLibrary("quiz"); }
 
 // Export a saved set as a JSON file (archiving / backup).
 async function exportSavedSet(mode){
-  const L = SETLABEL[mode] || SETLABEL.quiz;
+  const L = setLabel(mode);
   const key = document.getElementById(L.sel).value;
-  if(!key){ alert(t("editor.pick_saved", "Pick a saved ")+L.one+" to export."); return; }
+  if(!key){ alert(t("editor.pick_a_saved_to_export", "Pick a saved {what} to export.", {what:L.one})); return; }
   try{
     const rec = await Backend.getQuiz(key);
-    if(!rec){ alert(t("test.that", "That ")+L.one+" could not be found."); return; }
+    if(!rec){ alert(t("editor.that_could_not_be_found", "That {what} could not be found.", {what:L.one})); return; }
     const payload = { name:rec.name, kind:setKind(rec), schools:quizSchools(rec), questions:rec.questions||[], exportedAt:new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
@@ -184,12 +198,12 @@ async function exportSavedSet(mode){
 function exportSavedQuiz(){ return exportSavedSet("quiz"); }
 
 async function deleteSetFromLibrary(mode){
-  if(!requireOwner("delete a saved quiz or poll")) return;
-  const L = SETLABEL[mode] || SETLABEL.quiz;
+  if(!requireOwner(t("editor.action_delete_saved_set", "delete a saved quiz or poll"))) return;
+  const L = setLabel(mode);
   const sel = document.getElementById(L.sel);
   const key = sel.value;
-  if(!key){ alert(t("editor.pick_saved", "Pick a saved ")+L.one+" to delete."); return; }
-  if(!confirm(t("editor.delete_saved", 'Delete saved ')+L.one+' "'+sel.options[sel.selectedIndex].textContent+'"?')) return;
+  if(!key){ alert(t("editor.pick_a_saved_to_delete", "Pick a saved {what} to delete.", {what:L.one})); return; }
+  if(!confirm(t("editor.delete_saved_confirm", "Delete saved {what} \u201c{name}\u201d?", {what:L.one, name:sel.options[sel.selectedIndex].textContent}))) return;
   try{ await Backend.deleteQuiz(key); loadQuizList(); }catch(e){ alert(t("editor.delete_failed", "Delete failed: ")+e.message); }
 }
 
@@ -217,14 +231,14 @@ function renderQBank(){
     // would be thrown away without warning.
     div.onclick=()=>{ if(i!==EDIT_INDEX && EDIT_INDEX>=0 && EDIT_INDEX<TEACHER.questions.length && !commitCurrentQuestion()) return; openQuestionEditor(i); };
     const num=document.createElement("span"); num.className="qnum"; num.textContent=String(i+1).padStart(2,"0");
-    const txt=document.createElement("span"); txt.className="qtxt"; txt.textContent=q.text||"(no text yet)";
+    const txt=document.createElement("span"); txt.className="qtxt"; txt.textContent=q.text||t("editor.no_text_yet", "(no text yet)");
     const tag=document.createElement("span"); tag.className="qtag"; tag.textContent=TAGS[q.type]||"?";
     div.appendChild(num); div.appendChild(txt);
     // Results are live by default now, so flag the exception instead: a lost tick stays obvious.
     if(isPollType(q.type) && q.hideResults){
       const lv=document.createElement("span"); lv.className="qtag"; lv.textContent=t("editor.hidden", "HIDDEN");
       lv.style.background="var(--amber-soft)"; lv.style.borderColor="var(--amber)"; lv.style.color="var(--amber)";
-      lv.title="Results stay hidden until you press Reveal";
+      lv.title=t("editor.hidden_title", "Results stay hidden until you press Reveal");
       div.appendChild(lv);
     }
     div.appendChild(tag);
@@ -243,7 +257,7 @@ function openQuestionEditor(i){
   }
   EDIT_INDEX = i;
   writeQuestionToForm(TEACHER.questions[i]);
-  document.getElementById("qe-counter").textContent = (EDIT_INDEX+1)+" of "+TEACHER.questions.length;
+  document.getElementById("qe-counter").textContent = t("editor.n_of_m", "{n} of {total}", {n:EDIT_INDEX+1, total:TEACHER.questions.length});
   document.getElementById("qe-card").style.display="block";   // editor lives beside the bank
   renderQBank();
 }
@@ -323,7 +337,7 @@ function renderTypeChips(){
     const b=document.createElement("button");
     b.type="button";
     b.className="type-chip"+(o.value===sel.value?" on":"");
-    b.textContent=TYPE_LABELS[o.value]||o.textContent;
+    b.textContent=typeLabel(o.value)||o.textContent;
     b.onclick=()=>{ sel.value=o.value; renderTypeChips(); renderQEditorOptions(); };
     box.appendChild(b);
   });

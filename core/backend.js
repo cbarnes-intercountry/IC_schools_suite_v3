@@ -37,18 +37,18 @@ const Backend = {
     // blocking screen: an unconfigured file, a library that did not load, and a sign-in the
     // security rules will reject.
     if(!firebaseConfig.apiKey || firebaseConfig.apiKey.indexOf("PASTE_YOUR")!==-1){
-      backendUnavailable("This copy of the app has no database settings \u2014 the Firebase API key is still a placeholder.");
+      backendUnavailable(t("backend.no_settings", "This copy of the app has no database settings \u2014 the Firebase API key is still a placeholder."));
       return;
     }
     if(typeof firebase==="undefined"){
-      backendUnavailable("The Firebase library did not load. Check the internet connection, and any content blocker in the browser.");
+      backendUnavailable(t("backend.library_missing", "The Firebase library did not load. Check the internet connection, and any content blocker in the browser."));
       return;
     }
     try{
       firebase.initializeApp(firebaseConfig); db = firebase.database();
     }catch(e){
       db = null;
-      backendUnavailable("Firebase could not start: " + ((e&&e.message)||e));
+      backendUnavailable(t("backend.could_not_start", "Firebase could not start: {why}", {why:(e&&e.message)||e}));
       return;
     }
     // Every client signs in before touching data, so the security rules have an identity to
@@ -57,7 +57,7 @@ const Backend = {
     // read and write, so it blocks rather than logging quietly.
     if(firebase.auth){
       this._authReady = firebase.auth().signInAnonymously()
-        .catch(e=>{ backendUnavailable("Signing in to the database was refused \u2014 check that Anonymous authentication is switched on in the Firebase console. (" + ((e&&e.message)||e) + ")"); });
+        .catch(e=>{ backendUnavailable(t("backend.anon_sign_in_refused", "Signing in to the database was refused \u2014 check that Anonymous authentication is switched on in the Firebase console. ({why})", {why:(e&&e.message)||e})); });
     }
   },
   get live(){ return !!db; },

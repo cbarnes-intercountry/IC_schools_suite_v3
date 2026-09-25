@@ -21,7 +21,7 @@ function quizSchools(q){ if(!q) return []; if(Array.isArray(q.schools)) return q
    no kind at all, so setKind() infers it from the questions rather than guessing. */
 const POLL_TYPES = ["poll","cloud"];
 
-function isPollType(t){ return POLL_TYPES.indexOf(t)>=0; }
+function isPollType(type){ return POLL_TYPES.indexOf(type)>=0; }
 
 function setKind(rec){
   if(!rec) return "quiz";
@@ -41,7 +41,8 @@ let TEACHER = { sessionCode:null, runId:null, questions:[], settings:{} };
 
 /* An overall limit and per-question limits would run two clocks at once, so the quiz's own
    timings win: if any question carries one, the overall field is zeroed and locked. */
-const TIMER_HINT_DEFAULT = "Per-question limits only apply in free navigation — the question locks when time runs out.";
+// A function, not a constant: a constant built at load holds one language for ever.
+function timerHintDefault(){ return t("bank.timer_hint_default", "Per-question limits only apply in free navigation \u2014 the question locks when time runs out."); }
 
 function applyPerQuestionTimerLock(){
   const fld=document.getElementById("opt-time-limit"), hint=document.getElementById("opt-time-limit-hint");
@@ -49,11 +50,12 @@ function applyPerQuestionTimerLock(){
   const n=(TEACHER.questions||[]).filter(q=>(parseInt(q.timeLimitSec,10)||0)>0).length;
   if(n>0){
     fld.value=0; fld.disabled=true; fld.style.opacity="0.45"; fld.style.cursor="not-allowed";
-    hint.innerHTML="<strong>"+t("bank.overall_limit_switched_off", "Overall limit switched off.")+"</strong> "+n+" question"+(n===1?" has":"s have")+
-      " its own time limit, and the two clocks can’t run together. Per-question limits only apply in free navigation — in teacher-paced mode they are ignored.";
+    hint.innerHTML="<strong>"+t("bank.overall_limit_switched_off", "Overall limit switched off.")+"</strong> "+
+      t("bank.overall_limit_reason", "{count} {questions} its own time limit, and the two clocks can\u2019t run together. Per-question limits only apply in free navigation \u2014 in teacher-paced mode they are ignored.",
+        { count:n, questions: plural(n, t("bank.question_has", "question has"), t("bank.questions_have", "questions have")) });
   } else {
     fld.disabled=false; fld.style.opacity=""; fld.style.cursor="";
-    hint.textContent=TIMER_HINT_DEFAULT;
+    hint.textContent=timerHintDefault();
   }
 }
 
