@@ -111,7 +111,7 @@ const Backend = {
       // Carried so Home can spot a run this teacher left open — see findOpenRuns().
       teacherEmail:(r.meta&&r.meta.teacherEmail)||"",
       status:(r.meta&&r.meta.status)||"",
-      kind:(r.meta&&r.meta.kind)||"quiz",
+      kind:runKind(r.meta),   // one definition of what a run without a kind is
       studentCount: Object.keys(partVal[r.runId]||{}).length }));
     return { sessions };
   },

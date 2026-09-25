@@ -92,6 +92,9 @@ async function teacherStartTest(){
     // Audit trail: who ran this test (from their teacher account).
     teacherName: (TEACHER_USER && TEACHER_USER.name) || "",
     teacherEmail: (TEACHER_USER && TEACHER_USER.email) || "",
+    // Every run says what it is. Until v3.4.1 a test left this out, because the student
+    // router treated "no kind" as a test by default — see runKind() in core/registry.js.
+    kind:"quiz",
     status:"waiting", currentIndex:0, startedAt:null
   };
   TEACHER.settings=settings;
@@ -550,9 +553,10 @@ async function studentJoin(){
   // ---- Any registered activity: poll, role play, whatever comes next ----
   // The router asks the registry rather than naming activities one at a time, so a new
   // module does not mean editing this function. A test is the default path below.
-  const act = activity(session.meta.kind);
+  const kind = runKind(session.meta);
+  const act = activity(kind);
   if(act && act.join){
-    const what = activityLabel(session.meta.kind).toLowerCase();
+    const what = activityLabel(kind).toLowerCase();
     if(session.meta.status==="ended"){ alert(t("test.that_has_finished", "That {what} has finished.", {what:what})); return; }
     if(act.anonymous && act.anonymous(session.meta)){
       // Nothing identifying is stored, and the name boxes are never shown.

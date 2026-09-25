@@ -34,6 +34,21 @@ function registerActivity(id, def){
 }
 function activity(id){ return ACTIVITIES[id] || null; }
 
+/* What kind of run this is.
+
+   A run's meta says so — except for a test, which never wrote it: the test was the router's
+   default path until v3.3, so nothing needed to ask. Removing that default in v3.3 turned
+   every quiz already in the database into a session of no recognised kind, and students
+   joining one were told to check with their teacher.
+
+   Tests created from v3.4.1 carry kind:"quiz". This function is what covers the ones created
+   before that, and it will keep being needed: a run made last term does not get rewritten.
+   Same shape as setKind() in core/bank.js, and for the same reason. */
+function runKind(meta){
+  const k = meta && meta.kind;
+  return (typeof k === "string" && k) ? k : "quiz";
+}
+
 /* What to call this activity in a sentence, in the reader's language.
 
    `label` stays the plain English name: registration runs as the page loads, so a t() call in

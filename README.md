@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.4
+# Classroom Exam App — v3.4.1
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,14 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.4.1 fixes a bug v3.3 introduced and v3.4 shipped.** A test session never recorded
+`meta.kind`, because the test was the student router's default path and nothing had to ask.
+v3.3 removed that default, which turned every quiz already in the database into "a kind the
+app does not recognise" the moment a student tried to join. `runKind()` in `core/registry.js`
+now answers that question in one place — a run that says nothing is a test — and new test
+sessions write `kind:"quiz"` so the fallback stops being load-bearing for anything made from
+now. Runs made before this keep working, permanently: they are never rewritten.
 
 **v3.4 finishes the extraction and adds placeholders.** 748 keys now — v3.3 had left 238
 user-visible strings behind, all of them in shapes its checks did not look at. Sentences the
@@ -135,7 +143,7 @@ From the folder *above* this one:
 node "_test v3.0.js"
 ```
 
-586 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+600 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
 
 ## Running a role play
