@@ -229,6 +229,7 @@ let DASH_UNSUB=null, DASH_PARTICIPANTS=[];
 function startDashboardPolling(){
   stopDashboardPolling();
   DASH_UNSUB=Backend.subscribeParticipants(TEACHER.runId, r=>{
+    dashboardFeedOk();
     DASH_PARTICIPANTS=r.participants||[];
     // Keep the draft allocation in step with the lobby while students are still arriving.
     const lobbyOpen = !TEACHER.settings || TEACHER.settings.status!=="active";
@@ -244,10 +245,27 @@ function startDashboardPolling(){
       }
     }
     renderDashboardList();
-  });
+  }, err => dashboardFeedFailed(err));
 }
 
 function stopDashboardPolling(){ if(DASH_UNSUB){ DASH_UNSUB(); DASH_UNSUB=null; } stopTeacherCountdown(); }
+
+/* An empty room and an unreadable one look identical on a dashboard, and the difference decides
+   whether a teacher starts the test. So the dashboard says which it is. */
+function dashboardFeedOk(){
+  const w=document.getElementById("dash-feed-warning");
+  if(w) w.style.display="none";
+}
+function dashboardFeedFailed(err){
+  DASH_PARTICIPANTS=[];
+  renderDashboardList();
+  const w=document.getElementById("dash-feed-warning");
+  if(!w) return;
+  w.textContent = t("test.dashboard_feed_failed",
+    "This list cannot be read from the database, so it is not showing who has joined \u2014 the room may well not be empty. {why}",
+    { why:(err&&err.message)||err||"" });
+  w.style.display="block";
+}
 
 
 // Live progress for one student: how many answered, and how many of those are right/wrong.
@@ -428,8 +446,21 @@ function teacherLeaveDashboard(){ stopDashboardPolling(); showScreen("screen-rol
 
 async function showTeacherRecap(){
   stopDashboardPolling();
-  let participants=[];
-  try{ const r=await Backend.listParticipants(TEACHER.runId); participants=r.participants||[]; }catch(e){ console.warn(e); }
+  let participants=[], readFailed=null;
+  try{ const r=await Backend.listParticipants(TEACHER.runId); participants=r.participants||[]; }
+  catch(e){ console.warn(e); readFailed=e; }
+  /* An empty results table is a claim: nobody sat this test. If the read was refused we cannot
+     make that claim, and saying so is the difference between "nobody turned up" and "the marks
+     are there and you cannot see them" — one of which needs the teacher to do something. */
+  const warn=document.getElementById("recap-warning");
+  if(warn){
+    if(readFailed){
+      warn.textContent=t("test.recap_read_failed",
+        "The results could not be read from the database, so this table is empty for that reason \u2014 not because nobody sat the test. Nothing has been deleted. {why}",
+        { why:(readFailed&&readFailed.message)||readFailed||"" });
+      warn.style.display="block";
+    } else warn.style.display="none";
+  }
   RECAP_ROWS=buildEffectiveResults(participants, TEACHER.questions, TEACHER.settings);
   let alertTotal=0, pctSum=0, scored=0;
   RECAP_ROWS.forEach(r=>{ alertTotal+=(r.cheatAlerts||[]).length; pctSum+=r.percentage; scored++; });
@@ -543,7 +574,21 @@ async function studentJoin(){
   // refresh or brief disconnect returns the same uid and the same attempt. Demo mode falls back
   // to a locally stored id.
   await Backend._ready();
-  STUDENT.id = Backend.uid() || localStorage.getItem("examFB_id_"+code) || ("s_"+uid(8));
+  /* Which identity the student writes under.
+
+     Normally the anonymous Firebase account: the rules let a student write only the record
+     whose key matches their own uid, so the uid IS the identity.
+
+     The exception is the teacher's own machine. A browser profile holds one Firebase account,
+     so once a teacher has signed in, every tab in that profile is that teacher — including one
+     joining as a student. Using their uid would file the teacher as a member of their own
+     class, and their second attempt would overwrite the first. A signed-in teacher is allowed
+     by the rules to write any participant key, so they get a local one instead, which is also
+     what lets one machine hold several test attempts. */
+  const signedInTeacher = !!(typeof TEACHER_USER !== "undefined" && TEACHER_USER && TEACHER_USER.uid);
+  STUDENT.id = (signedInTeacher ? null : Backend.uid())
+            || localStorage.getItem("examFB_id_"+code)
+            || ("s_"+uid(8));
   localStorage.setItem("examFB_id_"+code, STUDENT.id);
   let session;
   try{ session=await Backend.getActiveSession(code); }catch(e){ alert(t("test.couldn_t_reach_session", "Couldn't reach the session: ")+e.message); return; }
@@ -611,7 +656,19 @@ async function testStudentJoin(session, surname, firstName){
     Object.keys(STUDENT.qDeadlines).forEach(k=>{ if(STUDENT.qDeadlines[k] && STUDENT.qDeadlines[k]<=nowMs) STUDENT.qLocked[k]=true; });
     STUDENT.resuming=true;
   }
-  try{ await Backend.joinSession(STUDENT.runId, STUDENT.id, surname, firstName, true); }catch(e){ console.warn(e); }
+  /* Joining is the one write that has to succeed before the student is told they are in.
+     It used to be swallowed: the waiting room appeared either way, so a refused write left a
+     student sitting quietly in front of a screen that said "waiting for your teacher" while
+     the teacher's dashboard showed an empty room. Neither of them could see the problem. */
+  try{
+    await Backend.joinSession(STUDENT.runId, STUDENT.id, surname, firstName, true);
+  }catch(e){
+    console.warn(e);
+    alert(t("test.join_write_failed",
+      "You are not in the room yet \u2014 the database refused to record you.\n\n{why}\n\nTell your teacher, and try the code again.",
+      { why:(e&&e.message)||e }));
+    return;
+  }
   document.getElementById("wait-name").textContent=STUDENT.name;
   document.getElementById("wait-code").textContent=code;
   showScreen("screen-student-waiting");

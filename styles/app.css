@@ -482,3 +482,13 @@
   position:absolute; width:1px; height:1px; margin:-1px; padding:0;
   overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
 }
+
+/* A refused read, said out loud. Amber rather than red: nothing is broken or lost, but what is
+   on screen is not the answer to the question the teacher is asking it. */
+.feed-warning{
+  margin:10px 0; padding:10px 12px;
+  border:2px solid var(--amber, #C77700); border-radius:10px;
+  background:var(--amber-soft, #FFF4E0); color:var(--amber, #C77700);
+  font-size:.92rem; line-height:1.4; font-weight:600;
+}
+

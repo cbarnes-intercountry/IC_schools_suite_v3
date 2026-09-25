@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.4.1">
+<link rel="stylesheet" href="styles/app.css?v=3.5">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -425,6 +425,7 @@
         <span class="badge bad" id="dash-alert-badge" style="display:none;"></span>
       </span>
     </div>
+    <p class="feed-warning" id="dash-feed-warning" style="display:none;"></p>
     <div class="dash-table">
       <div class="dash-head">
         <span>#</span><span data-i18n="teacher_dashboard.student">Student</span>
@@ -461,6 +462,7 @@
     </div>
     <h2 data-i18n="teacher_recap.student_scores" style="margin:20px 0 2px;">Student scores</h2>
     <p data-i18n="teacher_recap.ranked_high_low_students_who_hadn" class="sub" style="margin-bottom:0;">Ranked high to low. Students who hadn't submitted when you ended the test are marked incomplete.</p>
+    <p class="feed-warning" id="recap-warning" style="display:none;"></p>
     <div class="recap-table">
       <div class="recap-head">
         <span>#</span>
@@ -799,28 +801,28 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.4.1"></script>
-<script src="lang/fr.js?v=3.4.1"></script>
-<script src="core/i18n.js?v=3.4.1"></script>
-<script src="core/registry.js?v=3.4.1"></script>
-<script src="core/backend.js?v=3.4.1"></script>
-<script src="core/auth.js?v=3.4.1"></script>
-<script src="core/ui.js?v=3.4.1"></script>
-<script src="core/session.js?v=3.4.1"></script>
-<script src="core/groups.js?v=3.4.1"></script>
-<script src="core/bank.js?v=3.4.1"></script>
-<script src="core/media.js?v=3.4.1"></script>
-<script src="core/security.js?v=3.4.1"></script>
-<script src="core/answers.js?v=3.4.1"></script>
-<script src="modules/test.js?v=3.4.1"></script>
-<script src="modules/poll.js?v=3.4.1"></script>
-<script src="modules/roleplay.js?v=3.4.1"></script>
-<script src="admin/editor.js?v=3.4.1"></script>
-<script src="admin/import.js?v=3.4.1"></script>
-<script src="admin/reports.js?v=3.4.1"></script>
-<script src="admin/scenarios.js?v=3.4.1"></script>
-<script src="admin/accounts.js?v=3.4.1"></script>
-<script src="boot.js?v=3.4.1"></script>
+<script src="lang/en.js?v=3.5"></script>
+<script src="lang/fr.js?v=3.5"></script>
+<script src="core/i18n.js?v=3.5"></script>
+<script src="core/registry.js?v=3.5"></script>
+<script src="core/backend.js?v=3.5"></script>
+<script src="core/auth.js?v=3.5"></script>
+<script src="core/ui.js?v=3.5"></script>
+<script src="core/session.js?v=3.5"></script>
+<script src="core/groups.js?v=3.5"></script>
+<script src="core/bank.js?v=3.5"></script>
+<script src="core/media.js?v=3.5"></script>
+<script src="core/security.js?v=3.5"></script>
+<script src="core/answers.js?v=3.5"></script>
+<script src="modules/test.js?v=3.5"></script>
+<script src="modules/poll.js?v=3.5"></script>
+<script src="modules/roleplay.js?v=3.5"></script>
+<script src="admin/editor.js?v=3.5"></script>
+<script src="admin/import.js?v=3.5"></script>
+<script src="admin/reports.js?v=3.5"></script>
+<script src="admin/scenarios.js?v=3.5"></script>
+<script src="admin/accounts.js?v=3.5"></script>
+<script src="boot.js?v=3.5"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->

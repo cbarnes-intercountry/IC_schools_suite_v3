@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.4.1
+# Classroom Exam App — v3.5
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,16 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.5 makes the silent failures loud, and adds a DOM harness so screens are run rather than
+described.** A student whose join is refused is told they are not in the room, instead of being
+shown a waiting screen. A dashboard that cannot read the class list says so, instead of looking
+like an empty room. A recap that cannot read the results says so, instead of looking like a
+test nobody sat. And a teacher signed in on the machine running the test now joins under a
+local id rather than their own account.
+
+The suite runs the whole lesson in node against a small stub DOM: room opens, students join,
+dashboard renders, test ends, recap renders — plus each of those three refusals.
 
 **v3.4.1 fixes a bug v3.3 introduced and v3.4 shipped.** A test session never recorded
 `meta.kind`, because the test was the student router's default path and nothing had to ask.
@@ -143,7 +153,7 @@ From the folder *above* this one:
 node "_test v3.0.js"
 ```
 
-600 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+632 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
 
 ## Running a role play

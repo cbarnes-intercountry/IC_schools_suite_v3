@@ -247,13 +247,22 @@ const Backend = {
     }
     return ()=>{};   // no database: nothing to listen to, but callers still get an unsubscribe
   },
-  subscribeParticipants(runId, cb){
+  /* The live class list.
+
+     `onError` is not optional politeness. A refused read here — an expired token, a teacher
+     record that is not active, a rules change — makes the callback never fire, and a dashboard
+     that has never been told anything looks exactly like a room nobody has joined. The teacher
+     then starts a test believing the class is not there, or ends one believing nobody sat it.
+     Whoever listens has to be able to tell those two apart. */
+  subscribeParticipants(runId, cb, onError){
     if(this.live){
       let ref=null, h=null, cancelled=false;
       this._ready().then(()=>{
         if(cancelled) return;
         ref=this._part(runId);
-        h=ref.on("value", snap=>{ const v=snap.val()||{}; cb({ participants:Object.keys(v).map(id=>Object.assign({studentId:id},v[id])) }); });
+        h=ref.on("value",
+          snap=>{ const v=snap.val()||{}; cb({ participants:Object.keys(v).map(id=>Object.assign({studentId:id},v[id])) }); },
+          err=>{ if(!cancelled && onError) onError(err); });
       });
       return ()=>{ cancelled=true; if(ref&&h) ref.off("value", h); };
     }
