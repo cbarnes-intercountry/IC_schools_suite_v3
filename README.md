@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.5
+# Classroom Exam App — v3.6
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,28 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.6 checks the security rules against the app, and fixes two things that found.** The rules
+now ship beside the code as `firebase-rules.json`, and the suite evaluates them against every
+read and write the app performs — the app and the rules were two halves of one design with
+nothing checking they agreed.
+
+They did not agree in two places. A teacher who is not an owner could never save their
+interface language, because v3.3 wrote it to `teachers/$uid`, which is owner-only on purpose;
+preferences now live in a `prefs/$uid` node a teacher may write, and a refused save says so
+instead of losing the choice quietly. And a student may only ever write the participant record
+keyed by their own sign-in id — so the app now checks that before telling a student they are in
+the room, rather than letting every write be refused in silence.
+
+**Deploy `firebase-rules.json` before relying on the language preference** — see
+`run_emulator.md`, which also has the two commands for checking the rules against the real
+Firebase emulator on a machine that can download it.
+
+**v3.5.1 fixes a dead end on the Home screen.** Starting a new activity warned that one was
+already open, but the Rejoin button only appeared for a run that was already *running* — so a
+room you opened and walked away from blocked you with no way back to it. The button now offers
+the same set the warning counts, and says "waiting room open since…" when that is what it is.
+A rejoined poll shows its lobby rather than a question nobody has been asked yet.
 
 **v3.5 makes the silent failures loud, and adds a DOM harness so screens are run rather than
 described.** A student whose join is refused is told they are not in the room, instead of being
@@ -153,7 +175,7 @@ From the folder *above* this one:
 node "_test v3.0.js"
 ```
 
-632 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+720 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
 
 ## Running a role play

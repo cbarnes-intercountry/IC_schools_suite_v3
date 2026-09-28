@@ -198,6 +198,21 @@ const Backend = {
     await this._ready();
     await db.ref("teachers/"+uid).update(rec); return {ok:true};
   },
+  /* A teacher's own settings.
+
+     NOT in teachers/$uid. That node is owner-only by design — it is what stops someone
+     promoting themselves — so v3.3's uiLang write was refused for every teacher who was not an
+     owner, silently. Preferences are not an account record, so they get their own node with
+     the only rule they need: you may write your own. */
+  async getPrefs(uid){
+    await this._ready();
+    const v=(await db.ref("prefs/"+uid).once("value")).val();
+    return v || {};
+  },
+  async setPrefs(uid, rec){
+    await this._ready();
+    await db.ref("prefs/"+uid).update(rec); return {ok:true};
+  },
   async countTeachers(){
     await this._ready();
     // Used once, to decide whether this is a first-run bootstrap. Reads the node shallowly.

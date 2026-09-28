@@ -95,7 +95,7 @@ async function teacherAcceptUser(user){
     badge.style.display="inline-block";
   }
   applyRoleVisibility();
-  applyTeacherUiLang(rec);   // their interface language follows them between devices
+  applyTeacherUiLang(user);  // their interface language follows them between devices
   return true;
 }
 

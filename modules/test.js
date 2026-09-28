@@ -590,6 +590,20 @@ async function studentJoin(){
             || localStorage.getItem("examFB_id_"+code)
             || ("s_"+uid(8));
   localStorage.setItem("examFB_id_"+code, STUDENT.id);
+
+  /* The rules allow a student to write ONE record: the one whose key is their own sign-in id.
+     So if the id above is not that, every write this student makes — joining, answering,
+     submitting — is refused, and the teacher's room stays empty with no explanation on either
+     screen. That is worth naming before it happens rather than after, because Firebase's own
+     message for it is "permission_denied" and says nothing about which id was wrong.
+
+     A signed-in teacher is the exception: the rules let them write any key, which is what makes
+     joining your own test from the machine running it work. */
+  if(!signedInTeacher && STUDENT.id !== Backend.uid()){
+    alert(t("test.identity_mismatch",
+      "This browser has not been given an identity the database will accept, so nothing you do would be recorded.\n\nReload the page and try the code again. If it keeps happening, tell your teacher: anonymous sign-in may be switched off."));
+    return;
+  }
   let session;
   try{ session=await Backend.getActiveSession(code); }catch(e){ alert(t("test.couldn_t_reach_session", "Couldn't reach the session: ")+e.message); return; }
   if(!session||!session.meta||!session.runId){ alert(t("test.session_found_check_code_teacher", "Session not found. Check the code with your teacher.")); return; }

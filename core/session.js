@@ -103,17 +103,27 @@ async function refreshOpenRunBanner(){
   box.style.display="none"; OPEN_RUN=null;
   const { open, stale } = await findOpenRuns();
   if(stale.length) closeStaleRuns(stale);
-  const active=open.filter(s=>s.status==="active");
-  if(!active.length) return;
-  const s=active[0];
+  /* The same set the guard counts, which until v3.5.1 it was not.
+
+     The button used to require status "active", while confirmNoOpenRun counted anything not
+     ended. Open a room, walk away before starting it, and the app told you a session was
+     already live and offered no way back to it — you could only end it by starting something
+     new. A waiting room is exactly the state you most want to return to: students may already
+     be sitting in it. */
+  if(!open.length) return;
+  const s=open[0];
   OPEN_RUN=s;
-  const act = activity(s.kind);
   const what = activityLabel(s.kind);
-  document.getElementById("home-rejoin-detail").textContent =
-    t("session.open_run_detail", "{what} {code} \u2014 {count} {students} joined, started {when}.",
-      { what:what, code:s.code, count:s.studentCount,
-        students: plural(s.studentCount, t("session.student", "student"), t("session.students", "students")),
-        when: fmtDate(s.runAt) });
+  const waiting = s.status!=="active";
+  document.getElementById("home-rejoin-detail").textContent = waiting
+    ? t("session.open_run_waiting", "{what} {code} \u2014 waiting room open since {when}, {count} {students} joined.",
+        { what:what, code:s.code, count:s.studentCount,
+          students: plural(s.studentCount, t("session.student", "student"), t("session.students", "students")),
+          when: fmtDate(s.runAt) })
+    : t("session.open_run_detail", "{what} {code} \u2014 {count} {students} joined, started {when}.",
+        { what:what, code:s.code, count:s.studentCount,
+          students: plural(s.studentCount, t("session.student", "student"), t("session.students", "students")),
+          when: fmtDate(s.runAt) });
   box.style.display="block";
 }
 
@@ -154,21 +164,25 @@ async function rejoinPollRun(s, run){
         questions: plural(POLL.questions.length, t("session.question", "question"), t("session.questions", "questions")) })
     + (POLL.school ? " \u00b7 "+POLL.school : "");
   document.getElementById("poll-join-code").textContent = POLL.sessionCode;
-  // Rejoin only ever offers an active run, so the stage goes straight back up.
-  document.getElementById("poll-lobby").style.display="none";
-  document.getElementById("poll-stage").style.display="block";
-  document.getElementById("poll-controls").style.display="block";
+  // A rejoined poll can be in its waiting room as well as running, so the screen follows the
+  // run rather than assuming the stage. (Before v3.5.1 the button only ever offered a running
+  // poll, and this line assumed it.)
+  const live = (run.meta||{}).status==="active";
+  document.getElementById("poll-lobby").style.display = live ? "none" : "block";
+  document.getElementById("poll-stage").style.display = live ? "block" : "none";
+  document.getElementById("poll-controls").style.display = live ? "block" : "none";
   showScreen("screen-poll-live");
   renderPollQR();
   pollWatchParticipants();
   pollStartTimerTick();
-  renderPollStage();
+  if(live) renderPollStage();
 }
 
 
-/* Guard in front of starting anything new. Unlike the Rejoin button this also counts a run
-   still in the waiting room, because students may be sitting in that lobby — walking away
-   without ending it would strand them on a screen that never advances. */
+/* Guard in front of starting anything new. Counts a run still in the waiting room, because
+   students may be sitting in that lobby — walking away without ending it would strand them on
+   a screen that never advances. The Rejoin button offers the same set: a warning about a run
+   you cannot get back to is a dead end, which is what it was until v3.5.1. */
 async function confirmNoOpenRun(what){
   const { open, stale } = await findOpenRuns();
   if(stale.length) closeStaleRuns(stale);

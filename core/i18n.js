@@ -111,15 +111,31 @@ function langIsTranslated(code){
 
 function rememberUiLang(code){
   try {
-    if (typeof TEACHER_USER !== "undefined" && TEACHER_USER && TEACHER_USER.uid) {
-      Backend.setTeacher(TEACHER_USER.uid, { uiLang: code }).catch(e=>console.warn("uiLang not saved", e));
-    }
-  } catch(e){ console.warn("uiLang not saved", e); }
+    if (typeof TEACHER_USER === "undefined" || !TEACHER_USER || !TEACHER_USER.uid) return;
+    Backend.setPrefs(TEACHER_USER.uid, { uiLang: code }).catch(e => uiLangNotSaved(e));
+  } catch(e){ uiLangNotSaved(e); }
+}
+
+/* The choice still applies to this visit; it just will not follow them. Said once, quietly,
+   under the picker — a teacher who switches to French and finds it English again tomorrow
+   deserves to know why, and this is the only place that knows. */
+function uiLangNotSaved(err){
+  console.warn("uiLang not saved", err);
+  const note = document.getElementById("ui-lang-note");
+  if (!note) return;
+  note.textContent = t("i18n.lang_not_saved",
+    "Language changed for this visit only \u2014 it could not be saved to your account. {why}",
+    { why: (err && err.message) || "" });
+  note.style.display = "block";
 }
 
 /* Called once a teacher is recognised, so their saved choice arrives with them. */
-function applyTeacherUiLang(rec){
-  const code = rec && rec.uiLang;
+async function applyTeacherUiLang(user){
+  const uid = user && user.uid;
+  if (!uid) return;
+  let prefs = {};
+  try { prefs = await Backend.getPrefs(uid); } catch(e){ console.warn("prefs unavailable", e); return; }
+  const code = prefs && prefs.uiLang;
   if (code && LANG[code] && code !== UI_LANG) setUiLang(code, { remember:false });
 }
 
