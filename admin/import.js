@@ -217,3 +217,38 @@ function parseScenarioRows(rows){
   });
   return { scenarios:scenarios, errors:errors, lang:lang };
 }
+
+
+/* One row per term: a Theme, the Term, then up to four forbidden words. Accepts Forbidden1..4
+   or Forbidden/Forbidden2../Forbidden4, because a teacher copying the header row by hand will
+   write one or the other and neither is wrong.
+
+   A blank Set inherits the row above, which is what an author who filled the column in once per
+   block expects — and is how the sheet reads to a person. A pack is ONE AREA and the sets are
+   what a lesson picks, so a term with no set can be played only as part of the whole area. */
+function parseTermRows(rows){
+  const terms=[], errors=[], seen={};
+  const get=(row,name)=>{ const key=Object.keys(row).find(k=>k.trim().toLowerCase()===name.toLowerCase()); return key?String(row[key]).trim():""; };
+  const lang=readSheetLang(rows, get, errors);
+  let theme="";
+  (rows||[]).forEach((row,i)=>{
+    const rowNum=i+2;
+    const word=get(row,"Term");
+    // "Set" is the word on the screen; "Theme" was v3.7's, and packs written then still import.
+    const here=get(row,"Set") || get(row,"Theme");
+    const forbidden=["Forbidden1","Forbidden2","Forbidden3","Forbidden4"].map((n,j)=>
+      get(row,n) || get(row, j===0 ? "Forbidden" : "Forbidden"+(j+1))).filter(Boolean);
+    if(here) theme=here;
+    if(!word && !forbidden.length) return;                       // a spacer row
+    if(!word){ errors.push(t("import.row_no_term", "Row {row}: forbidden words with no term.", {row:rowNum})); return; }
+    /* Within a SET, not within the area: an area holds several sets, a lesson plays one, and a
+       word like "forecast" belongs in more than one of them. */
+    const key=theme.toLowerCase()+"\u0000"+word.toLowerCase();
+    if(seen[key]){ errors.push(t("import.row_duplicate_term", "Row {row}: \u201c{term}\u201d is already in this set.", {row:rowNum, term:word})); return; }
+    seen[key]=true;
+    if(forbidden.length>4) errors.push(t("import.row_only_four_forbidden", "Row {row}: only the first four forbidden words are used.", {row:rowNum}));
+    if(!theme) errors.push(t("import.row_no_set", "Row {row}: \u201c{term}\u201d has no set, so it can only be played as part of the whole area.", {row:rowNum, term:word}));
+    terms.push({ id:"tm_"+uid(6), term:word, forbidden:forbidden.slice(0,4), theme:theme, lang:lang });
+  });
+  return { terms:terms, errors:errors, lang:lang };
+}

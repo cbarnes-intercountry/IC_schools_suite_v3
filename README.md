@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.6
+# Classroom Exam App — v3.8
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,64 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.8 files the words by area and set, and makes them editable.** A pack is now **one area** —
+Business language, Jobs and sectors, General English, French-speaker traps — and the **sets**
+inside it are what a lesson picks: meetings, insurance, weather and seasons. Choosing an area
+in the launcher opens its list of sets; only the chosen set is sent to the phones.
+
+The editor works at the set's own level, because that is the level a teacher works at: **rename
+a set once and every term in it follows**, move a term to another set (or to one that does not
+exist yet) from a dropdown, add a term into a set rather than at the bottom of the file, and
+remove a set with its terms after being told how many that is. The list groups by set name
+rather than by where rows happen to sit, so a term that has just been moved joins its set at
+once.
+
+One rule changed because the real packs disagreed with it. A **duplicate is now a duplicate
+within a set**, not within the area: an area holds several sets, a lesson plays one, and
+*forecast* belongs in both Money and numbers and Reports and trends. The app still says when a
+word appears in two sets — a class playing both would meet it twice — but no longer calls it an
+error.
+
+**Four packs ship with it**: Business language (168 terms, 14 sets), Jobs and sectors (100, 8),
+General English (168, 14), French-speaker traps (48, 4) — **484 terms**, every one with four
+forbidden words, all run through the app's own importer and validator before shipping.
+
+**v3.7 adds the first game: Describe It.** One phone holds a term and two words the describer
+may not say; their partner has to say the term. Pairs, on a clock, then swap roles — the guesser
+has just spent ninety seconds hearing the vocabulary and now has to produce it.
+
+It is the first activity whose whole claim is the one thing a phone buys that paper cannot: a
+screen only one person can see. The describer taps **Got it** or **Pass**; the count belongs to
+the pair, lives for one round and is never marked — a judgement about a word, not about a
+person, which is what keeps it inside the rule that no student ever scores another. Only the
+describer writes anything, so a guesser could not put a number on the board if they tried.
+
+An odd number of students is handled rather than left to the teacher: one pair plays as a three
+with two guessing, so the number of describers still equals the number of pairs. Each pair gets
+its own order of terms, computed on the phone rather than written into the run, so neighbouring
+pairs are not shouting about the same word at the same moment.
+
+**Themes and difficulty.** A pack is a set of themes — claims, banking, working life — and a
+lesson usually wants one of them, so a theme can be played on its own; only that theme's terms
+are sent to the phones. Every term carries **four** forbidden words, written most obvious first,
+and the teacher holds the class to the first **two, three or four** of them. One pack therefore
+covers a warm-up and a B2 class without being written twice, and because it is always the first
+*n*, turning the difficulty down removes the obscure constraints rather than the ones that make
+the item work — you can read the sheet and see what a class will meet at each setting. The
+setting can be turned up between rounds, which is when a teacher usually finds out it was wrong;
+it takes effect on the next round so nobody's clock changes under them.
+
+Word packs are a new bank kind, authored in Excel like everything else — **Admin → Word Pack
+Creator**. `describe-it-starter-pack-en.xlsx` ships with **50 B1–B2 terms in five themes**
+(claims and cover, selling and advising, banking and finance, working life, marketing and the
+customer) so the game works the day it arrives; the Terms sheet is in import template **v6**.
+The app refuses a forbidden word that contains the term, or the reverse, because that leaves the
+describer nothing legal to say and only shows up in front of a class; it also flags a term
+carrying fewer than four words, or none at all, since both are invisible until the wrong moment.
+
+What it cannot do, and says so on the setup screen: the app cannot hear the room, so it cannot
+enforce the forbidden words. That is the guesser's job, and the screen asks them to do it.
 
 **v3.6 checks the security rules against the app, and fixes two things that found.** The rules
 now ship beside the code as `firebase-rules.json`, and the suite evaluates them against every

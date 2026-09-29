@@ -29,7 +29,8 @@ async function loadQuizList(){
     // else quiz", so any third kind silently joined the quizzes.
     [["quiz","quiz-library-select",t("editor.select_saved_quiz", "\u2014 select a saved quiz \u2014")],
      ["poll","poll-library-select",t("editor.select_saved_poll", "\u2014 select a saved poll \u2014")],
-     ["roleplay","rp-library-select",t("editor.select_saved_role_play", "\u2014 select a saved role play \u2014")]].forEach(([kind,id,placeholder])=>{
+     ["roleplay","rp-library-select",t("editor.select_saved_role_play", "\u2014 select a saved role play \u2014")],
+     ["describeit","di-library-select",t("editor.select_saved_pack", "\u2014 select a saved word pack \u2014")]].forEach(([kind,id,placeholder])=>{
       const sel=document.getElementById(id);
       if(!sel) return;
       sel.innerHTML='<option value="">'+escapeHtml(placeholder)+'</option>';
@@ -38,7 +39,9 @@ async function loadQuizList(){
         const opt=document.createElement("option"); opt.value=q.key;
         const unit = (kind==="roleplay")
           ? plural(q.count, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios"))
-          : plural(q.count, t("poll.question", "question"), t("poll.questions", "questions"));
+          : (kind==="describeit")
+            ? plural(q.count, t("di.term", "term"), t("di.terms", "terms"))
+            : plural(q.count, t("poll.question", "question"), t("poll.questions", "questions"));
         opt.textContent = q.name + (sc?" \u00b7 "+sc:"") + " (" + q.count + " " + unit + ")";
         sel.appendChild(opt);
       });

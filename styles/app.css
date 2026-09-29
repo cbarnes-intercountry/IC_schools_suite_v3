@@ -492,3 +492,76 @@
   font-size:.92rem; line-height:1.4; font-weight:600;
 }
 
+
+/* ===== Describe It ===================================================== */
+
+/* The clock. Big enough to read at a glance while talking, and it changes colour rather than
+   only counting down — the last ten seconds are the point of the game. */
+.badge#di-card-role{ white-space:nowrap; }
+.di-clock{ font-family:"Space Mono",monospace; font-weight:700; font-size:1.4rem;
+           min-width:3.2em; text-align:center; }
+.di-clock.low{ color:var(--danger); }
+
+.di-pairs{ display:flex; flex-direction:column; gap:6px; }
+.di-pair{ display:flex; align-items:center; gap:12px; padding:10px 12px;
+          border:2px solid var(--ink); border-radius:12px; }
+.di-pair-top{ background:var(--success-soft); }
+.di-pair-no{ font-family:"Space Mono",monospace; font-weight:700; min-width:1.6em; text-align:center; }
+.di-pair-who{ flex:1; min-width:0; }
+.di-pair-score{ font-size:1.35rem; font-weight:700; }
+
+.di-proj-clock{ font-family:"Space Mono",monospace; font-weight:700; font-size:4rem; margin:8px 0 18px; }
+.di-proj-pair{ font-size:1.6rem; padding:4px 0; }
+.di-proj-no{ font-family:"Space Mono",monospace; opacity:.6; margin-inline-end:.5em; }
+
+/* The secret screen. The term is the largest thing on the phone because it is read in a glance
+   between looking at the person you are talking to. */
+.di-termcard{ padding-block:26px; }
+.di-label{ font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; opacity:.65; }
+.di-term{ font-family:"Bricolage Grotesque",sans-serif; font-weight:800;
+          font-size:clamp(2rem,11vw,3.4rem); line-height:1.1; overflow-wrap:anywhere; }
+.di-forbidden{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:8px; }
+.di-forbid{ border:2px solid var(--danger); color:var(--danger); border-radius:999px;
+            padding:5px 14px; font-weight:700; text-decoration:line-through; }
+
+/* Thumb-sized, and far enough apart that Got it is not tapped for Pass mid-sentence. */
+.di-actions{ gap:12px; }
+.di-actions button{ flex:1; min-height:64px; font-size:1.1rem; }
+.di-btn-got{ flex:2 !important; }
+
+/* Two lines per term: the word and what happens to it, then the four constraints beneath.
+   Seven fields on one line is how each of them ends up too narrow to read what it holds. */
+.di-term-list{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+.di-termrow{ display:flex; flex-direction:column; gap:4px;
+             padding:8px; border:2px solid transparent; border-radius:12px; }
+.di-termrow:hover{ border-color:var(--line, #D0D5E2); }
+.di-termrow input, .di-termrow select{ margin:0; }
+.di-termrow-top{ display:flex; align-items:center; gap:6px; }
+.di-termrow-forbid{ display:flex; gap:6px; padding-inline-start:2.2rem; }
+.di-term-in{ flex:1; min-width:0; font-weight:700; }
+.di-forbid-in{ flex:1; min-width:0; font-size:.9rem; }
+@media (max-width:640px){
+  .di-termrow-forbid{ flex-wrap:wrap; padding-inline-start:0; }
+  .di-forbid-in{ flex:1 0 46%; }
+}
+
+/* A pack reads as a set of themes, not a list of forty-five words. */
+.di-theme-head{ font-size:.72rem; letter-spacing:.09em; text-transform:uppercase;
+                font-weight:800; opacity:.6; margin:14px 0 4px; }
+.di-theme-head:first-child{ margin-top:4px; }
+.di-theme-in{ flex:1; min-width:0; }
+/* A term with fewer than four is playable but quietly becomes the easy one at the top setting. */
+.di-termrow-thin .di-term-in{ border-color:var(--warn, #b8860b); }
+@media (max-width:640px){
+  .di-theme-in{ flex:1 0 100%; }
+  .di-forbid-in{ flex:1 0 46%; }
+}
+
+/* The set heading is editable in place: renaming a set is a thing a teacher does, and doing it
+   twenty rows at a time is how half a set ends up under the old name. */
+.di-theme-head{ display:flex; align-items:center; gap:8px; }
+.di-setname-in{ flex:1; min-width:0; margin:0; font-weight:800; letter-spacing:.04em;
+                text-transform:none; border-style:dashed; }
+.di-set-count{ font-family:"Space Mono",monospace; opacity:.6; }
+.di-move-in{ flex:0 0 auto; max-width:9rem; margin:0; }
+@media (max-width:640px){ .di-move-in{ flex:1 0 100%; max-width:none; } }

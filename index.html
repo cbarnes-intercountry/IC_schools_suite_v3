@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.6">
+<link rel="stylesheet" href="styles/app.css?v=3.8">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -93,6 +93,16 @@
           <button data-i18n="admin.delete" class="btn-outline" onclick="deleteScenarioSet()" data-owner-only>Delete</button>
         </div>
         <button data-i18n="admin.create_new_role_play" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newScenarioSet()">+ Create a New Role Play</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2 data-i18n="admin.word_pack_creator">Word Sets &middot; Describe It</h2>
+        <p data-i18n="admin.terms_for_describe_it" class="sub">Words for Describe It, filed by area &mdash; Business language, General English &mdash; and inside each area by set: meetings, weather and seasons, insurance. A lesson plays one set.</p>
+        <select id="di-library-select"><option data-i18n="admin.opt.select_saved_area" value="">&mdash; select a saved area &mdash;</option></select>
+        <div class="btn-row">
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadTermSet()">Load / Edit</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteTermSet()" data-owner-only>Delete</button>
+        </div>
+        <button data-i18n="admin.create_new_area" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newTermSet()">+ Create a New Area</button>
       </div>
       <div class="card" style="margin-top:16px;" data-owner-only>
         <h2 data-i18n="admin.image_search">Image Search</h2>
@@ -268,6 +278,7 @@
         <button data-i18n="teacher_login.launch_test" class="btn-primary" onclick="teacherCreateSession()">Launch Test</button>
         <button data-i18n="teacher_login.new_poll" class="btn-secondary" onclick="pollCreateSession()">New Poll</button>
         <button data-i18n="teacher_login.start_role_play" class="btn-secondary" onclick="rpCreateSession()">Start a Role Play</button>
+        <button data-i18n="teacher_login.start_describe_it" class="btn-secondary" onclick="diCreateSession()">Start Describe It</button>
         <button data-i18n="teacher_login.test_archive" class="btn-outline" onclick="openHistory()">Test Archive</button>
       </div>
     </div>
@@ -802,28 +813,30 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.6"></script>
-<script src="lang/fr.js?v=3.6"></script>
-<script src="core/i18n.js?v=3.6"></script>
-<script src="core/registry.js?v=3.6"></script>
-<script src="core/backend.js?v=3.6"></script>
-<script src="core/auth.js?v=3.6"></script>
-<script src="core/ui.js?v=3.6"></script>
-<script src="core/session.js?v=3.6"></script>
-<script src="core/groups.js?v=3.6"></script>
-<script src="core/bank.js?v=3.6"></script>
-<script src="core/media.js?v=3.6"></script>
-<script src="core/security.js?v=3.6"></script>
-<script src="core/answers.js?v=3.6"></script>
-<script src="modules/test.js?v=3.6"></script>
-<script src="modules/poll.js?v=3.6"></script>
-<script src="modules/roleplay.js?v=3.6"></script>
-<script src="admin/editor.js?v=3.6"></script>
-<script src="admin/import.js?v=3.6"></script>
-<script src="admin/reports.js?v=3.6"></script>
-<script src="admin/scenarios.js?v=3.6"></script>
-<script src="admin/accounts.js?v=3.6"></script>
-<script src="boot.js?v=3.6"></script>
+<script src="lang/en.js?v=3.8"></script>
+<script src="lang/fr.js?v=3.8"></script>
+<script src="core/i18n.js?v=3.8"></script>
+<script src="core/registry.js?v=3.8"></script>
+<script src="core/backend.js?v=3.8"></script>
+<script src="core/auth.js?v=3.8"></script>
+<script src="core/ui.js?v=3.8"></script>
+<script src="core/session.js?v=3.8"></script>
+<script src="core/groups.js?v=3.8"></script>
+<script src="core/bank.js?v=3.8"></script>
+<script src="core/media.js?v=3.8"></script>
+<script src="core/security.js?v=3.8"></script>
+<script src="core/answers.js?v=3.8"></script>
+<script src="modules/test.js?v=3.8"></script>
+<script src="modules/poll.js?v=3.8"></script>
+<script src="modules/roleplay.js?v=3.8"></script>
+<script src="modules/describeit.js?v=3.8"></script>
+<script src="admin/editor.js?v=3.8"></script>
+<script src="admin/import.js?v=3.8"></script>
+<script src="admin/reports.js?v=3.8"></script>
+<script src="admin/scenarios.js?v=3.8"></script>
+<script src="admin/terms.js?v=3.8"></script>
+<script src="admin/accounts.js?v=3.8"></script>
+<script src="boot.js?v=3.8"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -964,6 +977,205 @@
   <div class="card center">
     <h1 data-i18n="rp_done.s_end">That&rsquo;s the end</h1>
     <p data-i18n="rp_done.thanks_nothing_was_marked_nothing_was" class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
+  </div>
+</div>
+
+<!-- DESCRIBE IT — teacher setup -->
+<div class="screen" id="screen-di-setup">
+  <div class="top-nav wide">
+    <span data-i18n="di_setup.describe_it_setup" class="badge">Describe It &middot; Setup</span>
+    <span id="di-setup-code" class="badge live" style="display:none;"></span>
+    <a data-i18n="rp_setup.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
+  </div>
+  <div class="card">
+    <h1 data-i18n="di_setup.start_describe_it">Start Describe It</h1>
+    <p data-i18n="di_setup.blurb" class="sub">Pairs. One phone shows a term and the words you may not use; your partner has to say the term. Students join with the code; the app deals the pairs.</p>
+    <label data-i18n="rp_setup.school">School</label>
+    <select id="di-school-select" onchange="filterDescribeItSets()"><option data-i18n="poll.select_school" value="">&mdash; select a school &mdash;</option></select>
+    <label data-i18n="di_setup.area" style="margin-top:14px;">Area</label>
+    <select id="di-set-select" onchange="diSetPicked()"><option data-i18n="poll.select_school_first" value="">&mdash; select a school first &mdash;</option></select>
+    <div id="di-theme-row" style="display:none;">
+      <label data-i18n="di_setup.set" style="margin-top:14px;">Set</label>
+      <select id="di-theme-select" onchange="diDescribePack()"></select>
+    </div>
+    <label data-i18n="di_setup.difficulty" style="margin-top:14px;">Difficulty</label>
+    <select id="di-difficulty-select" onchange="diDescribePack()"></select>
+    <small data-i18n="di_setup.difficulty_hint" class="hint">Every term is written with four forbidden words. Show two for a warm-up, four to make them work for it &mdash; and you can turn it up between rounds.</small>
+    <label data-i18n="di_setup.round_length" style="margin-top:14px;">Round length</label>
+    <select id="di-seconds-select"></select>
+    <p id="di-summary" class="sub" style="margin-top:10px;"></p>
+    <button data-i18n="rp_setup.open_room" class="btn-primary" id="di-start-btn" style="width:100%;margin-top:14px;" disabled onclick="diStartSession()">Open the room</button>
+    <p data-i18n="di_setup.honour_note" class="sub" style="font-size:.78rem;margin-top:10px;">The forbidden words are on the describer&rsquo;s screen only &mdash; the app cannot hear the room, so it cannot enforce them. Ask the guesser to call it out.</p>
+  </div>
+</div>
+
+<!-- DESCRIBE IT — teacher live -->
+<div class="screen" id="screen-di-live">
+  <div class="top-nav wide">
+    <span class="badge">Describe It &middot; <span id="di-live-code"></span></span>
+    <span class="nav-r">
+      <a data-i18n="rp_live.project" class="linklike" onclick="diToggleProject()">Project</a>
+      <a data-i18n="rp_live.leave" class="linklike" onclick="diLeave()">Leave</a>
+      <a data-i18n="rp_live.end" class="linklike" onclick="diEnd()">End</a>
+    </span>
+  </div>
+
+  <div id="di-lobby">
+    <div class="card center">
+      <h1 id="di-title">Describe It</h1>
+      <p data-i18n="di_live.students_join_below" class="sub">Students join at the code below. Deal the pairs when everyone is in.</p>
+      <div class="joincode" id="di-join-code"></div>
+      <div id="di-qr-code" style="margin:14px auto;"></div>
+      <p class="sub mono" id="di-join-url" style="font-size:.75rem;"></p>
+      <p class="sub" id="di-count">0 joined</p>
+      <p class="feed-warning" id="di-feed-warning" style="display:none;"></p>
+      <div id="di-roster" class="chips"></div>
+      <p class="sub" id="di-odd-note" style="display:none;margin-top:10px;"></p>
+      <button data-i18n="di_live.deal_pairs" class="btn-primary" id="di-deal-btn" style="width:100%;margin-top:16px;" disabled onclick="diDeal()">Deal the pairs</button>
+    </div>
+  </div>
+
+  <div id="di-stage" style="display:none;">
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="di_live.the_round" style="flex:1;">The round</h2>
+        <span class="badge" id="di-round">Round 1</span>
+        <span class="badge" id="di-live-theme" style="display:none;"></span>
+        <span class="di-clock" id="di-clock">&mdash;</span>
+      </div>
+      <div class="row" style="align-items:center;gap:10px;margin-top:10px;">
+        <label data-i18n="di_live.difficulty" for="di-live-difficulty" style="margin:0;flex:0 0 auto;">Difficulty</label>
+        <select id="di-live-difficulty" onchange="diSetDifficulty()" style="flex:1;"></select>
+      </div>
+      <small data-i18n="di_live.difficulty_hint" class="hint">Takes effect on the next round, so nobody&rsquo;s clock changes under them.</small>
+      <button class="btn-primary" id="di-start-round-btn" style="width:100%;margin-top:12px;" onclick="diStartRound()">Start the round</button>
+      <div class="btn-row" style="margin-top:12px;">
+        <button data-i18n="di_live.swap_roles" class="btn-outline" onclick="diSwapRoles()">Swap roles</button>
+        <button data-i18n="di_live.new_pairs" class="btn-outline" onclick="diNewPairs()">New pairs</button>
+      </div>
+      <p data-i18n="di_live.swap_note" class="sub" style="margin-top:8px;font-size:.8rem;">
+        Swap roles keeps the pairs and hands the words to the other one &mdash; the second round is where the gain is, because the guesser has just spent a minute hearing the vocabulary. Both start a fresh round and the counts go back to zero.</p>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h2 data-i18n="di_live.pairs">Pairs</h2>
+      <div id="di-pairs" class="di-pairs"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DESCRIBE IT — projector -->
+<div id="di-projection" class="rp-projection" style="display:none;" onclick="diToggleProject()">
+  <div class="rp-proj-inner">
+    <h1 id="di-proj-title"></h1>
+    <div class="di-proj-clock" id="di-proj-clock"></div>
+    <div id="di-proj-pairs" class="rp-proj-groups"></div>
+    <p data-i18n="rp_live.tap_anywhere_close" class="rp-proj-hint">Tap anywhere to close</p>
+  </div>
+</div>
+
+<!-- DESCRIBE IT — the student's phone -->
+<div class="screen" id="screen-di-card">
+  <div class="top-nav">
+    <span data-i18n="di.describe_it" class="badge">Describe It</span>
+    <span id="di-card-name" class="badge" style="display:none;"></span>
+  </div>
+
+  <div class="card center" id="di-card-waiting">
+    <h1 data-i18n="rp_card.re">You&rsquo;re in</h1>
+    <p data-i18n="di_card.wait_for_pairs" class="sub">Wait for your teacher to deal the pairs.</p>
+  </div>
+
+  <div id="di-card-main" style="display:none;">
+    <div class="card">
+      <div class="row" style="align-items:center;gap:10px;">
+        <span class="badge live" id="di-card-role"></span>
+        <span class="badge" id="di-card-pair"></span>
+        <span class="di-clock" id="di-card-clock" style="margin-inline-start:auto;"></span>
+      </div>
+      <p class="sub" id="di-card-partner" style="margin-top:8px;"></p>
+      <p class="feed-warning" id="di-card-warning" style="display:none;"></p>
+    </div>
+
+    <div id="di-describer-view" style="display:none;">
+      <div class="card center" id="di-describer-ready" style="margin-top:14px;">
+        <h2 data-i18n="di_card.you_have_the_words">You have the words</h2>
+        <p data-i18n="di_card.dont_show" class="sub">Don&rsquo;t show this screen to your partner. The first term appears when your teacher starts the round.</p>
+      </div>
+
+      <div id="di-describer-play" style="display:none;">
+        <div class="card center di-termcard" style="margin-top:14px;">
+          <div data-i18n="di_card.describe_this" class="di-label">Describe this</div>
+          <div class="di-term" id="di-term"></div>
+          <div data-i18n="di_card.without_saying" class="di-label" style="margin-top:16px;">Without saying</div>
+          <div class="di-forbidden" id="di-forbidden"></div>
+        </div>
+        <div class="btn-row di-actions" style="margin-top:14px;">
+          <button data-i18n="di_card.pass" class="btn-outline di-btn-pass" onclick="diPass()">Pass</button>
+          <button data-i18n="di_card.got_it" class="btn-primary di-btn-got" onclick="diGotIt()">Got it</button>
+        </div>
+        <p class="sub center" style="margin-top:10px;"><span data-i18n="di_card.so_far">So far</span> <b class="mono" id="di-hits">0</b></p>
+      </div>
+
+      <div class="card center" id="di-describer-over" style="display:none;margin-top:14px;">
+        <h2 data-i18n="di_card.time">Time</h2>
+        <div class="di-term mono" id="di-final-score">0</div>
+        <p class="sub" id="di-final-line"></p>
+      </div>
+    </div>
+
+    <div id="di-guesser-view" style="display:none;">
+      <div class="card center" style="margin-top:14px;">
+        <h2 data-i18n="di_card.you_guess">You guess</h2>
+        <p class="sub" id="di-guesser-line"></p>
+        <p data-i18n="di_card.guesser_hint" class="sub" style="margin-top:10px;font-size:.82rem;">Put your phone face down. If they say one of the forbidden words, say so &mdash; the app cannot hear you.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DESCRIBE IT — student, finished -->
+<div class="screen" id="screen-di-done">
+  <div class="card center">
+    <h1 data-i18n="rp_done.s_end">That&rsquo;s the end</h1>
+    <p data-i18n="di_done.nothing_kept" class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
+  </div>
+</div>
+
+<!-- DESCRIBE IT — the word pack editor -->
+<div class="screen" id="screen-di-editor">
+  <div class="top-nav wide">
+    <span data-i18n="di_editor.admin_word_sets" class="badge">Admin &middot; Word Sets</span>
+    <a data-i18n="rp_editor.back" class="linklike" onclick="leaveTermEditor()">&larr; Back</a>
+  </div>
+  <div class="duo">
+    <div class="card">
+      <h2 data-i18n="di_editor.this_area">This area</h2>
+      <label data-i18n="rp_editor.name">Name</label>
+      <input data-i18n-ph="di_editor.ph.area_name" type="text" id="di-set-name" placeholder="e.g. Business language">
+      <label data-i18n="di_editor.language" style="margin-top:12px;">Language</label>
+      <select id="di-set-lang" onchange="setTermsLang()">
+        <option data-i18n="di_editor.opt.english" value="en">English</option>
+        <option data-i18n="di_editor.opt.french" value="fr">Français</option>
+      </select>
+      <label data-i18n="rp_editor.schools" style="margin-top:12px;">Schools</label>
+      <div id="di-school-checks" class="checks"></div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button data-i18n="di_editor.add_set" class="btn-outline" onclick="addTermSet()">+ Set</button>
+        <button data-i18n="rp_editor.import_excel" class="btn-outline" onclick="importTermsFromExcel()">Import Excel</button>
+      </div>
+      <button data-i18n="di_editor.save_area" class="btn-primary" style="width:100%;margin-top:14px;" onclick="saveTermSet()">Save Area</button>
+      <p data-i18n="di_editor.nothing_kept_until_save" class="sub" style="font-size:.78rem;margin-top:8px;">Nothing is kept until you press Save.</p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="di_editor.sets" style="flex:1;">Sets</h2>
+        <span class="badge" id="di-term-count"></span>
+      </div>
+      <p data-i18n="di_editor.terms_hint" class="sub">The term, then four words the describer may not say &mdash; most obvious first. The teacher picks how many of the four a class is held to, so turning the difficulty down removes the last ones rather than the ones that make the item work. Rename a set once and every term in it follows; the dropdown moves a term to another set.</p>
+      <p id="di-theme-summary" class="sub" style="font-size:.82rem;"></p>
+      <div id="di-term-list" class="di-term-list"></div>
+    </div>
   </div>
 </div>
 

@@ -216,3 +216,85 @@ function showStudentTeam(meta){
     '<div style="font-size:1.6rem;font-weight:800;">'+escapeHtml(team)+'</div>'+
     '<small class="hint">'+t("groups.answer_own_phone_team_u2019s_score", 'You answer on your own phone. Your team\u2019s score is the average of everyone in it.')+'</small></div>';
 }
+
+
+/* ============ PAIRS ============
+   Two people, different information. Role play deals 2–3 parts from a scenario; Describe It
+   deals exactly two, and the odd student out joins a pair as a second guesser rather than being
+   given nothing to do.
+
+   Kept here rather than in either module because both need it and modules never reach into each
+   other. Pure: no DOM, no database, so the test suite can run it directly.
+
+   Shape matches the role play's: studentId -> { g, r, n }. r=0 describes, r=1 guesses. */
+function pairUp(participants, seedShuffle){
+  const named={};
+  (participants||[]).forEach(p=>{ named[p.studentId]=displayName(p.surname,p.firstName); });
+  const ids=(seedShuffle||shuffle)((participants||[]).map(p=>p.studentId));
+  const out={};
+  const pairs=Math.floor(ids.length/2);
+  for(let g=1; g<=pairs; g++){
+    const a=ids[(g-1)*2], b=ids[(g-1)*2+1];
+    out[a]={ g:g, r:0, n:named[a]||"" };
+    out[b]={ g:g, r:1, n:named[b]||"" };
+  }
+  /* An odd student joins pair 1 as a second guesser. Two guessers is a slightly worse game than
+     one, and a far better one than standing about; it also keeps the number of describers equal
+     to the number of pairs, which is what the scoring counts. */
+  if(ids.length % 2 === 1 && pairs >= 1){
+    const spare=ids[ids.length-1];
+    out[spare]={ g:1, r:1, n:named[spare]||"" };
+  }
+  return out;
+}
+
+/* Swap who describes and who guesses, within the same pair. The second round is where the gain
+   is: the guesser has just heard the vocabulary used and now has to produce it. A pair holding a
+   third member rotates rather than swaps, so nobody describes twice running. */
+function swapPairRoles(pairs){
+  const out={};
+  const members={};
+  Object.keys(pairs||{}).forEach(id=>{ (members[pairs[id].g]=members[pairs[id].g]||[]).push(id); });
+  Object.keys(members).forEach(key=>{
+    const g=Number(key);
+    // Sorted so the rotation is the same order every round, whatever order the keys arrive in.
+    const ids=members[key].slice().sort();
+    let cur=ids.findIndex(id=>pairs[id].r===0);
+    if(cur<0) cur=0;
+    const nextDescriber=ids[(cur+1)%ids.length];
+    ids.forEach(id=>{ out[id]={ g:g, r:(id===nextDescriber?0:1), n:pairs[id].n||"" }; });
+  });
+  return out;
+}
+
+function pairNumbers(pairs){
+  const seen={};
+  Object.keys(pairs||{}).forEach(id=>{ seen[pairs[id].g]=true; });
+  return Object.keys(seen).map(Number).sort((a,b)=>a-b);
+}
+
+function pairMembers(pairs, g){
+  return Object.keys(pairs||{})
+    .filter(id=>pairs[id].g===g)
+    .sort((a,b)=>pairs[a].r-pairs[b].r)
+    .map(id=>({ studentId:id, r:pairs[id].r, name:pairs[id].n||"?" }));
+}
+
+/* Which terms this pair sees, and in what order.
+
+   Computed on each phone from the pair number and the round rather than written into the run:
+   the alternative is the teacher's browser writing a different list for every pair on every
+   round, which is a dozen writes where none are needed. Deterministic, so the describer and the
+   teacher's screen agree about term 4 without either asking the other.
+
+   Neighbouring pairs get different orders, which matters in a room: twelve pairs all shouting
+   about "excess" at the same moment is a much easier game than it should be. */
+function termOrderFor(count, pairNo, round){
+  const n=Math.max(0, count|0);
+  const idx=[]; for(let i=0;i<n;i++) idx.push(i);
+  // A small deterministic generator. Not cryptography — it only has to differ per pair.
+  let s=(pairNo*7919 + round*104729 + 12345) >>> 0;
+  const next=()=>{ s=(s*1664525 + 1013904223)>>>0; return s/4294967296; };
+  for(let i=n-1;i>0;i--){ const j=Math.floor(next()*(i+1)); const tmp=idx[i]; idx[i]=idx[j]; idx[j]=tmp; }
+  return idx;
+}
