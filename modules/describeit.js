@@ -25,12 +25,12 @@ let DI = { sessionCode:null, runId:null, terms:[], name:"", sets:[], packLang:"e
            participants:[], unsub:null, meta:null, tick:null, projecting:false };
 
 let DSTU = { runId:null, meta:null, terms:[], unsub:null, wakeLock:null,
-             pos:0, hits:0, fouls:0, round:0, tick:null, pendingWrite:null, lastWrite:0,
-             buzzedAt:0 };
+             pos:0, hits:0, round:0, tick:null, pendingWrite:null, lastWrite:0,
+             buzzedAt:0, phase:null };
 
 /* How long a round runs. Sixty seconds is the classic and it is too short for a class working
    in a second language — they spend it deciding how to start. Ninety is the default here. */
-const DI_ROUND_SECONDS = [60, 90, 120, 180];
+const DI_ROUND_SECONDS = [30, 60, 90];
 const DI_DEFAULT_SECONDS = 90;
 
 /* How hard the game is: how many of a term's forbidden words the describer is actually held to.
@@ -60,12 +60,7 @@ const DI_MAX_SETS = 3;
 
 /* ---------- pure helpers (no DOM, no database) ---------- */
 
-function diTermAt(terms, order, pos){
-  const list=terms||[];
-  if(!list.length) return null;
-  const idx=(order&&order.length) ? order[pos % order.length] : (pos % list.length);
-  return list[idx] || null;
-}
+function diTermAt(terms, order, pos){ return cardAt(terms, order, pos); }
 
 /* What the describer may not say, at the difficulty the teacher chose. A term authored with
    fewer than four is legal — it is simply an easier item at the higher settings — so this never
@@ -88,73 +83,28 @@ function diDifficulty(meta){
 
    `theme` is still the field name in the data, because packs are already saved with it. The word
    on the screen is "set". */
-function diThemes(terms){
-  const seen=[];
-  (terms||[]).forEach(tm=>{
-    const th=String((tm && tm.theme) || "").trim();
-    if(th && seen.indexOf(th)<0) seen.push(th);
-  });
-  return seen;
-}
+function diThemes(terms){ return setsIn(terms); }
 
 /* What this run is playing, as a line of text. A run made before v3.9 carries a single `theme`
    rather than a list of sets, so both shapes are read — a game started last term does not get
    rewritten, the same reason runKind() exists. */
-function diSetNames(meta){
-  const sets=(meta && meta.sets) || null;
-  if(Array.isArray(sets) && sets.length) return sets.map(x=>x.label || x.set || x.area).join(" + ");
-  return (meta && meta.theme) || t("di.whole_area", "The whole area");
-}
+function diSetNames(meta){ return chosenSetNames(meta, t("di.whole_area", "The whole area")); }
 
-function diTermsIn(terms, theme){
-  if(!theme) return (terms||[]).slice();
-  return (terms||[]).filter(tm=>String((tm&&tm.theme)||"").trim()===theme);
-}
+function diTermsIn(terms, theme){ return itemsInSet(terms, theme); }
 
-/* The countdown, measured against the clock every device agrees on.
-
-   `now` defaults to Backend.serverNow() rather than Date.now(): the round's start is written by
-   the teacher's device and read by twenty-five others, and phone clocks are routinely a minute
-   apart. Until v3.9 each device subtracted the teacher's start time from its own clock, so the
-   teacher saw 40 seconds left while a student saw 12 and neither was wrong about its own
-   arithmetic. Tests pass `now` explicitly. */
-function diSecondsLeft(meta, now){
-  const started=(meta && meta.roundStartedAt) || 0;
-  const secs=(meta && meta.roundSeconds) || DI_DEFAULT_SECONDS;
-  if(!started) return secs;
-  const at = (now === undefined || now === null)
-    ? ((typeof Backend !== "undefined" && Backend.serverNow) ? Backend.serverNow() : Date.now())
-    : now;
-  return Math.max(0, Math.ceil(secs - ((at - started) / 1000)));
-}
-
-function diRoundIsRunning(meta){
-  return !!(meta && meta.status==="active" && meta.roundStartedAt && diSecondsLeft(meta) > 0);
-}
-
-/* The pair scores, highest first. A pair's count is whatever its describer recorded — the
-   guesser writes nothing, which is also what keeps a student from ever recording a number
-   against somebody else. */
+/* The round machinery — the clock, the pair counts, the running totals and when a round is
+   banked — lives in core/rounds.js since v3.11, because Twenty Questions needs the same shape and
+   a module may not call another module. What is left here is the part that is Describe It's: its
+   own menu of round lengths, and the names its screens use. */
+function diRoundSeconds(meta){ return pickRoundLength(meta, DI_ROUND_SECONDS, DI_DEFAULT_SECONDS); }
+function diSecondsLeft(meta, now){ return roundSecondsLeft(meta, diRoundSeconds(meta), now); }
+function diRoundIsRunning(meta){ return roundIsRunning(meta, diRoundSeconds(meta)); }
+function diPhase(meta){ return roundPhase(meta, diRoundSeconds(meta)); }
 function diStandings(participants, pairs){
-  const byPair={};
-  (participants||[]).forEach(p=>{
-    const seat=(pairs||{})[p.studentId];
-    if(!seat) return;
-    const g=seat.g;
-    if(!byPair[g]) byPair[g]={ g:g, hits:0, fouls:0, names:[], describer:"" };
-    byPair[g].names.push(seat.n || displayName(p.surname, p.firstName));
-    if(seat.r===0){
-      byPair[g].describer = seat.n || displayName(p.surname, p.firstName);
-      byPair[g].hits = Number((p.progress && p.progress.hits) || 0);
-    }
-    /* Fouls are written by whoever holds the rule — the referee in a three, the guesser in a
-       pair — so they arrive on a different record from the hits and are added up here. */
-    if(seat.r !== 0) byPair[g].fouls += Number((p.progress && p.progress.fouls) || 0);
-  });
-  const list=Object.keys(byPair).map(k=>byPair[k]);
-  list.sort((a,b)=> b.hits-a.hits || a.g-b.g);
-  return list;
+  return pairStandings(participants, pairs).map(g => Object.assign({}, g, { describer: g.lead }));
 }
+function diBankRound(totals, participants, pairs){ return bankPairScores(totals, participants, pairs); }
+function diLeaderboard(totals, participants, pairs){ return roundLeaderboard(totals, participants, pairs); }
 
 /* ---------- teacher: setting one up ---------- */
 
@@ -373,7 +323,7 @@ async function diStartSession(){
     lang:diChosenLang(),
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
-    pairs:{}, startedAt:null
+    pairs:{}, totals:{}, bankedRound:0, startedAt:null
   };
   DI.runId = DI.sessionCode+"-"+Date.now().toString(36).toUpperCase();
   /* Only the chosen sets' terms go into the run: a student's phone can read the run, so a term
@@ -401,6 +351,7 @@ function diShowLive(){
   showScreen("screen-di-live");
   diRenderQR();
   diFillLiveDifficulty();
+  diFillLiveSeconds();
   if(dealt){ diRenderStage(); diStartTick(); }
 }
 
@@ -514,6 +465,25 @@ async function diSetDifficulty(){
   await diPushMeta({ forbiddenCount: want });
 }
 
+/* Round length, mid-session. Ninety seconds is right for a class that knows the game and far too
+   long for one meeting it; the teacher only finds that out once they have watched a round. Like
+   difficulty it lands on the NEXT round — shortening a clock a pair is already running against
+   would take time off them without warning. */
+async function diSetSeconds(){
+  const want=parseInt(document.getElementById("di-live-seconds").value,10) || DI_DEFAULT_SECONDS;
+  if(!DI.meta || want===diRoundSeconds(DI.meta)) return;
+  await diPushMeta({ roundSeconds: want });
+}
+
+function diFillLiveSeconds(){
+  const sel=document.getElementById("di-live-seconds");
+  if(!sel) return;
+  const now=diRoundSeconds(DI.meta);
+  sel.innerHTML = DI_ROUND_SECONDS.map(n=>
+    '<option value="'+n+'"'+(n===now?" selected":"")+'>'+
+    escapeHtml(t("di.n_seconds", "{n} seconds", {n:n}))+'</option>').join("");
+}
+
 function diFillLiveDifficulty(){
   const sel=document.getElementById("di-live-difficulty");
   if(!sel) return;
@@ -525,9 +495,25 @@ function diFillLiveDifficulty(){
 
 function diStartTick(){
   if(DI.tick) clearInterval(DI.tick);
-  DI.tick=setInterval(()=>{ diRenderClock(); }, 500);
+  DI.tick=setInterval(()=>{
+    diRenderClock();
+    diMaybeBankRound().catch(e=>console.warn(e));
+  }, 500);
 }
 function diStopTick(){ if(DI.tick){ clearInterval(DI.tick); DI.tick=null; } }
+
+/* Banking the finished round.
+
+   Not the instant the clock hits zero: the describer's phone writes its count at most every two
+   seconds and flushes once more at the bell, so the last word or two would be missed. Three
+   seconds of grace, then once — `bankedRound` is what stops the tick doing it twice. */
+async function diMaybeBankRound(){
+  const meta=DI.meta;
+  if(!roundIsDueToBank(meta, diRoundSeconds(meta))) return;
+  DI.participants = DI.participants || [];
+  await diPushMeta({ totals: diBankRound(metaMap(meta,"totals"), DI.participants, metaMap(meta,"pairs")),
+                     bankedRound: meta.round });
+}
 
 function diRenderClock(){
   const el=document.getElementById("di-clock");
@@ -562,7 +548,13 @@ function diRenderStage(){
     th.style.display = "inline-block";
   }
   diFillLiveDifficulty();
+  diFillLiveSeconds();
   diRenderClock();
+
+  const over = !!meta.roundStartedAt && !diRoundIsRunning(meta);
+  const scores=document.getElementById("di-scores");
+  if(scores) scores.style.display = over ? "block" : "none";
+  if(over) diRenderScores();
 
   const standings=diStandings(DI.participants, pairs);
   const box=document.getElementById("di-pairs");
@@ -573,11 +565,48 @@ function diRenderStage(){
       '<span class="di-pair-no">'+g.g+'</span>'+
       '<span class="di-pair-who"><b>'+escapeHtml(g.describer||"?")+'</b> '+
         '<span class="sub">'+t("di.describing_to", "describing to")+' '+(others||"?")+'</span></span>'+
-      '<span class="di-pair-score mono">'+g.hits+
-        (g.fouls ? '<span class="di-pair-fouls" title="'+escapeHtml(t("di.ti.fouls", "forbidden words said"))+'">'+
-                   escapeHtml(t("di.n_fouls", "{n} fouls", {n:g.fouls}))+'</span>' : '')+
-      '</span></div>';
+      '<span class="di-pair-score mono">'+g.hits+'</span></div>';
   }).join("") : '<p class="sub">'+t("di.nobody_paired_yet", "Nobody has been paired yet.")+'</p>';
+}
+
+/* The round's scores, and the running totals, between rounds.
+
+   Shown on the teacher's screen the moment the clock stops, because that is the thirty seconds
+   where a class wants to know how they did and a teacher wants something to read out. The next
+   round does not start until the teacher presses, so this is not in anybody's way. */
+function diRenderScores(){
+  const meta=DI.meta||{};
+  const pairs=metaMap(meta,"pairs");
+  const banked=(meta.bankedRound||0) >= meta.round;
+
+  const head=document.getElementById("di-scores-round");
+  if(head) head.textContent=t("di.round_n_scores", "Round {n}", {n:meta.round||1});
+
+  const thisRound=document.getElementById("di-scores-round-list");
+  if(thisRound){
+    const rows=diStandings(DI.participants, pairs);
+    thisRound.innerHTML = rows.length
+      ? rows.map((g,i)=>'<div class="di-score-row'+(i===0&&g.hits>0?" di-score-top":"")+'">'+
+          '<span class="di-pair-no">'+g.g+'</span>'+
+          '<span class="di-score-who">'+escapeHtml(g.names.join(" \u00b7 "))+'</span>'+
+          '<span class="di-score-n mono">'+g.hits+'</span></div>').join("")
+      : '<p class="sub">'+t("di.nobody_scored_yet", "Nothing recorded for this round.")+'</p>';
+  }
+
+  const totals=document.getElementById("di-scores-total-list");
+  if(totals){
+    /* Until the round is banked the totals do not include it, and saying so is better than
+       showing a number that changes under the teacher three seconds later. */
+    const rows=diLeaderboard(metaMap(meta,"totals"), DI.participants, pairs);
+    totals.innerHTML = rows.map((r,i)=>'<div class="di-score-row'+(i===0&&r.total>0?" di-score-top":"")+'">'+
+      '<span class="di-pair-no">'+(i+1)+'</span>'+
+      '<span class="di-score-who">'+escapeHtml(r.name)+'</span>'+
+      '<span class="di-score-n mono">'+r.total+'</span></div>').join("");
+  }
+  const note=document.getElementById("di-scores-note");
+  if(note) note.textContent = banked
+    ? t("di.totals_include_this_round", "Running totals, this round included. Both partners get the pair\u2019s score.")
+    : t("di.totals_counting", "Counting this round in\u2026");
 }
 
 /* The projector view: the pairs and the clock, big enough to read from the back. The terms are
@@ -629,8 +658,8 @@ function diCleanup(){
 
 async function diStudentStart(session, surname, firstName){
   DSTU={ runId:session.runId, meta:session.meta, terms:session.questions||[],
-         unsub:null, wakeLock:null, pos:0, hits:0, fouls:0, round:0, tick:null,
-         pendingWrite:null, lastWrite:0, buzzedAt:0 };
+         unsub:null, wakeLock:null, pos:0, hits:0, round:0, tick:null,
+         pendingWrite:null, lastWrite:0, buzzedAt:0, phase:null };
   try{ await Backend.joinSession(DSTU.runId, STUDENT.id, surname, firstName, true); }
   catch(e){
     alert(t("di.join_refused",
@@ -655,10 +684,10 @@ function diStudentWatch(){
     if(res.meta.status==="ended"){ diStudentEnd(); return; }
     // A new round means a new deal: fresh terms, count back to zero.
     if((res.meta.round||0) !== (DSTU.round||0)){
-      DSTU.round=res.meta.round||0; DSTU.pos=0; DSTU.hits=0; DSTU.fouls=0;
+      DSTU.round=res.meta.round||0; DSTU.pos=0; DSTU.hits=0;
     }
     if((res.meta.roundStartedAt||0) !== (before.roundStartedAt||0) && res.meta.roundStartedAt){
-      DSTU.pos=0; DSTU.hits=0; DSTU.fouls=0;
+      DSTU.pos=0; DSTU.hits=0;
     }
     diRenderCard();
   });
@@ -666,7 +695,7 @@ function diStudentWatch(){
 
 function diStudentTick(){
   if(DSTU.tick) clearInterval(DSTU.tick);
-  DSTU.tick=setInterval(()=>{ diRenderCardClock(); }, 400);
+  DSTU.tick=setInterval(()=>{ diCardTick(); }, 400);
 }
 
 async function diKeepAwake(){
@@ -693,18 +722,29 @@ function diMyOrder(){
   return termOrderFor((DSTU.terms||[]).length, seat.g, (DSTU.meta&&DSTU.meta.round)||1);
 }
 
-function diRenderCardClock(){
+/* The clock's digits, and nothing else.
+
+   This used to call diRenderCard() when it noticed the round had ended — and diRenderCard()
+   ends by calling this. At the bell the two called each other until the stack ran out, which
+   threw inside the 400ms tick and inside every later render. That is the freeze reported from a
+   lesson: "the speaker screen remains locked on the time out screen and doesn't advance". The
+   swap afterwards was fine; the screen updating it had already stopped working. */
+function diPaintClock(){
   const el=document.getElementById("di-card-clock");
   if(!el) return;
   const meta=DSTU.meta||{};
-  if(!diRoundIsRunning(meta)){
-    el.textContent="";
-    if(meta.roundStartedAt && meta.status==="active") diRenderCard();  // the round has just run out
-    return;
-  }
+  if(!diRoundIsRunning(meta)){ el.textContent=""; el.className="di-clock"; return; }
   const left=diSecondsLeft(meta);
   el.textContent=left+"s";
   el.className = left<=10 ? "di-clock low" : "di-clock";
+}
+
+/* The tick. The only place that turns "the round just ended" into a re-render, and it does it
+   once, because the phase it last drew is remembered. */
+function diCardTick(){
+  const phase=diPhase(DSTU.meta);
+  if(phase !== DSTU.phase){ diRenderCard(); return; }
+  diPaintClock();
 }
 
 function diRenderCard(){
@@ -716,6 +756,7 @@ function diRenderCard(){
   if(meta.status!=="active" || !seat){
     if(waiting) waiting.style.display="block";
     if(main) main.style.display="none";
+    DSTU.phase = diPhase(meta);
     return;
   }
   if(waiting) waiting.style.display="none";
@@ -744,7 +785,8 @@ function diRenderCard(){
   if(describing) diRenderDescriber();
   else if(refereeing) diRenderReferee();
   else diRenderGuesser();
-  diRenderCardClock();
+  DSTU.phase = diPhase(meta);
+  diPaintClock();
 }
 
 /* The referee's screen: the words, and one big button.
@@ -763,6 +805,7 @@ function diRenderReferee(){
     : (meta.roundStartedAt
         ? t("di.referee_over", "Round over. Wait for your teacher.")
         : t("di.referee_ready", "These are the words your partner may not say. Wait for the round to start."));
+  if(!running && meta.roundStartedAt) diShowMyTotal();
 
   const list=diForbidden(diTermAt(DSTU.terms, diMyOrder(), DSTU.pos), diDifficulty(meta));
   const box=document.getElementById("di-referee-forbidden");
@@ -772,7 +815,6 @@ function diRenderReferee(){
         : '<span class="sub">'+t("di.no_forbidden_words", "No forbidden words for this one \u2014 anything but the term itself.")+'</span>')
     : "";
   document.getElementById("di-buzz-btn").disabled = !running;
-  document.getElementById("di-fouls").textContent = String(DSTU.fouls);
 }
 
 function diRenderDescriber(){
@@ -791,8 +833,9 @@ function diRenderDescriber(){
     document.getElementById("di-final-score").textContent=String(DSTU.hits);
     document.getElementById("di-final-line").textContent = t("di.round_over_line",
       "{n} {words} in {secs} seconds.",
-      { n:DSTU.hits, secs:meta.roundSeconds||DI_DEFAULT_SECONDS,
+      { n:DSTU.hits, secs:diRoundSeconds(meta),
         words: plural(DSTU.hits, t("di.word", "word"), t("di.words", "words")) });
+    diShowMyTotal();
     diFlushScore(true);
     return;
   }
@@ -808,6 +851,20 @@ function diRenderDescriber(){
   document.getElementById("di-hits").textContent=String(DSTU.hits);
 }
 
+/* A student's own running total, on whichever end-of-round panel they are looking at. Read out
+   of the run's meta, which the teacher writes — a phone cannot add up anybody else's score, and
+   would get its own wrong anyway once partners change. */
+function diShowMyTotal(){
+  const meta=DSTU.meta||{};
+  const el=document.getElementById("di-my-total");
+  if(!el) return;
+  const total=Number(metaMap(meta,"totals")[STUDENT.id]);
+  const banked=(meta.bankedRound||0) >= (meta.round||0);
+  el.textContent = (banked && isFinite(total))
+    ? t("di.your_total", "{n} altogether so far", {n:total})
+    : t("di.totals_counting", "Counting this round in\u2026");
+}
+
 function diRenderGuesser(){
   const meta=DSTU.meta||{};
   const running=diRoundIsRunning(meta);
@@ -816,35 +873,33 @@ function diRenderGuesser(){
     : (meta.roundStartedAt
         ? t("di.guesser_over", "Round over. Wait for your teacher.")
         : t("di.guesser_ready", "Your partner has the words. Wait for the teacher to start the round."));
+  if(!running && meta.roundStartedAt) diShowMyTotal();
 }
 
 /* The foul button.
 
-   What it does and does not do: it counts, it flashes, and it buzzes the phone. It does NOT
-   reach across to the describer's screen and skip the word — a student's phone may only write
-   its own record and may not read its partner's, so a cross-device signal would have to be
-   relayed by the teacher's browser, and that is two network hops in a game measured in seconds.
-   The pair are sitting a metre apart: the referee presses the button and says so, which is what
-   happens in the room anyway, and the describer moves on with Pass. The app's job here is to
-   keep the count honest, not to carry a shout.
+   It counts nothing. In Taboo a forbidden word costs you the card, not a penalty point: the
+   describer moves on and that word scores nothing. The describer's own **Pass** already does
+   exactly that, so the referee's job is to make the foul unmissable — the screen goes red, the
+   phone buzzes, and they say it out loud — and the describer passes.
 
-   Deliberately no lockout beyond half a second of debounce: a describer who says three forbidden
-   words in one sentence has committed three fouls. */
+   Fouls were counted until v3.10. Chris pointed out that this is not how the game works, and he
+   is right: a tally of fouls is a second scoreboard nobody asked for, and the real penalty is
+   already built into the round being 60 seconds long.
+
+   A consequence worth noting: with nothing to record, the referee writes nothing to the database
+   at all. Only the describer ever writes, which is where v3.7 started. */
 function diBuzz(){
   if(!diRoundIsRunning(DSTU.meta)) return;
   const now=Date.now();
   if(now - (DSTU.buzzedAt||0) < 500) return;   // one press, not a stutter
   DSTU.buzzedAt=now;
-  DSTU.fouls++;
   const flash=document.getElementById("di-buzz-flash");
   if(flash){
     flash.style.display="flex";
     setTimeout(()=>{ flash.style.display="none"; }, 900);
   }
   try{ if(navigator.vibrate) navigator.vibrate([120, 60, 120]); }catch(e){}
-  const n=document.getElementById("di-fouls");
-  if(n) n.textContent=String(DSTU.fouls);
-  diFlushScore(false);
 }
 
 /* The describer's two taps. "Got it" is a judgement about a word — did the partner say it —
@@ -871,12 +926,10 @@ function diFlushScore(force){
   /* The describer writes hits; the referee writes fouls. Nobody writes a number about anybody
      else: each record holds only what its own owner tapped, which is the same guard that keeps
      a guesser from putting a score on the board. */
-  const mine = (seat.r===0)
-    ? { hits:DSTU.hits, round:(DSTU.meta&&DSTU.meta.round)||1 }
-    : (seat.r === pairRefereeRole(metaMap(DSTU.meta,"pairs"), seat.g)
-        ? { fouls:DSTU.fouls, round:(DSTU.meta&&DSTU.meta.round)||1 }
-        : null);
-  if(!mine) return;
+  /* Only the describer writes. The referee's button counts nothing (see diBuzz), so there is
+     nothing for anyone else to record — and nobody can write a number about anybody else. */
+  if(seat.r!==0) return;
+  const mine = { hits:DSTU.hits, round:(DSTU.meta&&DSTU.meta.round)||1 };
   const now=Date.now();
   if(!force && (now - DSTU.lastWrite) < DI_WRITE_MS){
     if(DSTU.pendingWrite) return;

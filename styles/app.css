@@ -608,3 +608,90 @@
   .di-chosen-chip b{ flex:1 0 70%; }
   .di-chosen-chip .sub{ flex:1 0 100%; text-align:start; order:3; }
 }
+
+/* The scoreboard between rounds. Two columns on a laptop, stacked on a phone: the round just
+   played beside the running total, because the interesting comparison is between them. */
+.duo-flat{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:10px; }
+@media (max-width:640px){ .duo-flat{ grid-template-columns:1fr; gap:14px; } }
+.di-scores-list{ display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+.di-score-row{ display:flex; align-items:center; gap:10px; padding:6px 10px;
+               border:2px solid var(--ink); border-radius:10px; }
+.di-score-top{ background:var(--success-soft); }
+.di-score-who{ flex:1; min-width:0; font-size:.92rem; }
+.di-score-n{ font-weight:700; font-size:1.1rem; }
+.di-my-total{ margin-top:8px; font-weight:700; }
+
+/* ---------- Twenty Questions (v3.11) ----------
+   Deliberately borrowing Describe It's card, clock, score-row and chosen-set classes rather than
+   restating them: the two games sit next to each other on a teacher's home screen, and one of
+   them looking almost-but-not-quite like the other reads as a mistake. What is new here is only
+   what Twenty Questions has and Describe It does not. */
+
+/* The category badge under the secret. It is the one thing on the holder's screen the asker is
+   allowed to be told, so it reads as information rather than decoration. */
+.tq-cat{ margin-top:10px; letter-spacing:.06em; text-transform:uppercase; font-size:.72rem; }
+
+.tq-hint-btn{ font-size:.85rem; }
+.tq-hint{
+  margin-top:12px; padding:10px 12px; border:2px dashed var(--ink); border-radius:10px;
+  font-size:.92rem; text-align:start;
+}
+
+/* Yes and No, side by side and the full width of the phone. These get tapped every ten seconds
+   for five minutes, often without looking down, so they are the biggest targets on the screen. */
+.tq-answers{ gap:10px; }
+.tq-answers button{ font-size:1.25rem; padding:18px 12px; font-weight:800; }
+.tq-btn-no{ border-width:3px; }
+
+/* The third button is deliberately quieter than Yes and No and deliberately wider than a
+   footnote: it is used perhaps twice a round, but when it is used it is the whole lesson. */
+.tq-btn-notyn{ font-size:.92rem; padding:12px; }
+
+/* One flash, no sound. The holder is inches from their partner; a buzzer would carry across a
+   room of twelve pairs and interrupt eleven of them. */
+.tq-flash{ animation:tq-flash .3s ease-out; }
+@keyframes tq-flash{
+  0%{ background:var(--accent); color:#fff; transform:scale(1.03); }
+  100%{ background:inherit; color:inherit; transform:scale(1); }
+}
+
+/* The starter frames. Four shapes, big enough to read at arm's length on a desk, laid out so a
+   glance takes all four in rather than reading them as a list. */
+.tq-frames{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.tq-frame{
+  flex:1 0 44%; padding:12px 10px; border:2px solid var(--ink); border-radius:10px;
+  font-size:1.05rem; font-weight:700; text-align:center;
+}
+
+/* The editor's second row: a category picker and a hint, where Describe It has four forbidden
+   words. The hint gets the room because it is a sentence, not a word. */
+.tq-cat-in{ flex:0 0 9rem; font-size:.9rem; }
+.tq-hint-in{ flex:1; min-width:0; font-size:.9rem; }
+@media (max-width:560px){
+  .tq-cat-in{ flex:1 0 100%; }
+  .tq-hint-in{ flex:1 0 100%; }
+}
+.tq-outof-head{ font-weight:800; margin:0 0 4px; }
+
+/* The fact card (v3.12). The holder answers from this list, so it has to be readable at a glance
+   while someone is waiting for an answer: no paragraph, one fact per line, left-aligned inside a
+   centred card because ragged-centre bullet points cannot be scanned. */
+.tq-life{ margin:10px 0 0; font-size:.95rem; font-weight:700; opacity:.85; }
+.tq-facts{
+  list-style:none; margin:8px 0 0; padding:0; text-align:start;
+}
+.tq-facts li{
+  padding:7px 0 7px 18px; position:relative; font-size:.95rem; line-height:1.35;
+  border-top:1px solid rgba(0,0,0,.08);
+}
+.tq-facts li:first-child{ border-top:0; }
+.tq-facts li::before{
+  content:"\2022"; position:absolute; inset-inline-start:2px; opacity:.5;
+}
+.tq-factsrow{ margin-top:6px; }
+.tq-year-in{ flex:0 0 5.5rem; font-size:.9rem; }
+.tq-facts-in{ flex:1; min-width:0; font-size:.9rem; }
+@media (max-width:560px){
+  .tq-year-in{ flex:1 0 46%; }
+  .tq-facts-in{ flex:1 0 100%; }
+}

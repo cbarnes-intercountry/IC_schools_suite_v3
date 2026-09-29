@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.9
+# Classroom Exam App — v3.12
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,93 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.12 puts the facts on the card, so the holder does not have to know who the person is.**
+
+Reported from a lesson: younger players have no older pop-culture references, and older players
+have no current ones. In this game that is worse than it sounds. In Describe It the describer needs
+to know ONE WORD. Here the holder has to answer twenty arbitrary questions about a person, which
+needs a whole biography — hand a 19-year-old "Serge Gainsbourg" and the card dies on the first
+question. Choosing gentler names does not fix it; it only moves which half of the room is stuck.
+
+So every subject may now carry **facts**, and the holder answers from those. They do not have to
+have heard of the person. That turns the reference gap from a wall into the point of the activity:
+the holder is reading English facts and converting them into spoken yes/no answers in real time,
+which is harder and more useful than reciting what they already knew.
+
+Years are stored as **numbers**, not prose. "Still alive" is the one fact on a card that expires by
+itself; two numbers can be corrected in one cell, a sentence has to be found and rewritten. The
+card computes the life line from them — and states the age at death as *"62 or 63"*, because years
+alone cannot give an exact age and a card should not put a wrong fact about a real person on twenty
+screens.
+
+**Running out of questions stops being a dead end.** On a card with facts the holder is told to read
+it out — the years and every line — and then say who it was. Neither of them scores either way,
+which is exactly when a class will listen to a paragraph of English.
+
+**The new area: Famous people.** 80 people in eight sets, banded by decade as well as by subject:
+Business and money, Leaders and politics, Science and invention, Art and writing, Sport, Screen and
+music: now, Screen and music: before you were born, French all eras. Pick "before you were born" for
+your own references and "now" for theirs, or mix them and let each pair meet both.
+
+**The staleness guard.** Building the packs prints every person over 80 who is shown as living, so
+the file says what to verify instead of you remembering. The editor says the same thing on save.
+
+**v3.11 adds the second game — Twenty Questions — and moves what the two share into core.**
+
+One phone holds a secret; the partner has twenty yes/no questions to find it. Describe It trains
+circumlocution: say it another way. This trains the thing a French speaker loses first and most
+expensively, the QUESTION — auxiliary inversion, twenty times a round, without a gap-fill.
+
+**The mechanic that does the teaching is the third button.** The holder answers Yes or No, and
+each costs the asker one of their twenty. But "What colour is it?" is not a yes/no question, so it
+gets the third button — and that one does **not** count. Nobody corrects anybody; a well-formed
+question is simply worth something and a malformed one is not.
+
+**Only the holder's phone shows the counter.** A student may read their own record and nobody
+else's — the same rule that stops anyone scoring a classmate — so the asker has to *ask* how many
+they have left, in English, and the holder has to answer. That is the design, not a workaround:
+both of them end up talking to each other instead of reading a screen.
+
+The asker is told the CATEGORY before the first question. That looks like a giveaway and is the
+opposite: without it the first six questions go on establishing that we are not talking about an
+animal, and the narrowing — the part with the language in it — never starts.
+
+Settings: 10, 15 or 20 questions, and rounds of 3, 5 or 8 minutes, both changeable between rounds.
+Three areas of packs ship with it — Workplace, Jobs, Everyday — 108 subjects in nine sets. The
+Jobs area is the best one the game has: jobs narrow along lines students can already ask about,
+and the Insurance and banking set is BTS Assurance vocabulary that is far easier to guess than to
+define.
+
+**`core/rounds.js` is new, and is the point of the release architecturally.** Two games now run a
+timed round in pairs and add the counts up across rounds and partner swaps. Rule 2 says a module
+may not call another module, so that machinery — the clock, the pair standings, the running
+totals, when a round is banked, how a pack's sets are read — moved into core and Describe It was
+rewired onto it. The suite checks it both ways: neither module calls the other, and core, once its
+comments are stripped, contains no word from either game.
+
+**v3.10 keeps score across the whole game, and fixes a freeze at the bell.**
+
+**The bug**: after **Swap roles**, the student who had just been describing stayed stuck on the
+round-over panel and never saw the guesser's screen. It was infinite recursion, not a slow
+network: the card renderer drew the clock, the clock routine noticed the round had ended and
+called the renderer back, and the two went round until the browser gave up — two thousand
+frames deep. Only a round that had actually reached its bell could start it, which is why it
+survived testing and appeared in a lesson. The clock now paints digits and nothing else, and one
+tick decides when a change of phase is worth a redraw.
+
+**Scores carry across rounds and partner swaps.** Each round's scoreboard appears between rounds
+— this round's pairs, then the running total — and totals are kept per *student*, not per
+pair, because pairs do not survive **New pairs**. Both partners bank the pair's score: the
+guesser's questions are half the work. The teacher's browser does the banking, three seconds
+after the bell so that scores still in flight are not lost, and it banks each round exactly once.
+
+**No more fouls.** Taboo does not count them — say a forbidden word and you lose the card and
+move on, which is the penalty. The guesser's button now flashes the describer's screen and
+nothing else: no tally, no number, and nothing a student records about a classmate.
+
+**Round length is 30, 60 or 90 seconds**, chosen at setup and changeable between rounds beside
+the difficulty. Both land on the *next* round, so no pair has its clock shortened mid-run.
 
 **v3.9 lets one session mix up to three sets, from any areas.** A lesson is often two things —
 the week's vocabulary and a warm-up, or the sector words plus the general ones the class keeps
@@ -285,11 +372,28 @@ made later.
 From the folder *above* this one:
 
 ```
-node "_test v3.0.js"
+node "_test v3.12.js"
 ```
 
-720 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+1,121 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
+
+## Running Twenty Questions
+
+Admin → **Subject Sets · Twenty Questions** to write areas (or import a `Subjects` sheet: Set,
+Subject, Category, Hint, Facts, Born, Died, Language — facts separated by semicolons, years as
+bare numbers, a blank Died meaning living). Then Teacher Home → **Start Twenty Questions** → area, set,
+question limit, round length; students join with the code, and **Deal the pairs**.
+
+A subject has to survive "Is it alive?" as a first question, which is why these are not the
+Describe It words — you cannot guess an excess with yes/no questions. Each one carries a category
+the asker is told up front and one hint the holder can reveal if the pair stalls; the editor
+refuses to let a hint contain its own subject, because the obvious clue is usually a description of
+the thing using the thing's own words.
+
+An odd student out becomes a **second asker**, not a referee: the holder answers, so there is
+nothing to arbitrate, and two askers confer — which is the strongest version of the game for a
+weaker pair. Nothing is marked and nothing is kept.
 
 ## Running a role play
 

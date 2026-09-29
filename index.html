@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.9">
+<link rel="stylesheet" href="styles/app.css?v=3.12">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -104,6 +104,16 @@
           <button data-i18n="admin.delete" class="btn-outline" onclick="deleteTermSet()" data-owner-only>Delete</button>
         </div>
         <button data-i18n="admin.create_new_area" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newTermSet()">+ Create a New Area</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2 data-i18n="admin.subject_pack_creator">Subject Sets &middot; Twenty Questions</h2>
+        <p data-i18n="admin.subjects_for_twenty_questions" class="sub">Secrets for Twenty Questions, filed by area &mdash; Workplace, Jobs, Everyday &mdash; and inside each area by set. Concrete things only: a subject has to survive &ldquo;Is it alive?&rdquo; as a first question, which is why these are not the Describe It words.</p>
+        <select id="tq-library-select"><option data-i18n="admin.opt.select_saved_area" value="">&mdash; select a saved area &mdash;</option></select>
+        <div class="btn-row">
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadSubjectSet()">Load / Edit</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteSubjectSet()" data-owner-only>Delete</button>
+        </div>
+        <button data-i18n="admin.create_new_area" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newSubjectSet()">+ Create a New Area</button>
       </div>
       <div class="card" style="margin-top:16px;" data-owner-only>
         <h2 data-i18n="admin.image_search">Image Search</h2>
@@ -282,6 +292,7 @@
         <button data-i18n="teacher_login.new_poll" class="btn-secondary" onclick="pollCreateSession()">New Poll</button>
         <button data-i18n="teacher_login.start_role_play" class="btn-secondary" onclick="rpCreateSession()">Start a Role Play</button>
         <button data-i18n="teacher_login.start_describe_it" class="btn-secondary" onclick="diCreateSession()">Start Describe It</button>
+        <button data-i18n="teacher_login.start_twenty_questions" class="btn-secondary" onclick="tqCreateSession()">Start Twenty Questions</button>
         <button data-i18n="teacher_login.test_archive" class="btn-outline" onclick="openHistory()">Test Archive</button>
       </div>
     </div>
@@ -816,30 +827,33 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.9"></script>
-<script src="lang/fr.js?v=3.9"></script>
-<script src="core/i18n.js?v=3.9"></script>
-<script src="core/registry.js?v=3.9"></script>
-<script src="core/backend.js?v=3.9"></script>
-<script src="core/auth.js?v=3.9"></script>
-<script src="core/ui.js?v=3.9"></script>
-<script src="core/session.js?v=3.9"></script>
-<script src="core/groups.js?v=3.9"></script>
-<script src="core/bank.js?v=3.9"></script>
-<script src="core/media.js?v=3.9"></script>
-<script src="core/security.js?v=3.9"></script>
-<script src="core/answers.js?v=3.9"></script>
-<script src="modules/test.js?v=3.9"></script>
-<script src="modules/poll.js?v=3.9"></script>
-<script src="modules/roleplay.js?v=3.9"></script>
-<script src="modules/describeit.js?v=3.9"></script>
-<script src="admin/editor.js?v=3.9"></script>
-<script src="admin/import.js?v=3.9"></script>
-<script src="admin/reports.js?v=3.9"></script>
-<script src="admin/scenarios.js?v=3.9"></script>
-<script src="admin/terms.js?v=3.9"></script>
-<script src="admin/accounts.js?v=3.9"></script>
-<script src="boot.js?v=3.9"></script>
+<script src="lang/en.js?v=3.12"></script>
+<script src="lang/fr.js?v=3.12"></script>
+<script src="core/i18n.js?v=3.12"></script>
+<script src="core/registry.js?v=3.12"></script>
+<script src="core/backend.js?v=3.12"></script>
+<script src="core/auth.js?v=3.12"></script>
+<script src="core/ui.js?v=3.12"></script>
+<script src="core/session.js?v=3.12"></script>
+<script src="core/groups.js?v=3.12"></script>
+<script src="core/rounds.js?v=3.12"></script>
+<script src="core/bank.js?v=3.12"></script>
+<script src="core/media.js?v=3.12"></script>
+<script src="core/security.js?v=3.12"></script>
+<script src="core/answers.js?v=3.12"></script>
+<script src="modules/test.js?v=3.12"></script>
+<script src="modules/poll.js?v=3.12"></script>
+<script src="modules/roleplay.js?v=3.12"></script>
+<script src="modules/describeit.js?v=3.12"></script>
+<script src="modules/twentyq.js?v=3.12"></script>
+<script src="admin/editor.js?v=3.12"></script>
+<script src="admin/import.js?v=3.12"></script>
+<script src="admin/reports.js?v=3.12"></script>
+<script src="admin/scenarios.js?v=3.12"></script>
+<script src="admin/terms.js?v=3.12"></script>
+<script src="admin/subjects.js?v=3.12"></script>
+<script src="admin/accounts.js?v=3.12"></script>
+<script src="boot.js?v=3.12"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -1058,7 +1072,11 @@
         <label data-i18n="di_live.difficulty" for="di-live-difficulty" style="margin:0;flex:0 0 auto;">Difficulty</label>
         <select id="di-live-difficulty" onchange="diSetDifficulty()" style="flex:1;"></select>
       </div>
-      <small data-i18n="di_live.difficulty_hint" class="hint">Takes effect on the next round, so nobody&rsquo;s clock changes under them.</small>
+      <div class="row" style="align-items:center;gap:10px;margin-top:10px;">
+        <label data-i18n="di_live.round_length" for="di-live-seconds" style="margin:0;flex:0 0 auto;">Round length</label>
+        <select id="di-live-seconds" onchange="diSetSeconds()" style="flex:1;"></select>
+      </div>
+      <small data-i18n="di_live.difficulty_hint" class="hint">Both take effect on the next round, so nobody&rsquo;s clock changes under them.</small>
       <button class="btn-primary" id="di-start-round-btn" style="width:100%;margin-top:12px;" onclick="diStartRound()">Start the round</button>
       <div class="btn-row" style="margin-top:12px;">
         <button data-i18n="di_live.swap_roles" class="btn-outline" onclick="diSwapRoles()">Swap roles</button>
@@ -1067,6 +1085,24 @@
       <p data-i18n="di_live.swap_note" class="sub" style="margin-top:8px;font-size:.8rem;">
         Swap roles keeps the pairs and hands the words to the other one &mdash; the second round is where the gain is, because the guesser has just spent a minute hearing the vocabulary. Both start a fresh round and the counts go back to zero.</p>
     </div>
+    <div class="card" id="di-scores" style="margin-top:16px;display:none;">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="di_live.scores" style="flex:1;">Scores</h2>
+        <span class="badge" id="di-scores-round"></span>
+      </div>
+      <div class="duo-flat">
+        <div>
+          <div data-i18n="di_live.this_round" class="di-label">This round</div>
+          <div id="di-scores-round-list" class="di-scores-list"></div>
+        </div>
+        <div>
+          <div data-i18n="di_live.running_total" class="di-label">Running total</div>
+          <div id="di-scores-total-list" class="di-scores-list"></div>
+        </div>
+      </div>
+      <p id="di-scores-note" class="sub" style="font-size:.8rem;margin-top:10px;"></p>
+    </div>
+
     <div class="card" style="margin-top:16px;">
       <h2 data-i18n="di_live.pairs">Pairs</h2>
       <div id="di-pairs" class="di-pairs"></div>
@@ -1131,6 +1167,7 @@
         <h2 data-i18n="di_card.time">Time</h2>
         <div class="di-term mono" id="di-final-score">0</div>
         <p class="sub" id="di-final-line"></p>
+        <p class="sub di-my-total" id="di-my-total"></p>
       </div>
     </div>
 
@@ -1147,10 +1184,10 @@
         <div data-i18n="di_card.they_may_not_say" class="di-label">They may not say</div>
         <div class="di-forbidden" id="di-referee-forbidden"></div>
         <p class="sub" id="di-referee-line" style="margin-top:12px;"></p>
+        <p class="sub di-my-total" id="di-my-total-ref"></p>
       </div>
       <button data-i18n="di_card.they_said_it" class="btn-primary di-buzz" id="di-buzz-btn" onclick="diBuzz()">They said it</button>
-      <p class="sub center" style="margin-top:10px;"><span data-i18n="di_card.fouls_so_far">Fouls</span> <b class="mono" id="di-fouls">0</b></p>
-      <p data-i18n="di_card.buzz_hint" class="sub center" style="margin-top:6px;font-size:.8rem;">Say it out loud as well &mdash; the button counts the foul, it doesn&rsquo;t change their screen. They move on with Pass.</p>
+      <p data-i18n="di_card.buzz_hint" class="sub center" style="margin-top:10px;font-size:.8rem;">Say it out loud as well. That word is gone &mdash; no point for it &mdash; and they move on with Pass. Nothing is counted against them.</p>
     </div>
   </div>
 </div>
@@ -1165,6 +1202,243 @@
   <div class="card center">
     <h1 data-i18n="rp_done.s_end">That&rsquo;s the end</h1>
     <p data-i18n="di_done.nothing_kept" class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
+  </div>
+</div>
+
+
+<!-- ===================== TWENTY QUESTIONS ===================== -->
+<div class="screen" id="screen-tq-setup">
+  <div class="top-nav wide">
+    <span data-i18n="tq_setup.twenty_questions_setup" class="badge">Twenty Questions &middot; Setup</span>
+    <span id="tq-code" class="badge live" style="display:none;"></span>
+    <a data-i18n="rp_setup.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
+  </div>
+  <div class="card">
+    <h1 data-i18n="tq_setup.start_twenty_questions">Start Twenty Questions</h1>
+    <p data-i18n="tq_setup.blurb" class="sub">Pairs. One phone holds a secret; the partner has twenty yes/no questions to find it. Students join with the code; the app deals the pairs.</p>
+    <div class="row" style="align-items:baseline;">
+      <label data-i18n="tq_setup.subject_sets" style="flex:1;">Subject sets</label>
+      <span class="badge" id="tq-chosen-count"></span>
+    </div>
+    <div id="tq-chosen" class="di-chosen"></div>
+
+    <label data-i18n="tq_setup.area" style="margin-top:14px;">Area</label>
+    <select id="tq-set-select" onchange="tqSetPicked()"><option data-i18n="tq_setup.opt.loading" value="">&mdash; loading &mdash;</option></select>
+    <div id="tq-theme-row" style="display:none;">
+      <label data-i18n="tq_setup.set" style="margin-top:14px;">Set</label>
+      <div class="row">
+        <select id="tq-theme-select" style="flex:1;"></select>
+        <button data-i18n="tq_setup.add_set" class="btn-outline" id="tq-add-set-btn" style="flex:0 0 auto;" onclick="tqAddSet()">Add</button>
+      </div>
+    </div>
+
+    <label data-i18n="tq_setup.question_limit" style="margin-top:14px;">Question limit</label>
+    <select id="tq-cap-select" onchange="tqDescribePack()"></select>
+    <small data-i18n="tq_setup.cap_hint" class="hint">Twenty is the game and the right place to start. Come down to fifteen or ten once a class has played it twice &mdash; a short limit forces the wide questions first, which is the thinking this activity is for.</small>
+    <label data-i18n="tq_setup.round_length" style="margin-top:14px;">Round length</label>
+    <select id="tq-seconds-select"></select>
+    <small data-i18n="tq_setup.length_hint" class="hint">One subject takes two or three minutes of real questioning. Five minutes is two or three subjects for a working pair.</small>
+    <p id="tq-summary" class="sub" style="margin-top:10px;"></p>
+    <button data-i18n="rp_setup.open_room" class="btn-primary" id="tq-start-btn" style="width:100%;margin-top:14px;" disabled onclick="tqStartSession()">Open the room</button>
+    <p data-i18n="tq_setup.counter_note" class="sub" style="font-size:.78rem;margin-top:10px;">Only the holder&rsquo;s phone shows the counter &mdash; a student can read their own record and nobody else&rsquo;s. So the asker has to ask how many they have left, in English, and the holder has to answer. That is the point, not a limitation: both of them end up talking instead of reading a screen.</p>
+  </div>
+</div>
+
+<!-- TWENTY QUESTIONS — teacher live -->
+<div class="screen" id="screen-tq-live">
+  <div class="top-nav wide">
+    <span class="badge">20Q &middot; <span id="tq-live-code"></span></span>
+    <span class="nav-r">
+      <a data-i18n="rp_live.project" class="linklike" onclick="tqToggleProject()">Project</a>
+      <a data-i18n="rp_live.leave" class="linklike" onclick="tqLeave()">Leave</a>
+      <a data-i18n="rp_live.end" class="linklike" onclick="tqEnd()">End</a>
+    </span>
+  </div>
+
+  <div id="tq-lobby">
+    <div class="card center">
+      <h1 id="tq-title">Twenty Questions</h1>
+      <p data-i18n="tq_live.students_join_below" class="sub">Students join at the code below. Deal the pairs when everyone is in.</p>
+      <div class="joincode" id="tq-join-code"></div>
+      <div id="tq-qr-code" style="margin:14px auto;"></div>
+      <p class="sub mono" id="tq-join-url" style="font-size:.75rem;"></p>
+      <p class="sub" id="tq-count">0 joined</p>
+      <p class="feed-warning" id="tq-feed-warning" style="display:none;"></p>
+      <div id="tq-roster" class="chips"></div>
+      <p class="sub" id="tq-odd-note" style="display:none;margin-top:10px;"></p>
+      <button data-i18n="tq_live.deal_pairs" class="btn-primary" id="tq-deal-btn" style="width:100%;margin-top:16px;" disabled onclick="tqDeal()">Deal the pairs</button>
+    </div>
+  </div>
+
+  <div id="tq-stage" style="display:none;">
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="tq_live.the_round" style="flex:1;">The round</h2>
+        <span class="badge" id="tq-round">Round 1</span>
+        <span class="badge" id="tq-live-theme" style="display:none;"></span>
+        <span class="di-clock" id="tq-clock">&mdash;</span>
+      </div>
+      <div class="row" style="align-items:center;gap:10px;margin-top:10px;">
+        <label data-i18n="tq_live.question_limit" for="tq-live-cap" style="margin:0;flex:0 0 auto;">Question limit</label>
+        <select id="tq-live-cap" onchange="tqSetCap()" style="flex:1;"></select>
+      </div>
+      <div class="row" style="align-items:center;gap:10px;margin-top:10px;">
+        <label data-i18n="tq_live.round_length" for="tq-live-seconds" style="margin:0;flex:0 0 auto;">Round length</label>
+        <select id="tq-live-seconds" onchange="tqSetSeconds()" style="flex:1;"></select>
+      </div>
+      <small data-i18n="tq_live.settings_hint" class="hint">Both take effect on the next round, so nobody&rsquo;s clock or question count changes under them.</small>
+      <button class="btn-primary" id="tq-start-round-btn" style="width:100%;margin-top:12px;" onclick="tqStartRound()">Start the round</button>
+      <div class="btn-row" style="margin-top:12px;">
+        <button data-i18n="tq_live.swap_roles" class="btn-outline" onclick="tqSwapRoles()">Swap roles</button>
+        <button data-i18n="tq_live.new_pairs" class="btn-outline" onclick="tqNewPairs()">New pairs</button>
+      </div>
+      <p data-i18n="tq_live.swap_note" class="sub" style="margin-top:8px;font-size:.8rem;">
+        Swap roles keeps the pairs and hands the secret to the other one. The second round is where the gain is: they have just spent five minutes hearing how a question narrows something down, and now they have to do it. Both start a fresh round and the counts go back to zero.</p>
+    </div>
+    <div class="card" id="tq-scores" style="margin-top:16px;display:none;">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="tq_live.scores" style="flex:1;">Scores</h2>
+        <span class="badge" id="tq-scores-round"></span>
+      </div>
+      <div class="duo-flat">
+        <div>
+          <div data-i18n="tq_live.this_round" class="di-label">This round</div>
+          <div id="tq-scores-round-list" class="di-scores-list"></div>
+        </div>
+        <div>
+          <div data-i18n="tq_live.running_total" class="di-label">Running total</div>
+          <div id="tq-scores-total-list" class="di-scores-list"></div>
+        </div>
+      </div>
+      <p id="tq-scores-note" class="sub" style="font-size:.8rem;margin-top:10px;"></p>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h2 data-i18n="tq_live.pairs">Pairs</h2>
+      <div id="tq-pairs" class="di-pairs"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TWENTY QUESTIONS — projector -->
+<div id="tq-projection" class="rp-projection" style="display:none;" onclick="tqToggleProject()">
+  <div class="rp-proj-inner">
+    <h1 id="tq-proj-title"></h1>
+    <div class="di-proj-clock" id="tq-proj-clock"></div>
+    <div id="tq-proj-pairs" class="rp-proj-groups"></div>
+    <p data-i18n="rp_live.tap_anywhere_close" class="rp-proj-hint">Tap anywhere to close</p>
+  </div>
+</div>
+
+<!-- TWENTY QUESTIONS — the student's phone -->
+<div class="screen" id="screen-tq-card">
+  <div class="top-nav">
+    <span data-i18n="tq.twenty_questions" class="badge">Twenty Questions</span>
+    <span id="tq-card-name" class="badge" style="display:none;"></span>
+  </div>
+
+  <div class="card center" id="tq-card-waiting">
+    <h1 data-i18n="rp_card.re">You&rsquo;re in</h1>
+    <p data-i18n="tq_card.wait_for_pairs" class="sub">Wait for your teacher to deal the pairs.</p>
+  </div>
+
+  <div id="tq-card-main" style="display:none;">
+    <div class="card">
+      <div class="row" style="align-items:center;gap:10px;">
+        <span class="badge live" id="tq-card-role"></span>
+        <span class="badge" id="tq-card-pair"></span>
+        <span class="di-clock" id="tq-card-clock" style="margin-inline-start:auto;"></span>
+      </div>
+      <p class="sub" id="tq-card-partner" style="margin-top:8px;"></p>
+      <p class="feed-warning" id="tq-card-warning" style="display:none;"></p>
+    </div>
+
+    <div id="tq-holder-view" style="display:none;">
+      <div class="card center" id="tq-holder-ready" style="margin-top:14px;">
+        <h2 data-i18n="tq_card.you_have_the_secret">You have the secret</h2>
+        <p data-i18n="tq_card.dont_show" class="sub">Don&rsquo;t show this screen to your partner. The first subject appears when your teacher starts the round.</p>
+      </div>
+
+      <div id="tq-holder-play" style="display:none;">
+        <div class="card center di-termcard" style="margin-top:14px;">
+          <div data-i18n="tq_card.they_are_looking_for" class="di-label">They are looking for</div>
+          <div class="di-term" id="tq-secret"></div>
+          <span class="badge tq-cat" id="tq-secret-cat"></span>
+          <p class="tq-life" id="tq-life" style="display:none;"></p>
+          <div id="tq-facts-box" style="display:none;">
+            <div data-i18n="tq_card.what_you_know" class="di-label" style="margin-top:14px;">What you know</div>
+            <ul class="tq-facts" id="tq-facts"></ul>
+            <p data-i18n="tq_card.facts_note" class="sub" style="font-size:.78rem;margin-top:8px;">You do not have to have heard of them. Answer from this list.</p>
+          </div>
+          <button data-i18n="tq_card.give_a_hint" class="btn-outline tq-hint-btn" id="tq-hint-btn" style="display:none;margin-top:14px;" onclick="tqRevealHint()">Give them the hint</button>
+          <p class="sub tq-hint" id="tq-hint" style="display:none;"></p>
+        </div>
+
+        <div class="card center" style="margin-top:14px;">
+          <div class="row" style="align-items:baseline;justify-content:center;gap:14px;">
+            <span class="mono" id="tq-asked"></span>
+            <span class="di-clock" id="tq-left"></span>
+          </div>
+          <div class="btn-row tq-answers" id="tq-answer-row" style="margin-top:12px;">
+            <button data-i18n="tq_card.no" class="btn-outline tq-btn-no" id="tq-no-btn" onclick="tqAnswer(false)">No</button>
+            <button data-i18n="tq_card.yes" class="btn-primary tq-btn-yes" id="tq-yes-btn" onclick="tqAnswer(true)">Yes</button>
+          </div>
+          <button data-i18n="tq_card.not_yes_no" class="btn-outline tq-btn-notyn" id="tq-notyn-btn" style="margin-top:10px;width:100%;" onclick="tqNotYesNo()">That&rsquo;s not a yes/no question</button>
+          <p data-i18n="tq_card.notyn_hint" class="sub" style="margin-top:8px;font-size:.78rem;">Say it out loud too. That one costs them nothing &mdash; ask them to put it another way.</p>
+          <div id="tq-out-of" style="display:none;margin-top:12px;">
+            <p data-i18n="tq_card.out_of_questions_head" class="tq-outof-head">Out of questions.</p>
+            <p class="sub" id="tq-outof-line"></p>
+          </div>
+        </div>
+
+        <div class="btn-row di-actions" style="margin-top:14px;">
+          <button data-i18n="tq_card.next_one" class="btn-outline di-btn-pass" onclick="tqNextCard()">Next one</button>
+          <button data-i18n="tq_card.they_got_it" class="btn-primary di-btn-got" id="tq-got-btn" onclick="tqGotIt()">They got it</button>
+        </div>
+        <p class="sub center" style="margin-top:10px;"><span data-i18n="tq_card.so_far">So far</span> <b class="mono" id="tq-hits">0</b></p>
+      </div>
+
+      <div class="card center" id="tq-holder-over" style="display:none;margin-top:14px;">
+        <h2 data-i18n="tq_card.time">Time</h2>
+        <div class="di-term mono" id="tq-final-score">0</div>
+        <p class="sub" id="tq-final-line"></p>
+        <p class="sub di-my-total" id="tq-my-total"></p>
+      </div>
+    </div>
+
+    <div id="tq-asker-view" style="display:none;">
+      <div class="card center" id="tq-asker-ready" style="margin-top:14px;">
+        <h2 data-i18n="tq_card.you_ask_the_questions">You ask the questions</h2>
+        <p data-i18n="tq_card.asker_wait" class="sub">Your partner has the secret. You get twenty yes/no questions to work out what it is &mdash; starting when your teacher starts the round.</p>
+      </div>
+
+      <div id="tq-asker-play" style="display:none;">
+        <div class="card center" style="margin-top:14px;">
+          <div data-i18n="tq_card.it_is_a" class="di-label">It is a&hellip;</div>
+          <div class="di-term" id="tq-asker-cat"></div>
+          <p data-i18n="tq_card.start_wide" class="sub" style="margin-top:10px;">Start wide. Cut the possibilities in half with every question.</p>
+        </div>
+        <div class="card" style="margin-top:14px;">
+          <div data-i18n="tq_card.ways_to_start" class="di-label">Ways to start</div>
+          <div class="tq-frames" id="tq-frames"></div>
+          <p data-i18n="tq_card.asker_hint" class="sub" style="margin-top:12px;font-size:.82rem;">Your partner is counting, not you. Ask them how many you have left &mdash; then put the phone down and talk.</p>
+        </div>
+      </div>
+
+      <div class="card center" id="tq-asker-over" style="display:none;margin-top:14px;">
+        <h2 data-i18n="tq_card.time">Time</h2>
+        <p data-i18n="tq_card.asker_over" class="sub">That&rsquo;s the round. Your teacher has the scores.</p>
+        <p class="sub di-my-total" id="tq-my-total-asker"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TWENTY QUESTIONS — student, finished -->
+<div class="screen" id="screen-tq-done">
+  <div class="card center">
+    <h1 data-i18n="rp_done.s_end">That&rsquo;s the end</h1>
+    <p data-i18n="tq_done.nothing_kept" class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
   </div>
 </div>
 
@@ -1200,6 +1474,42 @@
       <p data-i18n="di_editor.terms_hint" class="sub">The term, then four words the describer may not say &mdash; most obvious first. The teacher picks how many of the four a class is held to, so turning the difficulty down removes the last ones rather than the ones that make the item work. Rename a set once and every term in it follows; the dropdown moves a term to another set.</p>
       <p id="di-theme-summary" class="sub" style="font-size:.82rem;"></p>
       <div id="di-term-list" class="di-term-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TWENTY QUESTIONS — the subject pack editor -->
+<div class="screen" id="screen-tq-editor">
+  <div class="top-nav wide">
+    <span data-i18n="tq_editor.admin_subject_sets" class="badge">Admin &middot; Subject Sets</span>
+    <a data-i18n="rp_editor.back" class="linklike" onclick="leaveSubjectEditor()">&larr; Back</a>
+  </div>
+  <div class="duo">
+    <div class="card">
+      <h2 data-i18n="tq_editor.this_area">This area</h2>
+      <label data-i18n="rp_editor.name">Name</label>
+      <input data-i18n-ph="tq_editor.ph.area_name" type="text" id="tq-set-name" placeholder="e.g. Workplace">
+      <label data-i18n="tq_editor.language" style="margin-top:12px;">Language</label>
+      <select id="tq-set-lang" onchange="setSubjectsLang()">
+        <option data-i18n="di_editor.opt.english" value="en">English</option>
+        <option data-i18n="di_editor.opt.french" value="fr">Français</option>
+      </select>
+      <div class="btn-row" style="margin-top:14px;">
+        <button data-i18n="tq_editor.add_set" class="btn-outline" onclick="addSubjectSet()">+ Set</button>
+        <button data-i18n="rp_editor.import_excel" class="btn-outline" onclick="importSubjectsFromExcel()">Import Excel</button>
+      </div>
+      <button data-i18n="tq_editor.save_area" class="btn-primary" style="width:100%;margin-top:14px;" onclick="saveSubjectSet()">Save Area</button>
+      <p data-i18n="tq_editor.nothing_kept_until_save" class="sub" style="font-size:.78rem;margin-top:8px;">Nothing is kept until you press Save.</p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="tq_editor.sets" style="flex:1;">Sets</h2>
+        <span class="badge" id="tq-subject-count"></span>
+      </div>
+      <p data-i18n="tq_editor.subjects_hint" class="sub">The secret, the category the asker is told before their first question, and one hint. The hint must not contain the subject &mdash; it is there to re-open the question, not to answer it, and the editor says so when you save. Rename a set once and every subject in it follows; the dropdown moves one to another set.</p>
+      <p id="tq-theme-summary" class="sub" style="font-size:.82rem;"></p>
+      <div id="tq-subject-list" class="di-term-list"></div>
     </div>
   </div>
 </div>

@@ -252,3 +252,53 @@ function parseTermRows(rows){
   });
   return { terms:terms, errors:errors, lang:lang };
 }
+
+
+/* Twenty Questions subject sheets. Same shape as the term sheet — a Set column that carries down
+   a block, one row per item — so a teacher who has filled one in knows how to fill the other. */
+function parseSubjectRows(rows){
+  const subjects=[], errors=[], seen={};
+  const get=(row,name)=>{ const key=Object.keys(row).find(k=>k.trim().toLowerCase()===name.toLowerCase()); return key?String(row[key]).trim():""; };
+  const lang=readSheetLang(rows, get, errors);
+  let theme="";
+  (rows||[]).forEach((row,i)=>{
+    const rowNum=i+2;
+    const word=get(row,"Subject");
+    const here=get(row,"Set") || get(row,"Theme");
+    const rawCat=get(row,"Category");
+    const hint=get(row,"Hint");
+    /* The holder's card. Semicolon-separated because a comma belongs inside a fact and a teacher
+       typing one in Excel should not have to think about that. */
+    const facts=get(row,"Facts");
+    const born=get(row,"Born"), died=get(row,"Died");
+    if(here) theme=here;
+    if(!word && !hint && !facts) return;                         // a spacer row
+    if(!word){ errors.push(t("import.row_no_subject", "Row {row}: a hint with no subject.", {row:rowNum})); return; }
+    const key=theme.toLowerCase()+"\u0000"+word.toLowerCase();
+    if(seen[key]){ errors.push(t("import.row_duplicate_subject", "Row {row}: “{subject}” is already in this set.", {row:rowNum, subject:word})); return; }
+    seen[key]=true;
+    /* A category the app does not know is not worth refusing a whole sheet for, but it must be
+       said: the asker is told the category before their first question, so a silent fallback to
+       Object would change the game without anyone knowing why. */
+    const cat=TQ_CATEGORIES.find(c=>c.toLowerCase()===rawCat.toLowerCase());
+    if(rawCat && !cat) errors.push(t("import.row_unknown_category",
+      "Row {row}: category “{cat}” is not one the app knows, so “{subject}” is played as an Object.",
+      {row:rowNum, cat:rawCat, subject:word}));
+    if(!hint) errors.push(t("import.row_no_hint",
+      "Row {row}: “{subject}” has no hint, so a stuck pair has nothing to fall back on.", {row:rowNum, subject:word}));
+    if(!theme) errors.push(t("import.row_no_set_subject", "Row {row}: “{subject}” has no set, so it can only be played as part of the whole area.", {row:rowNum, subject:word}));
+    const factList=String(facts||"").split(";").map(x=>x.trim()).filter(Boolean);
+    /* Years are numbers or nothing. A row typing "c. 1930" or "unknown" into Born would otherwise
+       reach the card as a life line that reads "bornNaN", which is worse than no line at all. */
+    const b=parseInt(born,10), d=parseInt(died,10);
+    if(born && !(b>=1 && b<=3000)) errors.push(t("import.row_bad_year",
+      "Row {row}: {which} is not a year, so it is left off the card.", {row:rowNum, which:"Born"}));
+    if(died && !(d>=1 && d<=3000)) errors.push(t("import.row_bad_year",
+      "Row {row}: {which} is not a year, so it is left off the card.", {row:rowNum, which:"Died"}));
+    subjects.push({ id:"sj_"+uid(6), subject:word, category:(cat||"Object"), hint:hint,
+                    facts:factList,
+                    born:(b>=1&&b<=3000)?b:"", died:(d>=1&&d<=3000)?d:"",
+                    theme:theme, lang:lang });
+  });
+  return { subjects:subjects, errors:errors, lang:lang };
+}
