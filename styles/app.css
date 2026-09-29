@@ -565,3 +565,15 @@
 .di-set-count{ font-family:"Space Mono",monospace; opacity:.6; }
 .di-move-in{ flex:0 0 auto; max-width:9rem; margin:0; }
 @media (max-width:640px){ .di-move-in{ flex:1 0 100%; max-width:none; } }
+
+/* The foul button and its flash. A buzzer that nobody notices is not a buzzer: the whole screen
+   goes red for a moment, and the phone vibrates where it can. */
+.di-buzz{ width:100%; margin-top:14px; min-height:76px; font-size:1.2rem; }
+.di-buzz-flash{
+  position:fixed; inset:0; z-index:950; display:flex; align-items:center; justify-content:center;
+  background:var(--danger); color:#fff; pointer-events:none;
+  font-family:"Bricolage Grotesque",sans-serif; font-weight:800;
+  font-size:clamp(3rem,18vw,7rem); letter-spacing:.06em;
+}
+.di-pair-fouls{ font-family:"Hanken Grotesk",sans-serif; font-size:.72rem; font-weight:700;
+                color:var(--danger); margin-inline-start:.5em; white-space:nowrap; }

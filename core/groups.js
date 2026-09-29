@@ -238,14 +238,27 @@ function pairUp(participants, seedShuffle){
     out[a]={ g:g, r:0, n:named[a]||"" };
     out[b]={ g:g, r:1, n:named[b]||"" };
   }
-  /* An odd student joins pair 1 as a second guesser. Two guessers is a slightly worse game than
-     one, and a far better one than standing about; it also keeps the number of describers equal
-     to the number of pairs, which is what the scoring counts. */
+  /* An odd student out becomes pair 1's REFEREE (r=2): they hold the forbidden words and call a
+     foul. That is a better job than a second guesser — it is the role the game has when it is
+     played properly, and in a pair the guesser can only do it by being shown words that narrow
+     what they are trying to guess. The describer count still equals the pair count, which is
+     what the scoring is per. */
   if(ids.length % 2 === 1 && pairs >= 1){
     const spare=ids[ids.length-1];
-    out[spare]={ g:1, r:1, n:named[spare]||"" };
+    out[spare]={ g:1, r:2, n:named[spare]||"" };
   }
   return out;
+}
+
+/* Who, in this pair, holds the forbidden words and the foul button.
+
+   With three people it is the referee, and the guesser is then told nothing at all — the game as
+   it is meant to be played. With two, it falls to the guesser: somebody has to hold the rule or
+   the describer is policing themselves, and a describer who marks their own fouls does not mark
+   any. The cost is that the guesser sees words that narrow the answer, which is the honest
+   trade-off of playing in pairs and is stated on the setup screen. */
+function pairRefereeRole(pairs, g){
+  return pairMembers(pairs, g).some(m => m.r === 2) ? 2 : 1;
 }
 
 /* Swap who describes and who guesses, within the same pair. The second round is where the gain
@@ -261,8 +274,14 @@ function swapPairRoles(pairs){
     const ids=members[key].slice().sort();
     let cur=ids.findIndex(id=>pairs[id].r===0);
     if(cur<0) cur=0;
-    const nextDescriber=ids[(cur+1)%ids.length];
-    ids.forEach(id=>{ out[id]={ g:g, r:(id===nextDescriber?0:1), n:pairs[id].n||"" }; });
+    /* Everyone moves along one seat: describer -> guesser -> referee -> describer. In a pair
+       that is a straight swap; in a three, nobody describes twice running and nobody is stuck
+       refereeing all lesson. */
+    const hasReferee = ids.length>2;
+    ids.forEach((id,k)=>{
+      const seat=(k - (cur+1) + ids.length*2) % ids.length;   // 0 = describes next
+      out[id]={ g:g, r:(seat===0 ? 0 : (hasReferee && seat===2 ? 2 : 1)), n:pairs[id].n||"" };
+    });
   });
   return out;
 }

@@ -20,11 +20,12 @@
    word, not about a person — and the count is the pair's, not either member's. Nothing is kept
    when the game ends. */
 
-let DI = { sessionCode:null, runId:null, terms:[], name:"", school:"", sets:[], packLang:"en",
+let DI = { sessionCode:null, runId:null, terms:[], name:"", sets:[], packLang:"en",
            participants:[], unsub:null, meta:null, tick:null, projecting:false };
 
 let DSTU = { runId:null, meta:null, terms:[], unsub:null, wakeLock:null,
-             pos:0, hits:0, round:0, tick:null, pendingWrite:null, lastWrite:0 };
+             pos:0, hits:0, fouls:0, round:0, tick:null, pendingWrite:null, lastWrite:0,
+             buzzedAt:0 };
 
 /* How long a round runs. Sixty seconds is the classic and it is too short for a class working
    in a second language — they spend it deciding how to start. Ninety is the default here. */
@@ -91,11 +92,21 @@ function diTermsIn(terms, theme){
   return (terms||[]).filter(tm=>String((tm&&tm.theme)||"").trim()===theme);
 }
 
+/* The countdown, measured against the clock every device agrees on.
+
+   `now` defaults to Backend.serverNow() rather than Date.now(): the round's start is written by
+   the teacher's device and read by twenty-five others, and phone clocks are routinely a minute
+   apart. Until v3.9 each device subtracted the teacher's start time from its own clock, so the
+   teacher saw 40 seconds left while a student saw 12 and neither was wrong about its own
+   arithmetic. Tests pass `now` explicitly. */
 function diSecondsLeft(meta, now){
   const started=(meta && meta.roundStartedAt) || 0;
   const secs=(meta && meta.roundSeconds) || DI_DEFAULT_SECONDS;
   if(!started) return secs;
-  return Math.max(0, Math.ceil(secs - (((now||Date.now()) - started) / 1000)));
+  const at = (now === undefined || now === null)
+    ? ((typeof Backend !== "undefined" && Backend.serverNow) ? Backend.serverNow() : Date.now())
+    : now;
+  return Math.max(0, Math.ceil(secs - ((at - started) / 1000)));
 }
 
 function diRoundIsRunning(meta){
@@ -111,12 +122,15 @@ function diStandings(participants, pairs){
     const seat=(pairs||{})[p.studentId];
     if(!seat) return;
     const g=seat.g;
-    if(!byPair[g]) byPair[g]={ g:g, hits:0, names:[], describer:"" };
+    if(!byPair[g]) byPair[g]={ g:g, hits:0, fouls:0, names:[], describer:"" };
     byPair[g].names.push(seat.n || displayName(p.surname, p.firstName));
     if(seat.r===0){
       byPair[g].describer = seat.n || displayName(p.surname, p.firstName);
       byPair[g].hits = Number((p.progress && p.progress.hits) || 0);
     }
+    /* Fouls are written by whoever holds the rule — the referee in a three, the guesser in a
+       pair — so they arrive on a different record from the hits and are added up here. */
+    if(seat.r !== 0) byPair[g].fouls += Number((p.progress && p.progress.fouls) || 0);
   });
   const list=Object.keys(byPair).map(k=>byPair[k]);
   list.sort((a,b)=> b.hits-a.hits || a.g-b.g);
@@ -128,7 +142,7 @@ function diStandings(participants, pairs){
 async function diCreateSession(){
   if(!(await confirmNoOpenRun("game"))) return;
   const code = genSessionCode();
-  DI = { sessionCode:code, runId:null, terms:[], name:"", school:"", sets:[], packLang:"en",
+  DI = { sessionCode:code, runId:null, terms:[], name:"", sets:[], packLang:"en",
          participants:[], unsub:null, meta:null, tick:null, projecting:false };
   const c=document.getElementById("di-setup-code");
   c.textContent=t("di.code_is", "Code · {code}", {code:code}); c.style.display="inline-block";
@@ -177,33 +191,27 @@ function diResetStep2(){
   document.getElementById("di-start-btn").disabled=true;
 }
 
+/* Word sets are not filed by school, unlike quizzes and role plays.
+
+   A quiz belongs to a course: it is written for one cohort, assessed there, and picking another
+   school's quiz by accident is a real mistake with real consequences. A word set is vocabulary —
+   "weather and seasons" is the same set whoever is in the room — so making a teacher choose a
+   school before they can reach one is a step that protects nothing. Every area is offered to
+   everyone, sorted by name. */
 async function loadDescribeItSetList(){
   try{
-    const [qs, ss] = await Promise.all([Backend.listQuizzes(), Backend.listSchools()]);
-    DI.sets = (qs.quizzes||[]).filter(q=>q.kind==="describeit");
-    const sel=document.getElementById("di-school-select");
-    sel.innerHTML = '<option value="">'+t("poll.select_school", '— select a school —')+'</option>';
-    (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); });
-    document.getElementById("di-set-select").innerHTML =
-      '<option value="">'+t("poll.select_school_first", '— select a school first —')+'</option>';
+    const qs = await Backend.listQuizzes();
+    DI.sets = (qs.quizzes||[]).filter(q=>q.kind==="describeit")
+                              .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+    const sel=document.getElementById("di-set-select");
+    sel.innerHTML = '<option value="">'+escapeHtml(DI.sets.length
+      ? t("di.select_an_area", "\u2014 select an area \u2014")
+      : t("di.no_areas_yet", "\u2014 no word sets yet: add one in Admin \u2014"))+'</option>';
+    DI.sets.forEach(a=>{ const o=document.createElement("option"); o.value=a.key;
+      o.textContent=a.name+" ("+t("di.n_terms", "{count} {terms}",
+        { count:a.count, terms: plural(a.count, t("di.term", "term"), t("di.terms", "terms")) })+")";
+      sel.appendChild(o); });
   }catch(e){ console.warn(e); }
-}
-
-/* The launcher only offers packs that exist for the chosen school, and says which language each
-   one is in: the same game runs off different word packs, and launching an empty French pack in
-   front of a class is the failure this list is here to prevent. */
-function filterDescribeItSets(){
-  DI.school=document.getElementById("di-school-select").value;
-  const sel=document.getElementById("di-set-select");
-  const mine=DI.sets.filter(s=>(s.schools||[]).indexOf(DI.school)>=0);
-  sel.innerHTML = '<option value="">'+escapeHtml(mine.length
-    ? t("di.select_a_pack", "— select a word pack —")
-    : t("di.no_packs_for_school", "— no word packs for this school —"))+'</option>';
-  mine.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
-    o.textContent=s.name+" ("+t("di.n_terms", "{count} {terms}",
-      { count:s.count, terms: plural(s.count, t("di.term", "term"), t("di.terms", "terms")) })+")";
-    sel.appendChild(o); });
-  diResetStep2();
 }
 
 async function diSetPicked(){
@@ -248,7 +256,7 @@ async function diStartSession(){
   const meta = {
     kind:"describeit", status:"waiting", round:0,
     roundSeconds:secs, roundStartedAt:0, forbiddenCount:want, theme:theme,
-    title:DI.name||t("di.describe_it", "Describe It"), school:DI.school||"",
+    title:DI.name||t("di.describe_it", "Describe It"),
     lang:DI.packLang||"en",
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
@@ -342,7 +350,8 @@ async function diDeal(){
 async function diStartRound(){
   if(!DI.meta || !DI.meta.round){ return; }
   await diResetScores();
-  await diPushMeta({ roundStartedAt: Date.now() });
+  // The shared clock, not this laptop's: every phone subtracts this from the same number.
+  await diPushMeta({ roundStartedAt: Backend.serverNow() });
 }
 
 /* Swapping roles starts a fresh round: new describer, new order of terms, counts back to zero.
@@ -446,7 +455,10 @@ function diRenderStage(){
       '<span class="di-pair-no">'+g.g+'</span>'+
       '<span class="di-pair-who"><b>'+escapeHtml(g.describer||"?")+'</b> '+
         '<span class="sub">'+t("di.describing_to", "describing to")+' '+(others||"?")+'</span></span>'+
-      '<span class="di-pair-score mono">'+g.hits+'</span></div>';
+      '<span class="di-pair-score mono">'+g.hits+
+        (g.fouls ? '<span class="di-pair-fouls" title="'+escapeHtml(t("di.ti.fouls", "forbidden words said"))+'">'+
+                   escapeHtml(t("di.n_fouls", "{n} fouls", {n:g.fouls}))+'</span>' : '')+
+      '</span></div>';
   }).join("") : '<p class="sub">'+t("di.nobody_paired_yet", "Nobody has been paired yet.")+'</p>';
 }
 
@@ -499,8 +511,8 @@ function diCleanup(){
 
 async function diStudentStart(session, surname, firstName){
   DSTU={ runId:session.runId, meta:session.meta, terms:session.questions||[],
-         unsub:null, wakeLock:null, pos:0, hits:0, round:0, tick:null,
-         pendingWrite:null, lastWrite:0 };
+         unsub:null, wakeLock:null, pos:0, hits:0, fouls:0, round:0, tick:null,
+         pendingWrite:null, lastWrite:0, buzzedAt:0 };
   try{ await Backend.joinSession(DSTU.runId, STUDENT.id, surname, firstName, true); }
   catch(e){
     alert(t("di.join_refused",
@@ -525,10 +537,10 @@ function diStudentWatch(){
     if(res.meta.status==="ended"){ diStudentEnd(); return; }
     // A new round means a new deal: fresh terms, count back to zero.
     if((res.meta.round||0) !== (DSTU.round||0)){
-      DSTU.round=res.meta.round||0; DSTU.pos=0; DSTU.hits=0;
+      DSTU.round=res.meta.round||0; DSTU.pos=0; DSTU.hits=0; DSTU.fouls=0;
     }
     if((res.meta.roundStartedAt||0) !== (before.roundStartedAt||0) && res.meta.roundStartedAt){
-      DSTU.pos=0; DSTU.hits=0;
+      DSTU.pos=0; DSTU.hits=0; DSTU.fouls=0;
     }
     diRenderCard();
   });
@@ -598,15 +610,51 @@ function diRenderCard(){
     ? t("di.with_partner", "With {who}", { who: others.join(", ") })
     : t("di.waiting_for_a_partner", "Waiting for a partner…");
 
-  const describing=(seat.r===0);
+  /* Three seats now, not two. The referee holds the forbidden words and the foul button; with
+     only two people that job falls to the guesser, because a describer policing themselves marks
+     no fouls at all. */
+  const describing = (seat.r===0);
+  const refereeing = (seat.r === pairRefereeRole(metaMap(meta,"pairs"), seat.g));
   document.getElementById("di-describer-view").style.display = describing ? "block" : "none";
-  document.getElementById("di-guesser-view").style.display  = describing ? "none" : "block";
+  document.getElementById("di-referee-view").style.display  = (!describing && refereeing) ? "block" : "none";
+  document.getElementById("di-guesser-view").style.display  = (!describing && !refereeing) ? "block" : "none";
   document.getElementById("di-card-role").textContent = describing
     ? t("di.you_describe", "You describe")
-    : t("di.you_guess", "You guess");
+    : (refereeing && seat.r===2 ? t("di.you_referee", "You referee")
+                                : t("di.you_guess", "You guess"));
 
-  if(describing) diRenderDescriber(); else diRenderGuesser();
+  if(describing) diRenderDescriber();
+  else if(refereeing) diRenderReferee();
+  else diRenderGuesser();
   diRenderCardClock();
+}
+
+/* The referee's screen: the words, and one big button.
+
+   It deliberately does NOT show the term. A referee who knows the answer starts helping, and in
+   a pair the guesser holding this screen is already being given more than they should have. */
+function diRenderReferee(){
+  const meta=DSTU.meta||{};
+  const seat=diMySeat();
+  const running=diRoundIsRunning(meta);
+  const guessing=(seat && seat.r===1);
+  document.getElementById("di-referee-line").textContent = running
+    ? (guessing
+        ? t("di.referee_and_guesser", "Guess the word \u2014 and if they say one of these, press the button.")
+        : t("di.referee_running", "Listen. If they say one of these, press the button."))
+    : (meta.roundStartedAt
+        ? t("di.referee_over", "Round over. Wait for your teacher.")
+        : t("di.referee_ready", "These are the words your partner may not say. Wait for the round to start."));
+
+  const list=diForbidden(diTermAt(DSTU.terms, diMyOrder(), DSTU.pos), diDifficulty(meta));
+  const box=document.getElementById("di-referee-forbidden");
+  box.innerHTML = running
+    ? (list.length
+        ? list.map(w=>'<span class="di-forbid">'+escapeHtml(w)+'</span>').join("")
+        : '<span class="sub">'+t("di.no_forbidden_words", "No forbidden words for this one \u2014 anything but the term itself.")+'</span>')
+    : "";
+  document.getElementById("di-buzz-btn").disabled = !running;
+  document.getElementById("di-fouls").textContent = String(DSTU.fouls);
 }
 
 function diRenderDescriber(){
@@ -652,6 +700,35 @@ function diRenderGuesser(){
         : t("di.guesser_ready", "Your partner has the words. Wait for the teacher to start the round."));
 }
 
+/* The foul button.
+
+   What it does and does not do: it counts, it flashes, and it buzzes the phone. It does NOT
+   reach across to the describer's screen and skip the word — a student's phone may only write
+   its own record and may not read its partner's, so a cross-device signal would have to be
+   relayed by the teacher's browser, and that is two network hops in a game measured in seconds.
+   The pair are sitting a metre apart: the referee presses the button and says so, which is what
+   happens in the room anyway, and the describer moves on with Pass. The app's job here is to
+   keep the count honest, not to carry a shout.
+
+   Deliberately no lockout beyond half a second of debounce: a describer who says three forbidden
+   words in one sentence has committed three fouls. */
+function diBuzz(){
+  if(!diRoundIsRunning(DSTU.meta)) return;
+  const now=Date.now();
+  if(now - (DSTU.buzzedAt||0) < 500) return;   // one press, not a stutter
+  DSTU.buzzedAt=now;
+  DSTU.fouls++;
+  const flash=document.getElementById("di-buzz-flash");
+  if(flash){
+    flash.style.display="flex";
+    setTimeout(()=>{ flash.style.display="none"; }, 900);
+  }
+  try{ if(navigator.vibrate) navigator.vibrate([120, 60, 120]); }catch(e){}
+  const n=document.getElementById("di-fouls");
+  if(n) n.textContent=String(DSTU.fouls);
+  diFlushScore(false);
+}
+
 /* The describer's two taps. "Got it" is a judgement about a word — did the partner say it —
    not about the partner, which is what keeps this inside the rule that no student ever scores
    another. "Pass" costs nothing but the seconds it takes. */
@@ -672,7 +749,16 @@ function diPass(){
    great many writes for a number nobody is reading that closely. */
 function diFlushScore(force){
   const seat=diMySeat();
-  if(!seat || seat.r!==0) return;
+  if(!seat) return;
+  /* The describer writes hits; the referee writes fouls. Nobody writes a number about anybody
+     else: each record holds only what its own owner tapped, which is the same guard that keeps
+     a guesser from putting a score on the board. */
+  const mine = (seat.r===0)
+    ? { hits:DSTU.hits, round:(DSTU.meta&&DSTU.meta.round)||1 }
+    : (seat.r === pairRefereeRole(metaMap(DSTU.meta,"pairs"), seat.g)
+        ? { fouls:DSTU.fouls, round:(DSTU.meta&&DSTU.meta.round)||1 }
+        : null);
+  if(!mine) return;
   const now=Date.now();
   if(!force && (now - DSTU.lastWrite) < DI_WRITE_MS){
     if(DSTU.pendingWrite) return;
@@ -682,8 +768,7 @@ function diFlushScore(force){
   }
   if(DSTU.pendingWrite){ clearTimeout(DSTU.pendingWrite); DSTU.pendingWrite=null; }
   DSTU.lastWrite=now;
-  Backend.saveProgress(DSTU.runId, STUDENT.id, STUDENT.surname, STUDENT.firstName,
-                       { hits:DSTU.hits, round:(DSTU.meta&&DSTU.meta.round)||1 })
+  Backend.saveProgress(DSTU.runId, STUDENT.id, STUDENT.surname, STUDENT.firstName, mine)
     .catch(e=>{
       const w=document.getElementById("di-card-warning");
       if(w){ w.style.display="block";
@@ -709,7 +794,7 @@ document.addEventListener("visibilitychange", ()=>{
 async function diRejoin(summary, run){
   DI = { sessionCode: run.code || summary.code, runId: summary.runId,
          terms: run.questions||[], name: (run.meta&&run.meta.title)||t("di.describe_it", "Describe It"),
-         school: (run.meta&&run.meta.school)||"", sets:[], packLang:(run.meta&&run.meta.lang)||"en",
+         sets:[], packLang:(run.meta&&run.meta.lang)||"en",
          participants:[], unsub:null, meta: run.meta, tick:null, projecting:false };
   diShowLive();
   diWatchParticipants();

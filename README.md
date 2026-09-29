@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.8
+# Classroom Exam App — v3.8.1
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,34 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.8.1 fixes three things found in a real lesson.**
+
+**The timers disagreed** between the teacher's screen and the students'. Both were right about
+their own arithmetic: the round's start is written by one device and read by twenty-five others,
+and phone clocks are routinely a minute apart, so each device was subtracting the teacher's start
+time from its own clock. Every device now adds the offset Firebase publishes at
+`.info/serverTimeOffset`, so they all count down together. Nothing to deploy — it is a read the
+existing rules already allow.
+
+**Word sets are no longer filed by school.** A quiz belongs to a course; "weather and seasons"
+belongs to anyone teaching English. The launcher offers every area straight away, and the editor
+no longer asks.
+
+**Somebody now holds the rule.** The forbidden words are on the guesser's screen as well, with a
+**They said it** button — a describer policing themselves marks no fouls at all. The button
+counts the foul, flashes the screen red and buzzes the phone; it does *not* reach across and skip
+the word, because a student's phone may only write its own record, and relaying that through the
+teacher's browser is two network hops in a game measured in seconds. The pair are sitting a metre
+apart: the referee presses and says so, and the describer moves on with Pass.
+
+In a group of three the **third student referees** and the guesser is told nothing — the better
+game, because seeing the forbidden words does narrow what the guesser is looking for. That is the
+honest cost of playing in pairs, and it is stated on the setup screen. Each round everyone moves
+along one seat: describe, guess, referee.
+
+Fouls appear beside the hits on the teacher's board. They are counted, not subtracted — say if
+you would rather they cost a point.
 
 **v3.8 files the words by area and set, and makes them editable.** A pack is now **one area** —
 Business language, Jobs and sectors, General English, French-speaker traps — and the **sets**

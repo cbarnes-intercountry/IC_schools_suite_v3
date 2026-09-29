@@ -59,7 +59,28 @@ const Backend = {
       this._authReady = firebase.auth().signInAnonymously()
         .catch(e=>{ backendUnavailable(t("backend.anon_sign_in_refused", "Signing in to the database was refused \u2014 check that Anonymous authentication is switched on in the Firebase console. ({why})", {why:(e&&e.message)||e})); });
     }
+    /* Every clock in the room is different. A phone can be a minute out from a laptop and
+       neither owner would notice, and until v3.9 the game's countdown was computed on each
+       device from its OWN clock against a start time written by the teacher's — so the teacher
+       saw 40 seconds while a student saw 12, and nobody could tell which was right.
+
+       Firebase publishes the difference between this device and its servers at
+       `.info/serverTimeOffset`. Adding it gives every device the same number. It arrives a
+       moment after connecting and is re-sent whenever the estimate improves; until then the
+       offset is zero, which is exactly the old behaviour. */
+    try{
+      db.ref(".info/serverTimeOffset").on("value", snap=>{
+        const v = snap && snap.val();
+        if(typeof v === "number" && isFinite(v)) this._clockOffset = v;
+      });
+    }catch(e){ /* an offset we cannot read is an offset of zero */ }
   },
+
+  /* The time everyone agrees on. Used for anything two devices must see the same way — the
+     game's countdown above all. Plain Date.now() is right only for this device's own logs. */
+  _clockOffset: 0,
+  serverNow(){ return Date.now() + (this._clockOffset || 0); },
+
   get live(){ return !!db; },
   // Await the initial sign-in before any live read/write, so rules never see an unauthenticated call.
   _ready(){ return this._authReady || Promise.resolve(); },

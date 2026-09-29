@@ -15,7 +15,7 @@
    rows are drawn from the data rather than written out in index.html: a pack is a list of
    identical rows, and forty of them in the markup would be forty places to get out of step. */
 
-let TERMS = { key:null, name:"", schools:[], list:[], lang:"en", lastTheme:"", clean:"" };
+let TERMS = { key:null, name:"", list:[], lang:"en", lastTheme:"", clean:"" };
 
 /* Four on purpose. Every term is authored with four, and the teacher picks how many of them a
    class is actually held to — two, three or four — so one pack covers a warm-up and a B2 class
@@ -25,7 +25,7 @@ let TERMS = { key:null, name:"", schools:[], list:[], lang:"en", lastTheme:"", c
    off, so it removes the obscure constraints rather than the ones that make the item work. */
 const DI_MAX_FORBIDDEN = 4;
 
-function termsFingerprint(){ return JSON.stringify({ n:TERMS.name, s:TERMS.schools, l:TERMS.list, g:TERMS.lang }); }
+function termsFingerprint(){ return JSON.stringify({ n:TERMS.name, l:TERMS.list, g:TERMS.lang }); }
 function markTermsSaved(){ TERMS.clean = termsFingerprint(); }
 function termsAreDirty(){
   return isScreenActive("screen-di-editor") && termsFingerprint() !== TERMS.clean;
@@ -35,9 +35,8 @@ function blankTerm(){ return { id:"tm_"+uid(6), term:"", forbidden:[], theme:TER
                                lang:TERMS.lang||"en" }; }
 
 async function newTermSet(){
-  TERMS = { key:null, name:"", schools:[], list:[], lang:"en", lastTheme:"", clean:"" };
+  TERMS = { key:null, name:"", list:[], lang:"en", lastTheme:"", clean:"" };
   TERMS.list=[blankTerm(),blankTerm(),blankTerm()];
-  await renderTermSchools();
   renderTermList(); markTermsSaved();
   showScreen("screen-di-editor");
 }
@@ -48,10 +47,9 @@ async function loadTermSet(){
   let rec=null;
   try{ rec=await Backend.getQuiz(key); }catch(e){ alert(t("terms.couldn_t_load", "Couldn't load it: ")+e.message); return; }
   if(!rec){ alert(t("terms.pack_gone", "That area has gone.")); return; }
-  TERMS = { key:key, name:rec.name||"", schools:quizSchools(rec), list:(rec.questions||[]).slice(),
+  TERMS = { key:key, name:rec.name||"", list:(rec.questions||[]).slice(),
             lang:((rec.questions||[])[0]||{}).lang||"en", lastTheme:"", clean:"" };
   if(!TERMS.list.length) TERMS.list=[blankTerm()];
-  await renderTermSchools();
   renderTermList(); markTermsSaved();
   showScreen("screen-di-editor");
 }
@@ -65,22 +63,8 @@ async function deleteTermSet(){
   await loadQuizList();
 }
 
-async function renderTermSchools(){
-  const box=document.getElementById("di-school-checks");
-  if(!box) return;
-  let list=[];
-  try{ list=(await Backend.listSchools()).schools||[]; }catch(e){ console.warn(e); }
-  box.innerHTML = list.length ? list.map(n=>
-    '<label class="chk"><input type="checkbox" value="'+escapeHtml(n)+'"'+
-    (TERMS.schools.indexOf(n)>=0?" checked":"")+' onchange="readTermSchools()"> '+escapeHtml(n)+'</label>'
-  ).join("") : '<p class="sub">'+t("scenarios.no_schools_yet_add_one_admin", 'No schools yet — add one in Admin first.')+'</p>';
-}
-function readTermSchools(){
-  TERMS.schools = Array.prototype.slice
-    .call(document.querySelectorAll("#di-school-checks input:checked")).map(i=>i.value);
-}
-
-/* ---------- the rows ---------- */
+/* Word sets carry no school. A quiz belongs to a course; "weather and seasons" belongs to
+   anybody teaching English, and filing it by school would only hide it from colleagues. */
 
 /* A pack is ONE AREA — "General English", "Business language" — and the sets inside it are what
    a lesson picks: weather and seasons, meetings, insurance. So the editor reads as a list of
@@ -305,9 +289,7 @@ function termProblems(list){
 async function saveTermSet(){
   TERMS.name=document.getElementById("di-set-name").value.trim();
   setTermsLang();
-  readTermSchools();
   if(!TERMS.name){ alert(t("terms.give_area_name", "Give the area a name \u2014 Business language, General English, and so on.")); return; }
-  if(!TERMS.schools.length){ alert(t("terms.tick_least_one_school", "Tick at least one school, or teachers won't find it.")); return; }
   // Empty rows at the bottom are the normal end of typing, not a mistake worth a dialogue.
   TERMS.list = TERMS.list.filter(tm=>String(tm.term||"").trim());
   if(!TERMS.list.length){ alert(t("terms.area_needs_one_term", "An area needs at least one term.")); TERMS.list=[blankTerm()]; renderTermList(); return; }
@@ -318,7 +300,7 @@ async function saveTermSet(){
       "\n\n"+t("scenarios.save_it_anyway", "Save it anyway?"))) return;
   }
   const key=TERMS.key || quizKey(TERMS.name);
-  try{ await Backend.saveQuiz(key, TERMS.name, TERMS.list, TERMS.schools, "describeit"); }
+  try{ await Backend.saveQuiz(key, TERMS.name, TERMS.list, [], "describeit"); }
   catch(e){ alert(t("terms.couldn_t_save", "Couldn't save: ")+e.message); return; }
   TERMS.key=key; markTermsSaved();
   await loadQuizList();
