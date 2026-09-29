@@ -17,6 +17,34 @@ function normWord(w){
 
 
 /* ---------- Utils ---------- */
+/* Which build is this?
+
+   Read off the page's own script tags rather than kept in a constant beside them: the version
+   already exists in index.html as the `?v=` cache tag on every local file, and a second copy
+   would be a second thing to bump — and the first release where somebody forgot would be the
+   release where the badge lied. The suite checks every tag carries the same version, so there is
+   exactly one number and the badge cannot disagree with the files actually loaded.
+
+   Empty if nothing matches, and the badge then shows nothing rather than "vundefined". */
+function appVersion(){
+  try{
+    const tag=[...document.getElementsByTagName("script")]
+      .map(el=>el.getAttribute("src")||"")
+      .map(src=>/[?&]v=([^&"']+)/.exec(src))
+      .find(Boolean);
+    return tag ? tag[1] : "";
+  }catch(e){ return ""; }
+}
+
+/* Put it wherever the markup asks for it. Class rather than id, so adding it to another screen
+   is a line of HTML and no JavaScript. */
+function showAppVersion(){
+  const v=appVersion();
+  document.querySelectorAll(".app-version").forEach(el=>{
+    el.textContent = v ? ("v"+v) : "";
+  });
+}
+
 function showScreen(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");

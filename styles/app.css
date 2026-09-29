@@ -577,3 +577,34 @@
 }
 .di-pair-fouls{ font-family:"Hanken Grotesk",sans-serif; font-size:.72rem; font-weight:700;
                 color:var(--danger); margin-inline-start:.5em; white-space:nowrap; }
+
+/* The build number. Discreet on purpose — it is there to answer "which version am I looking at"
+   when something is reported, not to be read the rest of the time. */
+.app-version{
+  font-family:"Space Mono",monospace; font-size:.7rem; opacity:.45;
+  margin:14px 0 0; letter-spacing:.04em; user-select:text;
+}
+.top-nav .app-version{ margin:0; align-self:center; }
+
+/* The sets chosen for this session. Chips rather than a list: three is the ceiling, so they fit
+   on one or two lines and can be taken out again without hunting for a row. */
+/* Rows rather than pills: a set's name and the area it came from are two lines of real text, and
+   a pill that wraps stops looking like a pill. Three at most, so they never become a list. */
+.di-chosen{ display:flex; flex-direction:column; gap:6px; margin:8px 0 0; }
+.di-chosen-chip{
+  display:flex; align-items:center; gap:10px;
+  border:2px solid var(--ink); border-radius:12px; padding:8px 10px 8px 12px;
+  background:#fff;
+}
+.di-chosen-chip b{ flex:1; min-width:0; }
+.di-chosen-chip .sub{ flex:0 0 auto; font-size:.78rem; text-align:end; }
+.di-chip-x{
+  flex:0 0 auto; border:0; background:none; cursor:pointer; line-height:1;
+  min-width:2rem; min-height:2rem; font-size:1.3rem; color:inherit; opacity:.5;
+}
+.di-chip-x:hover{ opacity:1; color:var(--danger); }
+@media (max-width:420px){
+  .di-chosen-chip{ flex-wrap:wrap; }
+  .di-chosen-chip b{ flex:1 0 70%; }
+  .di-chosen-chip .sub{ flex:1 0 100%; text-align:start; order:3; }
+}

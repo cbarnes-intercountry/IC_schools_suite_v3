@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.8.1
+# Classroom Exam App — v3.9
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,33 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.9 lets one session mix up to three sets, from any areas.** A lesson is often two things —
+the week's vocabulary and a warm-up, or the sector words plus the general ones the class keeps
+losing — and re-launching the game between them costs a minute of everyone's attention.
+
+Pick an area, pick a set, **Add**; repeat, from the same area or another one. Three is the
+ceiling: a fourth stops being a lesson and becomes the whole bank shuffled together, which is
+what sets exist to prevent. The chosen sets are listed with the area each came from, and can be
+taken out again.
+
+Three things it refuses, each saying why: a fourth set, the same set twice, and a set written in
+a different language from the ones already chosen — the student interface follows the content's
+language and one room cannot be in both. A term that appears in **more than one** of the chosen
+sets is played once, and the summary says how many were folded together; an area is allowed to
+carry the same word in two sets, but a pair meeting it twice in one round looks like a fault
+from the floor.
+
+The run is named after what is in it — *Claims + Finance* — so the Rejoin banner an hour later
+says something recognisable.
+
+**v3.8.2 shows which build you are looking at.** The version appears, small and grey, on the
+first screen, on the teacher sign-in and in the teacher's top bar. It is read off the page's own
+`?v=` cache tags rather than kept in a constant beside them, so there is one number to bump per
+release and the badge cannot disagree with the files actually loaded.
+
+Prompted by a report that a fix "had not been made": it had, in v3.8.1, but the copy being run
+was v3.8 and nothing on screen said so.
 
 **v3.8.1 fixes three things found in a real lesson.**
 

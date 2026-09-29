@@ -21,6 +21,7 @@
    when the game ends. */
 
 let DI = { sessionCode:null, runId:null, terms:[], name:"", sets:[], packLang:"en",
+           areaTerms:[], areaName:"", chosen:[],
            participants:[], unsub:null, meta:null, tick:null, projecting:false };
 
 let DSTU = { runId:null, meta:null, terms:[], unsub:null, wakeLock:null,
@@ -47,6 +48,15 @@ const DI_DEFAULT_DIFFICULTY = 3;
    batched to at most this often, plus one final write when the round ends, so a room of twelve
    pairs costs a few writes a second rather than a few dozen. */
 const DI_WRITE_MS = 2000;
+
+/* How many sets one session may draw on.
+
+   One set is a lesson-sized unit, which is what makes "play one set" a real choice. But a lesson
+   is often two things — the week's vocabulary and a warm-up, or insurance terms plus the general
+   words the class keeps losing — and re-launching the game between them costs a minute of
+   everyone's attention. Three is the ceiling because a fourth stops being a lesson and starts
+   being the whole bank shuffled together, which is the thing sets exist to prevent. */
+const DI_MAX_SETS = 3;
 
 /* ---------- pure helpers (no DOM, no database) ---------- */
 
@@ -85,6 +95,15 @@ function diThemes(terms){
     if(th && seen.indexOf(th)<0) seen.push(th);
   });
   return seen;
+}
+
+/* What this run is playing, as a line of text. A run made before v3.9 carries a single `theme`
+   rather than a list of sets, so both shapes are read — a game started last term does not get
+   rewritten, the same reason runKind() exists. */
+function diSetNames(meta){
+  const sets=(meta && meta.sets) || null;
+  if(Array.isArray(sets) && sets.length) return sets.map(x=>x.label || x.set || x.area).join(" + ");
+  return (meta && meta.theme) || t("di.whole_area", "The whole area");
 }
 
 function diTermsIn(terms, theme){
@@ -143,6 +162,7 @@ async function diCreateSession(){
   if(!(await confirmNoOpenRun("game"))) return;
   const code = genSessionCode();
   DI = { sessionCode:code, runId:null, terms:[], name:"", sets:[], packLang:"en",
+         areaTerms:[], areaName:"", chosen:[],
          participants:[], unsub:null, meta:null, tick:null, projecting:false };
   const c=document.getElementById("di-setup-code");
   c.textContent=t("di.code_is", "Code · {code}", {code:code}); c.style.display="inline-block";
@@ -169,26 +189,36 @@ function diFillDifficulties(){
     escapeHtml(t("di.n_forbidden_words", "{n} forbidden words", {n:n}))+'</option>').join("");
 }
 
-/* The theme list comes from the pack, so it can only ever offer a theme the pack actually has —
-   the same reason the pack list only offers packs the school has. With one theme there is
-   nothing to choose, so the row stays out of the way. */
-function diFillThemes(){
+/* The sets this area offers, for the second dropdown. It can only ever offer a set the area
+   actually has — the same reason the area list only offers areas that exist. */
+function diFillSets(){
   const sel=document.getElementById("di-theme-select");
   if(!sel) return;
-  const themes=diThemes(DI.terms);
+  const sets=diThemes(DI.areaTerms);
   const box=document.getElementById("di-theme-row");
-  if(box) box.style.display = themes.length>1 ? "block" : "none";
-  sel.innerHTML = '<option value="">'+escapeHtml(t("di.all_sets", "All sets"))+'</option>'
-    + themes.map(th=>'<option value="'+escapeHtml(th)+'">'+escapeHtml(th)+' ('
-      + diTermsIn(DI.terms, th).length + ')</option>').join("");
+  if(box) box.style.display = DI.areaTerms.length ? "block" : "none";
+  sel.innerHTML = '<option value="">'+escapeHtml(sets.length
+      ? t("di.whole_area", "The whole area")
+      : t("di.area_has_no_sets", "\u2014 this area has no sets \u2014"))+'</option>'
+    + sets.map(th=>'<option value="'+escapeHtml(th)+'">'+escapeHtml(th)+' ('
+      + diTermsIn(DI.areaTerms, th).length + ')</option>').join("");
+  diSyncAddButton();
+}
+
+/* Add is available when there is an area loaded and room in the basket. Written once: it was in
+   two functions, identical, and a mutation test showed that breaking one of them changed nothing
+   a check could see. */
+function diSyncAddButton(){
+  const add=document.getElementById("di-add-set-btn");
+  if(add) add.disabled = !DI.areaTerms.length || DI.chosen.length>=DI_MAX_SETS;
 }
 
 function diResetStep2(){
-  DI.terms=[]; DI.name="";
+  DI.areaTerms=[]; DI.areaName="";
   const sel=document.getElementById("di-set-select"); if(sel) sel.value="";
   const th=document.getElementById("di-theme-row"); if(th) th.style.display="none";
-  document.getElementById("di-summary").textContent="";
-  document.getElementById("di-start-btn").disabled=true;
+  diRenderChosen();
+  diDescribePack();      // so an empty basket leaves nothing to launch
 }
 
 /* Word sets are not filed by school, unlike quizzes and role plays.
@@ -214,61 +244,145 @@ async function loadDescribeItSetList(){
   }catch(e){ console.warn(e); }
 }
 
+/* Picking an area no longer picks what is played — it just loads the sets to choose from. What
+   gets played is the basket below, which may hold sets from three different areas. */
 async function diSetPicked(){
   const key=document.getElementById("di-set-select").value;
   if(!key){ diResetStep2(); return; }
   let rec=null;
   try{ rec=await Backend.getQuiz(key); }catch(e){ alert(t("di.couldn_t_load_area", "Couldn't load that area: ")+e.message); return; }
   if(!rec){ alert(t("di.area_gone", "That area has gone.")); return; }
-  DI.terms=rec.questions||[]; DI.name=rec.name||t("di.describe_it", "Describe It");
-  DI.packLang=(DI.terms[0] && DI.terms[0].lang) || "en";
-  diFillThemes();
+  DI.areaTerms=rec.questions||[];
+  DI.areaName=rec.name||t("di.describe_it", "Describe It");
+  diFillSets();
   diDescribePack();
-  document.getElementById("di-start-btn").disabled = DI.terms.length===0;
 }
 
-/* Redrawn whenever the pack, the theme or the difficulty changes, because all three change what
-   the class will actually meet. The count that matters is the one for THIS theme. */
+/* ---------- the basket: up to three sets, from anywhere ---------- */
+
+function diChosenTerms(){
+  /* Combined in the order the teacher added them, and de-duplicated by term.
+
+     The duplicate is not hypothetical: an area is allowed to carry the same word in two sets —
+     "forecast" is in both Money and numbers and Reports and trends — and a lesson that plays
+     both would otherwise meet it twice in one round, which looks like a bug from the floor. The
+     first one wins, so the set the teacher chose first keeps its wording. */
+  const out=[], seen={};
+  DI.chosen.forEach(c=>{
+    (c.terms||[]).forEach(tm=>{
+      const k=String(tm.term||"").trim().toLowerCase();
+      if(!k || seen[k]) return;
+      seen[k]=true;
+      out.push(tm);
+    });
+  });
+  return out;
+}
+
+function diChosenLang(){
+  const t0=diChosenTerms()[0];
+  return (t0 && t0.lang) || "en";
+}
+
+function diAddSet(){
+  if(DI.chosen.length>=DI_MAX_SETS){
+    alert(t("di.three_sets_max",
+      "Three sets is the most one session can hold. Remove one first.")); return;
+  }
+  const setName=(document.getElementById("di-theme-select")||{}).value||"";
+  const terms=diTermsIn(DI.areaTerms, setName);
+  if(!terms.length){ alert(t("di.set_is_empty", "That set has no terms in it.")); return; }
+  const label=setName || DI.areaName;
+  if(DI.chosen.some(c=>c.area===DI.areaName && c.set===setName)){
+    alert(t("di.already_chosen", "\u201c{name}\u201d is already in this session.", {name:label})); return;
+  }
+  /* A set written in French and a set written in English are two different games: the student
+     interface follows the content's language, and the room cannot be in both. */
+  const lang=(terms[0] && terms[0].lang) || "en";
+  if(DI.chosen.length && lang !== diChosenLang()){
+    alert(t("di.sets_mix_languages",
+      "That set is written in a different language from the ones already chosen. One session is in one language."));
+    return;
+  }
+  DI.chosen.push({ area:DI.areaName, set:setName, label:label, terms:terms.slice(), lang:lang });
+  diRenderChosen();
+  diDescribePack();
+}
+
+function diRemoveSet(i){
+  DI.chosen.splice(i,1);
+  diRenderChosen();
+  diDescribePack();
+}
+
+function diRenderChosen(){
+  const box=document.getElementById("di-chosen");
+  if(box){
+    box.innerHTML = DI.chosen.length
+      ? DI.chosen.map((c,i)=>
+          '<span class="chip di-chosen-chip">'+
+            '<b>'+escapeHtml(c.label)+'</b> '+
+            '<span class="sub">'+escapeHtml(c.area)+' \u00b7 '+c.terms.length+'</span>'+
+            '<button class="di-chip-x" onclick="diRemoveSet('+i+')" '+
+              'title="'+escapeHtml(t("di.ti.remove_set", "Take this set out of the session"))+'">\u00d7</button>'+
+          '</span>').join("")
+      : '<p class="sub">'+t("di.nothing_chosen",
+          "Nothing chosen yet. Pick an area, then a set, then Add \u2014 up to three, from any areas you like.")+'</p>';
+  }
+  const count=document.getElementById("di-chosen-count");
+  if(count) count.textContent = t("di.n_of_max_sets", "{n} of {max}",
+    { n:DI.chosen.length, max:DI_MAX_SETS });
+  diSyncAddButton();
+}
+
+/* Redrawn whenever the basket or the difficulty changes, because both change what the class will
+   actually meet. The count that matters is the combined one, after duplicates have gone. */
 function diDescribePack(){
-  const theme=(document.getElementById("di-theme-select")||{}).value||"";
   const want=parseInt((document.getElementById("di-difficulty-select")||{}).value,10)||DI_DEFAULT_DIFFICULTY;
-  const list=diTermsIn(DI.terms, theme);
+  const list=diChosenTerms();
   const thin=list.filter(tm=>diForbidden(tm).length < want).length;
+  const dropped=DI.chosen.reduce((n,c)=>n+c.terms.length,0) - list.length;
   const el=document.getElementById("di-summary");
   if(!el) return;
-  el.textContent =
-    t("di.setup_summary", "{count} {terms} \u00b7 pairs, one describing",
-      { count:list.length,
-        terms: plural(list.length, t("di.term", "term"), t("di.terms", "terms")) })
-    + (thin ? " \u00b7 " + t("di.n_thinner_than_setting",
-        "{n} have fewer than {want} forbidden words, so those are easier", {n:thin, want:want}) : "");
+  el.textContent = list.length
+    ? t("di.setup_summary", "{count} {terms} \u00b7 pairs, one describing",
+        { count:list.length,
+          terms: plural(list.length, t("di.term", "term"), t("di.terms", "terms")) })
+      + (dropped ? " \u00b7 " + t("di.n_duplicates_dropped",
+          "{n} in more than one of these sets, counted once", {n:dropped}) : "")
+      + (thin ? " \u00b7 " + t("di.n_thinner_than_setting",
+          "{n} have fewer than {want} forbidden words, so those are easier", {n:thin, want:want}) : "")
+    : "";
   const startBtn=document.getElementById("di-start-btn");
   if(startBtn) startBtn.disabled = list.length===0;
 }
 
 async function diStartSession(){
-  if(!DI.terms.length){ alert(t("di.choose_area_first", "Choose an area first.")); return; }
+  const playing=diChosenTerms();
+  if(!playing.length){ alert(t("di.choose_a_set_first", "Choose at least one set first.")); return; }
   const secs=parseInt((document.getElementById("di-seconds-select")||{}).value,10) || DI_DEFAULT_SECONDS;
   const want=parseInt((document.getElementById("di-difficulty-select")||{}).value,10) || DI_DEFAULT_DIFFICULTY;
-  const theme=(document.getElementById("di-theme-select")||{}).value||"";
-  const playing=diTermsIn(DI.terms, theme);
-  if(!playing.length){ alert(t("di.set_is_empty", "That set has no terms in it.")); return; }
+  /* What the run is called: the sets themselves, because that is what the teacher chose and
+     what they will recognise on the Rejoin banner an hour later. */
+  const title=DI.chosen.map(c=>c.label).join(" + ");
   const meta = {
     kind:"describeit", status:"waiting", round:0,
-    roundSeconds:secs, roundStartedAt:0, forbiddenCount:want, theme:theme,
-    title:DI.name||t("di.describe_it", "Describe It"),
-    lang:DI.packLang||"en",
+    roundSeconds:secs, roundStartedAt:0, forbiddenCount:want,
+    sets:DI.chosen.map(c=>({ area:c.area, set:c.set, label:c.label })),
+    title:title,
+    lang:diChosenLang(),
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
     pairs:{}, startedAt:null
   };
   DI.runId = DI.sessionCode+"-"+Date.now().toString(36).toUpperCase();
-  /* Only the chosen theme's terms go into the run: a student's phone can read the run, so a
-     term that is not being played has no business being on it. */
+  /* Only the chosen sets' terms go into the run: a student's phone can read the run, so a term
+     that is not being played has no business being on it. */
   try{ await Backend.createSession(DI.runId, DI.sessionCode, meta, playing); }
   catch(e){ alert(t("di.couldn_t_open_game", "Couldn't open the game: ")+e.message); return; }
   DI.meta=meta;
   DI.terms=playing;
+  DI.name=title;
   diShowLive();
   diWatchParticipants();
 }
@@ -276,6 +390,10 @@ async function diStartSession(){
 function diShowLive(){
   document.getElementById("di-live-code").textContent=DI.sessionCode;
   document.getElementById("di-title").textContent=DI.name||t("di.describe_it", "Describe It");
+  /* Which sets are in play, set as soon as the room opens rather than when the parts are dealt:
+     it is the thing a teacher checks before letting anyone join. */
+  const th=document.getElementById("di-live-theme");
+  if(th){ th.textContent=diSetNames(DI.meta); th.style.display="inline-block"; }
   document.getElementById("di-join-code").textContent=DI.sessionCode;
   const dealt=(DI.meta && DI.meta.round)>0;
   document.getElementById("di-lobby").style.display = dealt ? "none" : "block";
@@ -440,7 +558,7 @@ function diRenderStage(){
   if(rd) rd.textContent=t("di.round_n", "Round {n}", {n:meta.round||1});
   const th=document.getElementById("di-live-theme");
   if(th){
-    th.textContent = meta.theme || t("di.all_sets", "All sets");
+    th.textContent = diSetNames(meta);
     th.style.display = "inline-block";
   }
   diFillLiveDifficulty();
@@ -477,7 +595,7 @@ function diRenderProjection(){
   const meta=DI.meta||{};
   const pairs=metaMap(meta,"pairs");
   const ttl=document.getElementById("di-proj-title");
-  if(ttl) ttl.textContent=DI.name||t("di.describe_it", "Describe It");
+  if(ttl) ttl.textContent=DI.name||diSetNames(meta)||t("di.describe_it", "Describe It");
   const cl=document.getElementById("di-proj-clock");
   if(cl) cl.textContent = meta.roundStartedAt ? diSecondsLeft(meta)+"s" : t("di.ready", "Ready");
   const box=document.getElementById("di-proj-pairs");
@@ -794,7 +912,7 @@ document.addEventListener("visibilitychange", ()=>{
 async function diRejoin(summary, run){
   DI = { sessionCode: run.code || summary.code, runId: summary.runId,
          terms: run.questions||[], name: (run.meta&&run.meta.title)||t("di.describe_it", "Describe It"),
-         sets:[], packLang:(run.meta&&run.meta.lang)||"en",
+         sets:[], chosen:[], areaTerms:[], areaName:"", packLang:(run.meta&&run.meta.lang)||"en",
          participants:[], unsub:null, meta: run.meta, tick:null, projecting:false };
   diShowLive();
   diWatchParticipants();

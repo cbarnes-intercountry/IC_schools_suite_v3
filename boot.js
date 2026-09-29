@@ -10,6 +10,7 @@
 /* ---------- Boot ---------- */
 window.addEventListener("DOMContentLoaded", () => {
   initUiLang();       // put the page into its language before anything is read
+  showAppVersion();   // so "which build am I looking at" is a glance, not an inspection
   Backend.init();
   refreshModeBadge();
   teacherAuthBoot();   // recognise a signed-in teacher
