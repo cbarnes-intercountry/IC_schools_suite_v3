@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IC Teacher Hub</title>
+<link rel="stylesheet" href="styles/app.css?v=0.2.3">
+<link rel="stylesheet" href="styles/hub.css?v=0.2.3">
+</head>
+<body>
+
+<!-- The blocking screen. A reference site that silently shows nothing teaches people it is
+     empty; this says it cannot reach anything instead. -->
+<div id="db-down" class="backend-down" hidden>
+  <div class="card center">
+    <h2 data-i18n="backend.cant_reach">Can&rsquo;t reach the database</h2>
+    <p data-i18n="backend.cant_reach_sub" class="sub">Nothing can be read or saved until this is fixed.</p>
+    <p id="db-down-why" class="backend-down-detail"></p>
+    <button class="btn-primary" onclick="backendRetry()" data-i18n="backend.try_again">Try again</button>
+  </div>
+</div>
+
+<!-- SIGN IN — the whole hub sits behind it, so the directory stays out of search engines and
+     nobody needs a second password. -->
+<div class="screen active" id="screen-signin">
+  <div class="card center hub-signin">
+    <span class="badge" data-i18n="hub.ic">Intercountry</span>
+    <h1 data-i18n="hub.teacher_hub">Teacher Hub</h1>
+    <p data-i18n="hub.signin_sub" class="sub">The same account you use for tests and games.</p>
+    <label class="hub-label" data-i18n="auth.email">Email
+      <input id="t-email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false">
+    </label>
+    <label class="hub-label" data-i18n="auth.password">Password
+      <input id="t-pass" type="password" autocomplete="current-password">
+    </label>
+    <button class="btn-primary" onclick="hubSignIn()" data-i18n="auth.sign_in">Sign in</button>
+    <p id="signin-status" class="sub"></p>
+    <button class="link" onclick="hubResetPassword()" data-i18n="auth.forgot">Forgotten your password?</button>
+    <p class="sub mono app-version"></p>
+  </div>
+</div>
+
+<!-- FRONT PAGE — Quizzes and Games above five reference routes. Six items; the ceiling is 8-10. -->
+<div class="screen" id="screen-home">
+  <div class="top-nav wide">
+    <span class="badge" data-i18n="hub.teacher_hub">Teacher Hub</span>
+    <span id="teacher-identity" class="badge" style="display:none;"></span>
+    <span class="grow"></span>
+    <select id="ui-lang-select" aria-label="Language"></select>
+    <button class="mini" data-owner-only onclick="hubAdmin()" data-i18n="hub.edit_content">Edit content</button>
+    <button class="mini" onclick="hubSignOut()" data-i18n="auth.sign_out">Sign out</button>
+  </div>
+  <p id="ui-lang-note" class="sub" style="display:none;"></p>
+
+  <div class="card center">
+    <p id="home-greeting" class="sub"></p>
+    <button class="btn-primary hub-primary" onclick="hubOpenApp()"
+            data-i18n="hub.quizzes_and_games">Quizzes and Games &rarr;</button>
+  </div>
+
+  <div id="home-routes" class="hub-routes"></div>
+
+  <p id="home-empty" class="sub hub-empty" style="display:none;"
+     data-i18n="hub.nothing_added_yet">Nothing has been added to the hub yet. An owner can fill it in under Edit content.</p>
+
+  <p class="sub mono app-version center"></p>
+</div>
+
+<!-- ABOUT US -->
+<div class="screen" id="screen-about">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubHome()" data-i18n="hub.back">&larr; Hub</button>
+  </div>
+  <h1 data-i18n="hub.route_about">About Us</h1>
+  <div id="about-intro" class="hub-prose" style="display:none;"></div>
+  <div id="about-people" class="hub-people"></div>
+  <p id="about-reviewed" class="sub hub-reviewed" style="display:none;"></p>
+</div>
+
+<!-- ONE PROFILE -->
+<div class="screen" id="screen-person">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubGo('about')" data-i18n="hub.back_about">&larr; About Us</button>
+  </div>
+  <div class="card hub-profile">
+    <img id="person-photo" class="hub-photo" alt="" style="display:none;">
+    <h1 id="person-name"></h1>
+    <p id="person-role" class="sub" style="display:none;"></p>
+    <p id="person-email" class="hub-person-mail" style="display:none;"></p>
+    <div id="person-bio" class="hub-prose" style="display:none;"></div>
+    <div id="person-campuses" style="display:none;"></div>
+  </div>
+  <p id="person-reviewed" class="sub hub-reviewed" style="display:none;"></p>
+</div>
+
+<!-- WHO TO ASK? -->
+<div class="screen" id="screen-who">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubHome()" data-i18n="hub.back">&larr; Hub</button>
+  </div>
+  <h1 data-i18n="hub.route_who">Who to ask?</h1>
+  <div id="who-contacts"></div>
+  <p id="who-reviewed" class="sub hub-reviewed" style="display:none;"></p>
+</div>
+
+<!-- OUR PARTNER SCHOOLS — campuses, grouped by school, never merged. -->
+<div class="screen" id="screen-schools">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubHome()" data-i18n="hub.back">&larr; Hub</button>
+    <span class="grow"></span>
+    <button class="mini" onclick="renderPrintSheet()" data-i18n="hub.printable">Printable sheet</button>
+  </div>
+  <h1 data-i18n="hub.route_schools">Our Partner Schools</h1>
+  <div id="schools-list"></div>
+  <p id="schools-reviewed" class="sub hub-reviewed" style="display:none;"></p>
+</div>
+
+<!-- ONE CAMPUS -->
+<div class="screen" id="screen-campus">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubGo('schools')" data-i18n="hub.back_schools">&larr; Schools</button>
+  </div>
+  <h1 id="campus-title"></h1>
+  <div id="campus-body"></div>
+  <p id="campus-reviewed" class="sub hub-reviewed" style="display:none;"></p>
+</div>
+
+<!-- GUIDES -->
+<div class="screen" id="screen-guides">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubHome()" data-i18n="hub.back">&larr; Hub</button>
+  </div>
+  <h1 data-i18n="hub.route_guides">Guides</h1>
+  <div id="guides-list" class="hub-guides"></div>
+  <p id="guides-reviewed" class="sub hub-reviewed" style="display:none;"></p>
+</div>
+
+<!-- ONE GUIDE -->
+<div class="screen" id="screen-guide">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubGo('guides')" data-i18n="hub.back_guides">&larr; Guides</button>
+  </div>
+  <h1 id="guide-title"></h1>
+  <div id="guide-body" class="hub-prose"></div>
+  <p id="guide-reviewed" class="sub hub-reviewed" style="display:none;"></p>
+</div>
+
+<!-- FAQ -->
+<div class="screen" id="screen-faq">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubHome()" data-i18n="hub.back">&larr; Hub</button>
+  </div>
+  <h1 data-i18n="hub.route_faq">FAQ</h1>
+  <div id="faq-list"></div>
+  <p id="faq-reviewed" class="sub hub-reviewed" style="display:none;"></p>
+</div>
+
+<!-- THE PRINTABLE ONE-PAGER — for the day the internet is the problem. -->
+<div class="screen" id="screen-print">
+  <div class="top-nav wide no-print">
+    <button class="mini" onclick="hubGo('schools')" data-i18n="hub.back">&larr; Back</button>
+    <span class="grow"></span>
+    <button class="mini" onclick="hubPrint()" data-i18n="hub.print">Print</button>
+  </div>
+  <div class="print-sheet">
+    <h1 data-i18n="hub.key_numbers">Key numbers and room codes</h1>
+    <p id="print-when" class="sub mono"></p>
+    <div id="print-campuses"></div>
+    <h2 data-i18n="hub.who_to_ask">Who to ask</h2>
+    <div id="print-contacts"></div>
+    <p id="print-stale" class="sub"></p>
+  </div>
+</div>
+
+<!-- EDIT CONTENT — owner only, and refused by the security rules as well as by this screen. -->
+<div class="screen" id="screen-admin">
+  <div class="top-nav wide">
+    <button class="mini" onclick="hubHome()" data-i18n="hub.back">&larr; Hub</button>
+  </div>
+  <h1 data-i18n="hub.edit_content">Edit content</h1>
+  <div id="admin-sections" class="hub-pills"></div>
+  <div class="hub-actions">
+    <button class="btn-primary" onclick="hubAdminNew()" data-i18n="hub.add_entry">Add</button>
+  </div>
+  <p id="admin-status" class="sub"></p>
+  <div id="admin-list"></div>
+  <div id="admin-form" class="card" style="display:none;"></div>
+
+  <details class="hub-bulk">
+    <summary data-i18n="hub.bulk">Bulk edit, as JSON</summary>
+    <p data-i18n="hub.bulk_hint" class="sub">Export first to see the shape. Importing replaces the whole section.</p>
+    <textarea id="admin-json" rows="10" spellcheck="false"></textarea>
+    <div class="hub-actions">
+      <button onclick="hubAdminExport()" data-i18n="hub.export">Export</button>
+      <button onclick="hubAdminImport()" data-i18n="hub.import">Import</button>
+    </div>
+  </details>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="lang/en.js?v=0.2.3"></script>
+<script src="lang/fr.js?v=0.2.3"></script>
+<script src="core/i18n.js?v=0.2.3"></script>
+<script src="core/ui.js?v=0.2.3"></script>
+<script src="core/lines.js?v=0.2.3"></script>
+<script src="core/backend.js?v=0.2.3"></script>
+<script src="core/auth.js?v=0.2.3"></script>
+<script src="pages/home.js?v=0.2.3"></script>
+<script src="pages/about.js?v=0.2.3"></script>
+<script src="pages/schools.js?v=0.2.3"></script>
+<script src="pages/who.js?v=0.2.3"></script>
+<script src="pages/how.js?v=0.2.3"></script>
+<script src="pages/print.js?v=0.2.3"></script>
+<script src="admin/content.js?v=0.2.3"></script>
+<script src="boot.js?v=0.2.3"></script>
+</body>
+</html>

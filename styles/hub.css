@@ -1,0 +1,198 @@
+/* ============================================================================
+   Teacher Hub — hub.css
+   Loaded after app.css, which brings the Exam Hall tokens and the shared
+   components (.card, .screen, .btn-primary, .badge, inputs, buttons).
+
+   DELIBERATELY PLAIN. Chris's verdict on the first design pass was that the app's
+   display face is too expressive for a staff reference site, and that the layouts
+   and labels were not right either. Rather than guess again, this build keeps the
+   shared components, sets the hub's own type at a sober weight and size, and adds
+   nothing decorative. It is meant to be read and argued with, not admired.
+   ============================================================================ */
+
+/* ---------- the small shared bits app.css does not carry ---------- */
+.grow{ flex:1 1 auto; }
+
+.mini{ min-height:36px; padding:7px 12px; font-size:.82rem; box-shadow:2px 2px 0 var(--ink); }
+
+.danger{ color:var(--magenta); }
+
+.link{ background:none; border:none; box-shadow:none; min-height:0; padding:4px;
+  text-decoration:underline; font-size:.88rem; color:var(--ink-soft); }
+
+.no-print{ }
+
+/* ---------- page furniture ---------- */
+.screen h1{ font-size:1.6rem; line-height:1.2; margin:0 0 4px; width:100%; max-width:640px; }
+.screen h2{ font-size:1.05rem; margin:26px 0 8px; width:100%; max-width:640px; }
+.screen > div, .screen > p{ width:100%; max-width:640px; }
+
+/* The owner-and-date line. Quiet, but on every page: a reference site nobody can date is a
+   reference site nobody can trust. */
+.hub-reviewed{ font-size:.82rem; color:var(--ink-soft); border-top:2px solid var(--paper-2);
+  padding-top:10px; margin-top:26px; }
+
+.hub-empty{ font-style:italic; }
+
+.hub-label{ display:block; font-weight:700; font-size:.88rem; margin:12px 0 0; text-align:start; }
+.hub-req{ color:var(--magenta); }
+
+.hub-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+
+/* ---------- sign in ---------- */
+.hub-signin{ margin:auto; max-width:420px; }
+.hub-signin h1{ margin:10px 0 2px; }
+
+/* ---------- front page ---------- */
+/* One dominant action. Bigger than anything else on the page on purpose — starting a lesson is
+   what most visits are for, and everything else is reference. */
+.hub-primary{ width:100%; font-size:1.15rem; min-height:64px; }
+
+.hub-routes{ display:flex; flex-direction:column; gap:12px; margin-top:16px; }
+
+.hub-route{ display:flex; flex-direction:column; align-items:flex-start; gap:4px;
+  text-align:start; width:100%; padding:16px 18px; background:var(--surface); }
+.hub-route-label{ font-size:1.05rem; font-weight:800; }
+.hub-route-hint{ font-size:.86rem; font-weight:400; color:var(--ink-soft); line-height:1.45; }
+
+/* ---------- content rows ---------- */
+.hub-card{ background:var(--surface); border:2px solid var(--ink); border-radius:14px;
+  padding:16px 18px; margin-bottom:12px; }
+.hub-card h3{ margin:0 0 8px; font-size:1.05rem; }
+
+.hub-address{ margin:0 0 8px; line-height:1.5; }
+
+.hub-field{ margin:4px 0; line-height:1.5; font-size:.94rem; }
+.hub-field-label{ font-family:"Space Mono",monospace; font-size:.7rem; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); }
+
+.hub-row{ display:flex; gap:12px; align-items:baseline; justify-content:space-between;
+  padding:10px 0; border-bottom:2px solid var(--paper-2); }
+.hub-row-main{ font-weight:700; min-width:0; }
+.hub-row-side{ flex:0 0 auto; color:var(--ink-soft); font-size:.9rem; text-align:end; }
+.hub-row-note{ margin:4px 0 10px; font-size:.88rem; color:var(--ink-soft); }
+
+.hub-person{ display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline;
+  padding:9px 0; border-bottom:2px solid var(--paper-2); }
+.hub-person-name{ font-weight:700; }
+.hub-person-role{ color:var(--ink-soft); font-size:.88rem; }
+.hub-person-mail{ flex:1 0 100%; font-family:"Space Mono",monospace; font-size:.8rem; }
+
+/* ---------- guides ---------- */
+.hub-guides{ display:flex; flex-direction:column; gap:8px; }
+.hub-guide-link{ text-align:start; width:100%; font-size:1rem; }
+
+.hub-prose{ line-height:1.6; }
+.hub-prose p{ margin:0 0 12px; }
+
+.hub-faq{ padding:12px 0; border-bottom:2px solid var(--paper-2); }
+.hub-faq-q{ font-weight:700; margin:0 0 6px; }
+.hub-faq p{ margin:0 0 8px; line-height:1.55; }
+
+/* ---------- edit content ---------- */
+.hub-pills{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.hub-pill{ min-height:38px; padding:7px 13px; font-size:.84rem; box-shadow:2px 2px 0 var(--ink); }
+.hub-pill-on{ background:var(--ink); color:var(--surface); }
+
+.hub-bulk{ margin-top:28px; border:2px dashed var(--ink); border-radius:12px; padding:12px 16px; }
+.hub-bulk summary{ font-weight:700; cursor:pointer; }
+.hub-bulk textarea{ font-family:"Space Mono",monospace; font-size:.78rem; }
+
+/* ---------- the printable sheet ----------
+   It has to survive a printer with no colour and a person with no patience: black on white,
+   nothing that needs a background to be legible, and the whole thing aimed at one side of A4. */
+.print-sheet{ background:#fff; border:2px solid var(--ink); border-radius:14px;
+  padding:22px 24px; width:100%; max-width:640px; }
+.print-block{ margin-bottom:14px; }
+.print-block h3{ margin:0 0 4px; font-size:1rem; }
+.print-block p{ margin:2px 0; font-size:.9rem; line-height:1.4; }
+
+@media print{
+  body{ background:#fff; }
+  .no-print, .top-nav{ display:none !important; }
+  .screen{ display:none !important; padding:0; }
+  .screen.active{ display:block !important; }
+  .print-sheet{ border:none; border-radius:0; padding:0; max-width:none; }
+  .print-sheet h1{ font-size:1.3rem; }
+  .print-block{ break-inside:avoid; }
+}
+
+/* A phone in a corridor is the common case, so nothing here relies on width — but a laptop
+   should not stretch a line of prose across a whole screen either. */
+@media (max-width:480px){
+  .screen{ padding:16px 16px 36px; }
+  .screen h1{ font-size:1.35rem; }
+  .hub-row{ flex-wrap:wrap; }
+  .hub-row-side{ text-align:start; }
+}
+
+/* The front page's nav carries an identity badge, a language picker and two buttons, which at
+   390px is six pixels more than a phone has. Caught by measuring the page rather than by
+   looking at it: six pixels of horizontal scroll is invisible in a screenshot and unmistakable
+   in the hand. */
+.top-nav{ flex-wrap:wrap; max-width:640px; }
+.top-nav.wide{ max-width:1080px; }
+.top-nav select{ margin:0; width:auto; min-width:0; flex:0 1 auto; }
+
+
+/* ---------------------------------------------------------------------------
+   v0.2 — campuses, profiles and transport
+   --------------------------------------------------------------------------- */
+
+/* A school heading groups its campuses. The campuses never merge, so the heading has to read as
+   a heading and not as another tappable thing. */
+.hub-school-name{ font-size:.95rem; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--ink-soft); margin:22px 0 8px; }
+.hub-school-name:first-child{ margin-top:6px; }
+
+.hub-campus-link{ display:flex; flex-direction:column; align-items:flex-start; gap:5px;
+  text-align:start; width:100%; padding:14px 16px; margin-bottom:8px; background:var(--surface); }
+.hub-campus-name{ font-size:1.05rem; font-weight:800; }
+.hub-campus-sub{ font-size:.86rem; font-weight:400; color:var(--ink-soft); line-height:1.4; }
+
+/* Line badges. A disc with the number on it, in the operator's colour — drawn, never uploaded.
+   Sized so a row of four still has 30px targets on a phone and stays legible in print. */
+.line-badges{ display:inline-flex; flex-wrap:wrap; gap:5px; align-items:center; }
+.line-badge{ display:inline-grid; place-items:center; min-width:26px; height:26px; padding:0 6px;
+  border-radius:13px; font-family:"Space Mono",monospace; font-weight:700; font-size:.82rem;
+  line-height:1; border:1.5px solid rgba(0,0,0,.25); }
+/* A line the colour table does not know is grey and dashed, so it reads as "not recognised"
+   rather than as a line that happens to be grey. */
+.line-badge-unknown{ border-style:dashed; }
+
+.hub-map{ display:block; width:100%; max-width:100%; height:auto; border:2px solid var(--ink);
+  border-radius:12px; margin:12px 0 4px; background:var(--paper-2); }
+
+.hub-transport{ margin:8px 0 0; line-height:1.55; font-size:.94rem; }
+
+.screen h3{ font-size:.95rem; margin:22px 0 6px; width:100%; max-width:640px; }
+
+/* People, as doors rather than rows. */
+.hub-people{ display:flex; flex-direction:column; gap:8px; }
+.hub-person-link{ display:flex; align-items:center; gap:12px; text-align:start; width:100%;
+  padding:11px 14px; background:var(--surface); }
+.hub-person-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+
+/* No photo is a choice, not a fault, so the fallback is their initials rather than a grey
+   silhouette of nobody. */
+.hub-avatar{ flex:0 0 auto; width:44px; height:44px; border-radius:22px; object-fit:cover;
+  border:2px solid var(--ink); background:var(--paper-2); }
+.hub-avatar-none{ display:grid; place-items:center; font-family:"Space Mono",monospace;
+  font-weight:700; font-size:.9rem; color:var(--ink-soft); }
+
+.hub-profile{ max-width:640px; }
+.hub-photo{ display:block; width:96px; height:96px; border-radius:48px; object-fit:cover;
+  border:2px solid var(--ink); margin-bottom:10px; }
+.hub-profile h1{ margin:0 0 2px; }
+
+/* Chips through to a campus, and back from a campus to a person. One typed field, two
+   directions. */
+.hub-here{ display:flex; flex-wrap:wrap; gap:8px; }
+.hub-chip{ min-height:38px; padding:7px 13px; font-size:.84rem; box-shadow:2px 2px 0 var(--ink); }
+
+/* A note under a field in the editor, not a placeholder inside it — a placeholder vanishes at
+   exactly the moment the advice starts to matter. */
+.hub-note{ display:block; font-weight:400; font-size:.8rem; color:var(--ink-soft);
+  line-height:1.4; margin:2px 0 4px; }
+
+.print-school{ font-size:1rem; margin:14px 0 6px; text-transform:uppercase; letter-spacing:.06em; }
