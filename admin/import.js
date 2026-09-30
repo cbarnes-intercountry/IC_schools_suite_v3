@@ -302,3 +302,41 @@ function parseSubjectRows(rows){
   });
   return { subjects:subjects, errors:errors, lang:lang };
 }
+
+
+/* Word Partners collocation sheets. Same shape as the other two — a Set column that carries down a
+   block, one row per card — so a teacher who has filled one in knows how to fill all three. */
+function parseCollocationRows(rows){
+  const cards=[], errors=[], seen={};
+  const get=(row,name)=>{ const key=Object.keys(row).find(k=>k.trim().toLowerCase()===name.toLowerCase()); return key?String(row[key]).trim():""; };
+  const lang=readSheetLang(rows, get, errors);
+  let theme="";
+  (rows||[]).forEach((row,i)=>{
+    const rowNum=i+2;
+    const head=get(row,"Word") || get(row,"Head");
+    const here=get(row,"Set") || get(row,"Theme");
+    const rawPattern=get(row,"Pattern");
+    const partnersRaw=get(row,"Partners");
+    if(here) theme=here;
+    if(!head && !partnersRaw) return;                            // a spacer row
+    if(!head){ errors.push(t("import.row_no_head", "Row {row}: partners with no word.", {row:rowNum})); return; }
+    const key=theme.toLowerCase()+"\u0000"+head.toLowerCase();
+    if(seen[key]){ errors.push(t("import.row_duplicate_head", "Row {row}: “{head}” is already in this set.", {row:rowNum, head:head})); return; }
+    seen[key]=true;
+    const pattern=WP_PATTERNS.find(p=>p===rawPattern.toLowerCase());
+    if(rawPattern && !pattern) errors.push(t("import.row_unknown_pattern",
+      "Row {row}: pattern “{pattern}” is not one the app knows, so “{head}” asks for verbs.",
+      {row:rowNum, pattern:rawPattern, head:head}));
+    const partners=String(partnersRaw||"").split(";").map(x=>x.trim()).filter(Boolean);
+    if(partners.length > WP_MAX_PARTNERS) errors.push(t("import.row_too_many_partners",
+      "Row {row}: “{head}” has more than {max} partners; the rest are dropped.",
+      {row:rowNum, head:head, max:WP_MAX_PARTNERS}));
+    if(partners.length < WP_MIN_PARTNERS) errors.push(t("import.row_too_few_partners",
+      "Row {row}: “{head}” has only {n}, which is over before it starts.",
+      {row:rowNum, head:head, n:partners.length}));
+    if(!theme) errors.push(t("import.row_no_set_head", "Row {row}: “{head}” has no set, so it can only be played as part of the whole area.", {row:rowNum, head:head}));
+    cards.push({ id:"wc_"+uid(6), head:head, pattern:(pattern||WP_DEFAULT_PATTERN),
+                 partners:partners.slice(0, WP_MAX_PARTNERS), theme:theme, lang:lang });
+  });
+  return { cards:cards, errors:errors, lang:lang };
+}

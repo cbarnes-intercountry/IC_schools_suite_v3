@@ -695,3 +695,32 @@
   .tq-year-in{ flex:1 0 46%; }
   .tq-facts-in{ flex:1 0 100%; }
 }
+
+/* ---------- Word Partners (v3.13) ----------
+   Borrowing the card, clock and score-row classes from the other two games on purpose. What is new
+   is the checklist, which is the only part of this game that has no equivalent elsewhere. */
+
+/* The partners, as tappable rows. Hidden ones show dots rather than a blank, so the holder can see
+   at a glance how many are left without counting empty space — and the row is a full-width tap
+   target because it is tapped while looking at a person, not at the phone. */
+.wp-list{ display:flex; flex-direction:column; gap:6px; margin-top:14px; text-align:start; }
+.wp-p{
+  display:flex; align-items:center; gap:10px; width:100%;
+  padding:12px 14px; border:2px solid var(--ink); border-radius:10px;
+  background:transparent; font:inherit; font-size:1.02rem; cursor:pointer; text-align:start;
+}
+.wp-p-word{ flex:1; min-width:0; letter-spacing:.02em; }
+.wp-p-mark{ flex:0 0 auto; font-weight:800; font-size:1.1rem; }
+.wp-p-got{ background:var(--success-soft); font-weight:700; }
+/* Revealed, not produced: shown but struck through, because it scored nothing. */
+.wp-p-shown{ opacity:.55; }
+.wp-p-shown .wp-p-word{ text-decoration:line-through; }
+
+.wp-done{ font-weight:700; color:var(--success); }
+
+/* "That works too" is used a few times a round and matters every time, so it gets the full width
+   rather than being tucked beside something. */
+.wp-also{ font-size:.95rem; padding:14px 12px; }
+
+/* The live partner count in the editor row. */
+.wp-count-in{ flex:0 0 2.2rem; text-align:center; opacity:.6; align-self:center; }

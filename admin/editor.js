@@ -31,7 +31,8 @@ async function loadQuizList(){
      ["poll","poll-library-select",t("editor.select_saved_poll", "\u2014 select a saved poll \u2014")],
      ["roleplay","rp-library-select",t("editor.select_saved_role_play", "\u2014 select a saved role play \u2014")],
      ["describeit","di-library-select",t("editor.select_saved_pack", "\u2014 select a saved word pack \u2014")],
-     ["twentyq","tq-library-select",t("editor.select_saved_subjects", "\u2014 select a saved subject pack \u2014")]].forEach(([kind,id,placeholder])=>{
+     ["twentyq","tq-library-select",t("editor.select_saved_subjects", "\u2014 select a saved subject pack \u2014")],
+     ["partners","wp-library-select",t("editor.select_saved_partners", "\u2014 select a saved partner pack \u2014")]].forEach(([kind,id,placeholder])=>{
       const sel=document.getElementById(id);
       if(!sel) return;
       sel.innerHTML='<option value="">'+escapeHtml(placeholder)+'</option>';
@@ -44,7 +45,9 @@ async function loadQuizList(){
             ? plural(q.count, t("di.term", "term"), t("di.terms", "terms"))
             : (kind==="twentyq")
               ? plural(q.count, t("tq.subject", "subject"), t("tq.subjects", "subjects"))
-              : plural(q.count, t("poll.question", "question"), t("poll.questions", "questions"));
+              : (kind==="partners")
+                ? plural(q.count, t("wp.card", "word"), t("wp.cards", "words"))
+                : plural(q.count, t("poll.question", "question"), t("poll.questions", "questions"));
         opt.textContent = q.name + (sc?" \u00b7 "+sc:"") + " (" + q.count + " " + unit + ")";
         sel.appendChild(opt);
       });

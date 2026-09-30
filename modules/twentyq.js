@@ -174,14 +174,22 @@ function tqStandings(participants, pairs){
 /* ---------- teacher: setting one up ---------- */
 
 async function tqCreateSession(){
-  if(!requireActive()) return;
-  TQ.sessionCode = makeCode();
-  TQ.chosen=[]; TQ.areaSubjects=[]; TQ.areaName="";
-  document.getElementById("tq-code").textContent=TQ.sessionCode;
-  await loadTwentyQSetList();
+  /* Exactly the shape Describe It uses. The first version of this function called requireActive()
+     and makeCode(), neither of which exists anywhere in the app — invented names that threw on the
+     first line, so the button on the teacher's home screen did nothing at all. The whole suite
+     passed, because nothing in it ever called the function the button is wired to. There is now a
+     check that every handler named in the markup resolves to a real function. */
+  if(!(await confirmNoOpenRun("game"))) return;
+  const code = genSessionCode();
+  TQ = { sessionCode:code, runId:null, subjects:[], name:"", sets:[], packLang:"en",
+         areaSubjects:[], areaName:"", chosen:[],
+         participants:[], unsub:null, meta:null, tick:null, projecting:false };
+  const c=document.getElementById("tq-code");
+  if(c){ c.textContent=t("tq.code_is", "Code \u00b7 {code}", {code:code}); c.style.display="inline-block"; }
+  tqResetStep2();
   tqFillRoundLengths();
   tqFillCaps();
-  tqResetStep2();
+  await loadTwentyQSetList();
   tqRenderChosen();
   showScreen("screen-tq-setup");
 }

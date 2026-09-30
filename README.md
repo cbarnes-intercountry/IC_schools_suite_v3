@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.12
+# Classroom Exam App — v3.13
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,50 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.13 adds the third game — Word Partners — which trains collocation.**
+
+One phone shows a word and the hidden list of words that go with it; the partner has to say them
+out loud. The holder ticks each one off. Score is partners found, so a pair that digs deep into one
+word beats a pair that races through four.
+
+Three games, three competences: Describe It is circumlocution, Twenty Questions is the question,
+this is collocation — the single biggest thing separating B1 from B2 in business English, and
+exactly what a French speaker gets wrong by translating (*do a decision, *strong traffic, *declare
+a claim).
+
+**It has to be produced, not recognised.** A student shown "meet / do / make — a deadline" picks the
+right one and has learned nothing, because the wrong answers were never live for them. Cold, from
+the noun alone, is a different task, and it is the one a multiple-choice question cannot set.
+
+**The button that matters is "That works too".** A pack lists six partners for *a deadline*; English
+has more. A pair that produces "blow a deadline" and is told it is wrong has been taught something
+false **by a checklist**. So the holder can accept anything that works, it scores like any other,
+and nothing is recorded about which pair accepted what — the debrief question, "what else did you
+find?", is a spoken one, and it is the best two minutes in the activity.
+
+**"Show one"** reveals a partner the pair have not got and deliberately scores nothing: a word they
+were shown is not a word they produced. It is struck through on the list, and the counter leaves it
+out.
+
+Three areas ship with it — Business core, Insurance and banking, Everyday — 90 words and 462
+partners in nine sets. The insurance area is where collocation stops being polish and becomes the
+exam.
+
+**v3.12a fixes two dead buttons, and adds the check that finds them.**
+
+The **Start Twenty Questions** button did nothing. Its handler called `requireActive()` and
+`makeCode()`, two functions that exist nowhere in the app — invented names that threw on the first
+line. The whole suite passed throughout, because nothing in it ever called the function the button
+is wired to.
+
+That is a class of defect, not one mistake, so the fix is a check rather than a correction: every
+name in an `onclick`, `onchange` or `oninput` — in the markup and in the markup the app generates
+at runtime — must resolve to a function the app actually declares. It found a second one
+immediately. **`setTermField` did not exist**, and it is wired to every text box in the Describe It
+word editor: typing in a term or a forbidden word has gone nowhere since v3.8, and the only way to
+change a pack was to re-import the sheet. It existed in v3.7 and was lost. Restored, and now it
+also handles a pack that kept its words as one comma string.
 
 **v3.12 puts the facts on the card, so the holder does not have to know who the person is.**
 
@@ -372,11 +416,26 @@ made later.
 From the folder *above* this one:
 
 ```
-node "_test v3.12.js"
+node "_test v3.13.js"
 ```
 
-1,121 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+1,237 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
+
+## Running Word Partners
+
+Admin → **Partner Sets · Word Partners** to write areas (or import a `Partners` sheet: Set, Word,
+Pattern, Partners, Language — partners separated by semicolons, four to eight a card, most natural
+first). Then Teacher Home → **Start Word Partners** → area, set, round length; students join with
+the code, and **Deal the pairs**.
+
+The order of the partners matters: "Show one" reveals the first one the pair have not got, so the
+order decides what a stuck pair is handed. A partner must actually collocate rather than merely be
+possible — "organise a deadline" is grammatical and nobody says it.
+
+An odd student out becomes a **second speaker**. Two people producing against one checklist is the
+strongest version of this for a weaker pair: they prompt each other, and the holder hears twice as
+much language. Nothing is marked and nothing is kept.
 
 ## Running Twenty Questions
 

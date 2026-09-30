@@ -153,6 +153,31 @@ function renderTermList(){
 
 /* Renaming a set, once, for every term in it. Doing it row by row is how half a set ends up
    under the old name and the other half under the new one — and neither is then a full lesson. */
+/* Typing in a term box, or in one of its forbidden boxes.
+
+   This existed in v3.7 and was lost in v3.8, and nothing noticed for five releases: every text box
+   in this editor called it, so every keystroke in the Describe It word editor went nowhere and the
+   only way to change a pack was to re-import the sheet. Found by the handler check added in v3.12,
+   which resolves every name in an onclick or oninput against the functions the app actually
+   declares. Nothing else would have found it — the suite tested this file's set operations
+   thoroughly and never typed a character. */
+function setTermField(i, j, value){
+  const tm=TERMS.list[i]; if(!tm) return;
+  if(j<0){ tm.term=value; return; }
+  /* Normalised to an array first, the way diForbidden reads it. A pack saved before v3.7 can carry
+     `forbidden` as one comma-separated string, and assigning into a string does nothing at all and
+     says nothing about it — the box would look alive and change no data, which is the same defect
+     as the missing function, one layer down.
+
+     No padding: writing past the end leaves a hole, and map and filter both skip holes, so the
+     fourth box works on a two-word term without it. A loop whose removal changes no behaviour is a
+     line the tests cannot hold to account. */
+  const raw=(tm.forbidden==null) ? [] : tm.forbidden;
+  const f=Array.isArray(raw) ? raw.slice() : String(raw).split(",");
+  f[j]=value;
+  tm.forbidden=f.slice(0, DI_MAX_FORBIDDEN).map(x=>String(x).trim()).filter(Boolean);
+}
+
 function renameTermSet(oldName, newName){
   const name=String(newName||"").trim();
   if(name===oldName){ return; }

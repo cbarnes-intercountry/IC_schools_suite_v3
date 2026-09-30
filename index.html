@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.12">
+<link rel="stylesheet" href="styles/app.css?v=3.13">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -114,6 +114,16 @@
           <button data-i18n="admin.delete" class="btn-outline" onclick="deleteSubjectSet()" data-owner-only>Delete</button>
         </div>
         <button data-i18n="admin.create_new_area" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newSubjectSet()">+ Create a New Area</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2 data-i18n="admin.collocation_creator">Partner Sets &middot; Word Partners</h2>
+        <p data-i18n="admin.collocations_for_word_partners" class="sub">Collocations for Word Partners, filed by area &mdash; Business core, Insurance and banking, Everyday &mdash; and inside each area by set. A card is one word and the words that go with it — a deadline gives meet, miss, set, extend, push back.</p>
+        <select id="wp-library-select"><option data-i18n="admin.opt.select_saved_area" value="">&mdash; select a saved area &mdash;</option></select>
+        <div class="btn-row">
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadCollocationSet()">Load / Edit</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteCollocationSet()" data-owner-only>Delete</button>
+        </div>
+        <button data-i18n="admin.create_new_area" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newCollocationSet()">+ Create a New Area</button>
       </div>
       <div class="card" style="margin-top:16px;" data-owner-only>
         <h2 data-i18n="admin.image_search">Image Search</h2>
@@ -293,6 +303,7 @@
         <button data-i18n="teacher_login.start_role_play" class="btn-secondary" onclick="rpCreateSession()">Start a Role Play</button>
         <button data-i18n="teacher_login.start_describe_it" class="btn-secondary" onclick="diCreateSession()">Start Describe It</button>
         <button data-i18n="teacher_login.start_twenty_questions" class="btn-secondary" onclick="tqCreateSession()">Start Twenty Questions</button>
+        <button data-i18n="teacher_login.start_word_partners" class="btn-secondary" onclick="wpCreateSession()">Start Word Partners</button>
         <button data-i18n="teacher_login.test_archive" class="btn-outline" onclick="openHistory()">Test Archive</button>
       </div>
     </div>
@@ -827,33 +838,35 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.12"></script>
-<script src="lang/fr.js?v=3.12"></script>
-<script src="core/i18n.js?v=3.12"></script>
-<script src="core/registry.js?v=3.12"></script>
-<script src="core/backend.js?v=3.12"></script>
-<script src="core/auth.js?v=3.12"></script>
-<script src="core/ui.js?v=3.12"></script>
-<script src="core/session.js?v=3.12"></script>
-<script src="core/groups.js?v=3.12"></script>
-<script src="core/rounds.js?v=3.12"></script>
-<script src="core/bank.js?v=3.12"></script>
-<script src="core/media.js?v=3.12"></script>
-<script src="core/security.js?v=3.12"></script>
-<script src="core/answers.js?v=3.12"></script>
-<script src="modules/test.js?v=3.12"></script>
-<script src="modules/poll.js?v=3.12"></script>
-<script src="modules/roleplay.js?v=3.12"></script>
-<script src="modules/describeit.js?v=3.12"></script>
-<script src="modules/twentyq.js?v=3.12"></script>
-<script src="admin/editor.js?v=3.12"></script>
-<script src="admin/import.js?v=3.12"></script>
-<script src="admin/reports.js?v=3.12"></script>
-<script src="admin/scenarios.js?v=3.12"></script>
-<script src="admin/terms.js?v=3.12"></script>
-<script src="admin/subjects.js?v=3.12"></script>
-<script src="admin/accounts.js?v=3.12"></script>
-<script src="boot.js?v=3.12"></script>
+<script src="lang/en.js?v=3.13"></script>
+<script src="lang/fr.js?v=3.13"></script>
+<script src="core/i18n.js?v=3.13"></script>
+<script src="core/registry.js?v=3.13"></script>
+<script src="core/backend.js?v=3.13"></script>
+<script src="core/auth.js?v=3.13"></script>
+<script src="core/ui.js?v=3.13"></script>
+<script src="core/session.js?v=3.13"></script>
+<script src="core/groups.js?v=3.13"></script>
+<script src="core/rounds.js?v=3.13"></script>
+<script src="core/bank.js?v=3.13"></script>
+<script src="core/media.js?v=3.13"></script>
+<script src="core/security.js?v=3.13"></script>
+<script src="core/answers.js?v=3.13"></script>
+<script src="modules/test.js?v=3.13"></script>
+<script src="modules/poll.js?v=3.13"></script>
+<script src="modules/roleplay.js?v=3.13"></script>
+<script src="modules/describeit.js?v=3.13"></script>
+<script src="modules/twentyq.js?v=3.13"></script>
+<script src="modules/partners.js?v=3.13"></script>
+<script src="admin/editor.js?v=3.13"></script>
+<script src="admin/import.js?v=3.13"></script>
+<script src="admin/reports.js?v=3.13"></script>
+<script src="admin/scenarios.js?v=3.13"></script>
+<script src="admin/terms.js?v=3.13"></script>
+<script src="admin/subjects.js?v=3.13"></script>
+<script src="admin/collocations.js?v=3.13"></script>
+<script src="admin/accounts.js?v=3.13"></script>
+<script src="boot.js?v=3.13"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -1442,6 +1455,214 @@
   </div>
 </div>
 
+
+<!-- ===================== WORD PARTNERS ===================== -->
+<div class="screen" id="screen-wp-setup">
+  <div class="top-nav wide">
+    <span data-i18n="wp_setup.word_partners_setup" class="badge">Word Partners &middot; Setup</span>
+    <span id="wp-code" class="badge live" style="display:none;"></span>
+    <a data-i18n="rp_setup.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
+  </div>
+  <div class="card">
+    <h1 data-i18n="wp_setup.start_word_partners">Start Word Partners</h1>
+    <p data-i18n="wp_setup.blurb" class="sub">Pairs. One phone shows a word and the hidden list of words that go with it; the partner has to say them. Collocation, produced cold rather than picked from four options.</p>
+    <div class="row" style="align-items:baseline;">
+      <label data-i18n="wp_setup.partner_sets" style="flex:1;">Partner sets</label>
+      <span class="badge" id="wp-chosen-count"></span>
+    </div>
+    <div id="wp-chosen" class="di-chosen"></div>
+
+    <label data-i18n="wp_setup.area" style="margin-top:14px;">Area</label>
+    <select id="wp-set-select" onchange="wpSetPicked()"><option data-i18n="wp_setup.opt.loading" value="">&mdash; loading &mdash;</option></select>
+    <div id="wp-theme-row" style="display:none;">
+      <label data-i18n="wp_setup.set" style="margin-top:14px;">Set</label>
+      <div class="row">
+        <select id="wp-theme-select" style="flex:1;"></select>
+        <button data-i18n="wp_setup.add_set" class="btn-outline" id="wp-add-set-btn" style="flex:0 0 auto;" onclick="wpAddSet()">Add</button>
+      </div>
+    </div>
+
+    <label data-i18n="wp_setup.round_length" style="margin-top:14px;">Round length</label>
+    <select id="wp-seconds-select"></select>
+    <small data-i18n="wp_setup.length_hint" class="hint">A card takes about a minute to work through properly. Two minutes is one or two cards for a first round; three is where a confident class ends up.</small>
+    <p id="wp-summary" class="sub" style="margin-top:10px;"></p>
+    <button data-i18n="rp_setup.open_room" class="btn-primary" id="wp-start-btn" style="width:100%;margin-top:14px;" disabled onclick="wpStartSession()">Open the room</button>
+    <p data-i18n="wp_setup.also_works_note" class="sub" style="font-size:.78rem;margin-top:10px;">The holder has a &ldquo;That works too&rdquo; button. A pack lists six partners for a deadline; English has more, and a pair told that &ldquo;blow a deadline&rdquo; is wrong has been taught something false by a checklist. Anything that works scores.</p>
+  </div>
+</div>
+
+<!-- WORD PARTNERS — teacher live -->
+<div class="screen" id="screen-wp-live">
+  <div class="top-nav wide">
+    <span class="badge">Partners &middot; <span id="wp-live-code"></span></span>
+    <span class="nav-r">
+      <a data-i18n="rp_live.project" class="linklike" onclick="wpToggleProject()">Project</a>
+      <a data-i18n="rp_live.leave" class="linklike" onclick="wpLeave()">Leave</a>
+      <a data-i18n="rp_live.end" class="linklike" onclick="wpEnd()">End</a>
+    </span>
+  </div>
+
+  <div id="wp-lobby">
+    <div class="card center">
+      <h1 id="wp-title">Word Partners</h1>
+      <p data-i18n="wp_live.students_join_below" class="sub">Students join at the code below. Deal the pairs when everyone is in.</p>
+      <div class="joincode" id="wp-join-code"></div>
+      <div id="wp-qr-code" style="margin:14px auto;"></div>
+      <p class="sub mono" id="wp-join-url" style="font-size:.75rem;"></p>
+      <p class="sub" id="wp-count">0 joined</p>
+      <p class="feed-warning" id="wp-feed-warning" style="display:none;"></p>
+      <div id="wp-roster" class="chips"></div>
+      <p class="sub" id="wp-odd-note" style="display:none;margin-top:10px;"></p>
+      <button data-i18n="wp_live.deal_pairs" class="btn-primary" id="wp-deal-btn" style="width:100%;margin-top:16px;" disabled onclick="wpDeal()">Deal the pairs</button>
+    </div>
+  </div>
+
+  <div id="wp-stage" style="display:none;">
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="wp_live.the_round" style="flex:1;">The round</h2>
+        <span class="badge" id="wp-round">Round 1</span>
+        <span class="badge" id="wp-live-theme" style="display:none;"></span>
+        <span class="di-clock" id="wp-clock">&mdash;</span>
+      </div>
+      <div class="row" style="align-items:center;gap:10px;margin-top:10px;">
+        <label data-i18n="wp_live.round_length" for="wp-live-seconds" style="margin:0;flex:0 0 auto;">Round length</label>
+        <select id="wp-live-seconds" onchange="wpSetSeconds()" style="flex:1;"></select>
+      </div>
+      <small data-i18n="wp_live.settings_hint" class="hint">Takes effect on the next round, so nobody&rsquo;s clock changes under them.</small>
+      <button class="btn-primary" id="wp-start-round-btn" style="width:100%;margin-top:12px;" onclick="wpStartRound()">Start the round</button>
+      <div class="btn-row" style="margin-top:12px;">
+        <button data-i18n="wp_live.swap_roles" class="btn-outline" onclick="wpSwapRoles()">Swap roles</button>
+        <button data-i18n="wp_live.new_pairs" class="btn-outline" onclick="wpNewPairs()">New pairs</button>
+      </div>
+      <p data-i18n="wp_live.swap_note" class="sub" style="margin-top:8px;font-size:.8rem;">Swap roles keeps the pairs and hands the list to the other one. The second round is where the gain is: they have just heard a set of collocations and now have to produce them. Both start a fresh round and the counts go back to zero.</p>
+    </div>
+    <div class="card" id="wp-scores" style="margin-top:16px;display:none;">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="wp_live.scores" style="flex:1;">Scores</h2>
+        <span class="badge" id="wp-scores-round"></span>
+      </div>
+      <div class="duo-flat">
+        <div>
+          <div data-i18n="wp_live.this_round" class="di-label">This round</div>
+          <div id="wp-scores-round-list" class="di-scores-list"></div>
+        </div>
+        <div>
+          <div data-i18n="wp_live.running_total" class="di-label">Running total</div>
+          <div id="wp-scores-total-list" class="di-scores-list"></div>
+        </div>
+      </div>
+      <p id="wp-scores-note" class="sub" style="font-size:.8rem;margin-top:10px;"></p>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h2 data-i18n="wp_live.pairs">Pairs</h2>
+      <div id="wp-pairs" class="di-pairs"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WORD PARTNERS — projector -->
+<div id="wp-projection" class="rp-projection" style="display:none;" onclick="wpToggleProject()">
+  <div class="rp-proj-inner">
+    <h1 id="wp-proj-title"></h1>
+    <div class="di-proj-clock" id="wp-proj-clock"></div>
+    <div id="wp-proj-pairs" class="rp-proj-groups"></div>
+    <p data-i18n="rp_live.tap_anywhere_close" class="rp-proj-hint">Tap anywhere to close</p>
+  </div>
+</div>
+
+<!-- WORD PARTNERS — the student's phone -->
+<div class="screen" id="screen-wp-card">
+  <div class="top-nav">
+    <span data-i18n="wp.word_partners" class="badge">Word Partners</span>
+    <span id="wp-card-name" class="badge" style="display:none;"></span>
+  </div>
+
+  <div class="card center" id="wp-card-waiting">
+    <h1 data-i18n="rp_card.re">You&rsquo;re in</h1>
+    <p data-i18n="wp_card.wait_for_pairs" class="sub">Wait for your teacher to deal the pairs.</p>
+  </div>
+
+  <div id="wp-card-main" style="display:none;">
+    <div class="card">
+      <div class="row" style="align-items:center;gap:10px;">
+        <span class="badge live" id="wp-card-role"></span>
+        <span class="badge" id="wp-card-pair"></span>
+        <span class="di-clock" id="wp-card-clock" style="margin-inline-start:auto;"></span>
+      </div>
+      <p class="sub" id="wp-card-partner" style="margin-top:8px;"></p>
+      <p class="feed-warning" id="wp-card-warning" style="display:none;"></p>
+    </div>
+
+    <div id="wp-holder-view" style="display:none;">
+      <div class="card center" id="wp-holder-ready" style="margin-top:14px;">
+        <h2 data-i18n="wp_card.you_have_the_answers">You have the answers</h2>
+        <p data-i18n="wp_card.dont_show" class="sub">Don&rsquo;t show this screen to your partner. The first word appears when your teacher starts the round.</p>
+      </div>
+
+      <div id="wp-holder-play" style="display:none;">
+        <div class="card center di-termcard" style="margin-top:14px;">
+          <div class="di-label" id="wp-pattern"></div>
+          <div class="di-term" id="wp-head"></div>
+          <div class="wp-list" id="wp-list"></div>
+          <p class="sub" style="margin-top:12px;"><span class="mono" id="wp-progress"></span></p>
+          <p data-i18n="wp_card.all_found" class="sub wp-done" id="wp-all-found" style="display:none;">All of them. Next one.</p>
+        </div>
+
+        <button data-i18n="wp_card.also_works" class="btn-outline wp-also" id="wp-also-btn" style="width:100%;margin-top:14px;" onclick="wpAlsoWorks()">That works too &mdash; it&rsquo;s not on my list</button>
+        <p data-i18n="wp_card.also_hint" class="sub center" style="margin-top:8px;font-size:.78rem;">English has more partners than any list. If it works, take it.</p>
+
+        <div class="btn-row di-actions" style="margin-top:14px;">
+          <button data-i18n="wp_card.show_one" class="btn-outline di-btn-pass" onclick="wpRevealOne()">Show one</button>
+          <button data-i18n="wp_card.next_word" class="btn-primary di-btn-got" onclick="wpNextCard()">Next word</button>
+        </div>
+        <p data-i18n="wp_card.show_one_hint" class="sub center" style="margin-top:8px;font-size:.78rem;">Show one reveals a partner they haven&rsquo;t got. It doesn&rsquo;t score &mdash; a word they were shown isn&rsquo;t a word they produced.</p>
+        <p class="sub center" style="margin-top:10px;"><span data-i18n="wp_card.so_far">So far</span> <b class="mono" id="wp-hits">0</b></p>
+      </div>
+
+      <div class="card center" id="wp-holder-over" style="display:none;margin-top:14px;">
+        <h2 data-i18n="wp_card.time">Time</h2>
+        <div class="di-term mono" id="wp-final-score">0</div>
+        <p class="sub" id="wp-final-line"></p>
+        <p class="sub di-my-total" id="wp-my-total"></p>
+      </div>
+    </div>
+
+    <div id="wp-speaker-view" style="display:none;">
+      <div class="card center" id="wp-speaker-ready" style="margin-top:14px;">
+        <h2 data-i18n="wp_card.you_say_them_head">You say the words</h2>
+        <p data-i18n="wp_card.speaker_wait" class="sub">Your partner has a word and a hidden list of the words that go with it. You have to say them &mdash; starting when your teacher starts the round.</p>
+      </div>
+
+      <div id="wp-speaker-play" style="display:none;">
+        <div class="card center" style="margin-top:14px;">
+          <div class="di-label" id="wp-speaker-pattern"></div>
+          <div class="di-term" id="wp-speaker-head"></div>
+          <div class="di-clock" id="wp-speaker-count" style="margin-top:12px;"></div>
+        </div>
+        <div class="card" style="margin-top:14px;">
+          <p data-i18n="wp_card.speaker_hint" class="sub" style="font-size:.85rem;">Say them out loud, one after another. Your partner ticks off the ones on their list &mdash; and can take a good one that isn&rsquo;t. Say the whole thing, not just the word — meet a deadline, not meet.</p>
+        </div>
+      </div>
+
+      <div class="card center" id="wp-speaker-over" style="display:none;margin-top:14px;">
+        <h2 data-i18n="wp_card.time">Time</h2>
+        <p data-i18n="wp_card.speaker_over" class="sub">That&rsquo;s the round. Your teacher has the scores.</p>
+        <p class="sub di-my-total" id="wp-my-total-speaker"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WORD PARTNERS — student, finished -->
+<div class="screen" id="screen-wp-done">
+  <div class="card center">
+    <h1 data-i18n="rp_done.s_end">That&rsquo;s the end</h1>
+    <p data-i18n="wp_done.nothing_kept" class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
+  </div>
+</div>
+
 <!-- DESCRIBE IT — the word pack editor -->
 <div class="screen" id="screen-di-editor">
   <div class="top-nav wide">
@@ -1510,6 +1731,42 @@
       <p data-i18n="tq_editor.subjects_hint" class="sub">The secret, the category the asker is told before their first question, and one hint. The hint must not contain the subject &mdash; it is there to re-open the question, not to answer it, and the editor says so when you save. Rename a set once and every subject in it follows; the dropdown moves one to another set.</p>
       <p id="tq-theme-summary" class="sub" style="font-size:.82rem;"></p>
       <div id="tq-subject-list" class="di-term-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WORD PARTNERS — the collocation editor -->
+<div class="screen" id="screen-wp-editor">
+  <div class="top-nav wide">
+    <span data-i18n="wp_editor.admin_partner_sets" class="badge">Admin &middot; Partner Sets</span>
+    <a data-i18n="rp_editor.back" class="linklike" onclick="leaveCollocationEditor()">&larr; Back</a>
+  </div>
+  <div class="duo">
+    <div class="card">
+      <h2 data-i18n="wp_editor.this_area">This area</h2>
+      <label data-i18n="rp_editor.name">Name</label>
+      <input data-i18n-ph="wp_editor.ph.area_name" type="text" id="wp-set-name" placeholder="e.g. Business core">
+      <label data-i18n="wp_editor.language" style="margin-top:12px;">Language</label>
+      <select id="wp-set-lang" onchange="setCollocationsLang()">
+        <option data-i18n="di_editor.opt.english" value="en">English</option>
+        <option data-i18n="di_editor.opt.french" value="fr">Français</option>
+      </select>
+      <div class="btn-row" style="margin-top:14px;">
+        <button data-i18n="wp_editor.add_set" class="btn-outline" onclick="addCollocationSet()">+ Set</button>
+        <button data-i18n="rp_editor.import_excel" class="btn-outline" onclick="importCollocationsFromExcel()">Import Excel</button>
+      </div>
+      <button data-i18n="wp_editor.save_area" class="btn-primary" style="width:100%;margin-top:14px;" onclick="saveCollocationSet()">Save Area</button>
+      <p data-i18n="wp_editor.nothing_kept_until_save" class="sub" style="font-size:.78rem;margin-top:8px;">Nothing is kept until you press Save.</p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="wp_editor.sets" style="flex:1;">Sets</h2>
+        <span class="badge" id="wp-card-count"></span>
+      </div>
+      <p data-i18n="wp_editor.cards_hint" class="sub">The word, the kind of partner wanted, and the partners themselves separated by semicolons. Four to eight is the useful range: fewer is over before it starts, more scrolls on a phone. Rename a set once and every word in it follows; the dropdown moves one to another set.</p>
+      <p id="wp-theme-summary" class="sub" style="font-size:.82rem;"></p>
+      <div id="wp-card-list" class="di-term-list"></div>
     </div>
   </div>
 </div>
