@@ -724,3 +724,6 @@
 
 /* The live partner count in the editor row. */
 .wp-count-in{ flex:0 0 2.2rem; text-align:center; opacity:.6; align-self:center; }
+/* What the card is worth right now (v3.14). Quiet, because it is information rather than a
+   control, but present, because a score nobody can see is a score nobody believes. */
+.tq-worth{ margin:6px 0 0; font-size:.85rem; font-weight:700; opacity:.75; }

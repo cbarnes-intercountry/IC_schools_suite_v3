@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.13
+# Classroom Exam App — v3.14.1
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,55 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.14.1 makes the answer key readable by the person holding it.**
+
+Word Partners hid the unfound partners behind dots on the HOLDER's screen. The reasoning written
+into the code was that the holder "cannot read the answer off their own screen before it is said",
+and it is backwards: the holder is not guessing, they are judging. A judge holding an answer key
+they cannot read has no way to know which row to tap when their partner says "file a claim" — the
+only way to play was to tap rows until one turned green.
+
+Every partner is now legible from the moment the card appears. Ticked ones go green with a tick,
+given ones are struck through with a dash, and the rest sit there waiting to be said. **Show one**
+is now **Give one**, which is what it was always doing: the holder reads a partner out, presses it,
+and the app records that it was handed over rather than produced, so it scores nothing and the card
+does not count as cleared.
+
+Reported twice. The first time it was described as "the answers would need to be visible to one
+screen so that he can tick off the answers", and the answer given was that they were. They were
+not — and the suite agreed, because one of its assertions said in as many words that none of the
+words was showing. **A test can hold a bug in place as firmly as it holds a feature.**
+
+**v3.14 fixes a stuck screen, and puts efficiency into the scoring.**
+
+**The bug.** In Word Partners the speaker's screen stayed on the first word all round. The same
+defect was in Twenty Questions, where the asker's category badge never moved — invisible only
+because most sets are a single category.
+
+It was not a slip. Only seat 0 advances the card, and it advances a number held on that phone; the
+other phone may not read it, because a student may read their own participant record and nobody
+else's. That rule is what stops anyone scoring a classmate, and it is not moving. So the position
+now goes the long way round: seat 0 writes it, the teacher — the only party allowed to write meta
+— copies it in, and the other phone reads it there. Two hops on subscriptions that already
+existed, no rules change, about a second of lag on a card that lasts a minute.
+
+Stated plainly: **the teacher's browser is now load-bearing for the speaker's screen.** Close the
+tab mid-round and speakers stop advancing. It was already banking the scores, so this widens an
+existing dependency rather than creating one.
+
+**Twenty Questions is scored on the questions you did not use.** Solve in six of twenty and score
+fourteen; solve in nineteen and score one; run out and score nothing. One flat point per solve paid
+a wild guess exactly as much as a narrowing question, which is the whole skill. The holder's screen
+shows what the card is worth *right now*, falling with every answer — a score nobody can see is a
+score nobody believes.
+
+**Word Partners pays three for clearing a card.** A pair with four of six is always tempted to move
+to a fresh word where the first two come easily; the last two on a card are the ones worth having.
+
+**No explicit time bonus in either**, on purpose. The round clock is already the time term: a
+quicker pair reaches more cards and scores more for it. Paying twice for speed would push a class
+towards blurting, which is the opposite of forming a careful question.
 
 **v3.13 adds the third game — Word Partners — which trains collocation.**
 
@@ -416,10 +465,10 @@ made later.
 From the folder *above* this one:
 
 ```
-node "_test v3.13.js"
+node "_test v3.14.1.js"
 ```
 
-1,237 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+1,288 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
 
 ## Running Word Partners

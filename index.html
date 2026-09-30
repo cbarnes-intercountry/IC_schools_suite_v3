@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.13">
+<link rel="stylesheet" href="styles/app.css?v=3.14.1">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -838,35 +838,35 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.13"></script>
-<script src="lang/fr.js?v=3.13"></script>
-<script src="core/i18n.js?v=3.13"></script>
-<script src="core/registry.js?v=3.13"></script>
-<script src="core/backend.js?v=3.13"></script>
-<script src="core/auth.js?v=3.13"></script>
-<script src="core/ui.js?v=3.13"></script>
-<script src="core/session.js?v=3.13"></script>
-<script src="core/groups.js?v=3.13"></script>
-<script src="core/rounds.js?v=3.13"></script>
-<script src="core/bank.js?v=3.13"></script>
-<script src="core/media.js?v=3.13"></script>
-<script src="core/security.js?v=3.13"></script>
-<script src="core/answers.js?v=3.13"></script>
-<script src="modules/test.js?v=3.13"></script>
-<script src="modules/poll.js?v=3.13"></script>
-<script src="modules/roleplay.js?v=3.13"></script>
-<script src="modules/describeit.js?v=3.13"></script>
-<script src="modules/twentyq.js?v=3.13"></script>
-<script src="modules/partners.js?v=3.13"></script>
-<script src="admin/editor.js?v=3.13"></script>
-<script src="admin/import.js?v=3.13"></script>
-<script src="admin/reports.js?v=3.13"></script>
-<script src="admin/scenarios.js?v=3.13"></script>
-<script src="admin/terms.js?v=3.13"></script>
-<script src="admin/subjects.js?v=3.13"></script>
-<script src="admin/collocations.js?v=3.13"></script>
-<script src="admin/accounts.js?v=3.13"></script>
-<script src="boot.js?v=3.13"></script>
+<script src="lang/en.js?v=3.14.1"></script>
+<script src="lang/fr.js?v=3.14.1"></script>
+<script src="core/i18n.js?v=3.14.1"></script>
+<script src="core/registry.js?v=3.14.1"></script>
+<script src="core/backend.js?v=3.14.1"></script>
+<script src="core/auth.js?v=3.14.1"></script>
+<script src="core/ui.js?v=3.14.1"></script>
+<script src="core/session.js?v=3.14.1"></script>
+<script src="core/groups.js?v=3.14.1"></script>
+<script src="core/rounds.js?v=3.14.1"></script>
+<script src="core/bank.js?v=3.14.1"></script>
+<script src="core/media.js?v=3.14.1"></script>
+<script src="core/security.js?v=3.14.1"></script>
+<script src="core/answers.js?v=3.14.1"></script>
+<script src="modules/test.js?v=3.14.1"></script>
+<script src="modules/poll.js?v=3.14.1"></script>
+<script src="modules/roleplay.js?v=3.14.1"></script>
+<script src="modules/describeit.js?v=3.14.1"></script>
+<script src="modules/twentyq.js?v=3.14.1"></script>
+<script src="modules/partners.js?v=3.14.1"></script>
+<script src="admin/editor.js?v=3.14.1"></script>
+<script src="admin/import.js?v=3.14.1"></script>
+<script src="admin/reports.js?v=3.14.1"></script>
+<script src="admin/scenarios.js?v=3.14.1"></script>
+<script src="admin/terms.js?v=3.14.1"></script>
+<script src="admin/subjects.js?v=3.14.1"></script>
+<script src="admin/collocations.js?v=3.14.1"></script>
+<script src="admin/accounts.js?v=3.14.1"></script>
+<script src="boot.js?v=3.14.1"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -1392,6 +1392,7 @@
             <span class="mono" id="tq-asked"></span>
             <span class="di-clock" id="tq-left"></span>
           </div>
+          <p class="sub tq-worth" id="tq-worth"></p>
           <div class="btn-row tq-answers" id="tq-answer-row" style="margin-top:12px;">
             <button data-i18n="tq_card.no" class="btn-outline tq-btn-no" id="tq-no-btn" onclick="tqAnswer(false)">No</button>
             <button data-i18n="tq_card.yes" class="btn-primary tq-btn-yes" id="tq-yes-btn" onclick="tqAnswer(true)">Yes</button>
@@ -1598,7 +1599,7 @@
     <div id="wp-holder-view" style="display:none;">
       <div class="card center" id="wp-holder-ready" style="margin-top:14px;">
         <h2 data-i18n="wp_card.you_have_the_answers">You have the answers</h2>
-        <p data-i18n="wp_card.dont_show" class="sub">Don&rsquo;t show this screen to your partner. The first word appears when your teacher starts the round.</p>
+        <p data-i18n="wp_card.dont_show" class="sub">You&rsquo;ll see the word and the whole list of partners. Don&rsquo;t show the screen to your partner &mdash; tick each one off as they say it. The first word appears when your teacher starts the round.</p>
       </div>
 
       <div id="wp-holder-play" style="display:none;">
@@ -1607,17 +1608,17 @@
           <div class="di-term" id="wp-head"></div>
           <div class="wp-list" id="wp-list"></div>
           <p class="sub" style="margin-top:12px;"><span class="mono" id="wp-progress"></span></p>
-          <p data-i18n="wp_card.all_found" class="sub wp-done" id="wp-all-found" style="display:none;">All of them. Next one.</p>
+          <p class="sub wp-done" id="wp-all-found" style="display:none;"></p>
         </div>
 
         <button data-i18n="wp_card.also_works" class="btn-outline wp-also" id="wp-also-btn" style="width:100%;margin-top:14px;" onclick="wpAlsoWorks()">That works too &mdash; it&rsquo;s not on my list</button>
         <p data-i18n="wp_card.also_hint" class="sub center" style="margin-top:8px;font-size:.78rem;">English has more partners than any list. If it works, take it.</p>
 
         <div class="btn-row di-actions" style="margin-top:14px;">
-          <button data-i18n="wp_card.show_one" class="btn-outline di-btn-pass" onclick="wpRevealOne()">Show one</button>
+          <button data-i18n="wp_card.give_one" class="btn-outline di-btn-pass" onclick="wpRevealOne()">Give one</button>
           <button data-i18n="wp_card.next_word" class="btn-primary di-btn-got" onclick="wpNextCard()">Next word</button>
         </div>
-        <p data-i18n="wp_card.show_one_hint" class="sub center" style="margin-top:8px;font-size:.78rem;">Show one reveals a partner they haven&rsquo;t got. It doesn&rsquo;t score &mdash; a word they were shown isn&rsquo;t a word they produced.</p>
+        <p data-i18n="wp_card.give_one_hint" class="sub center" style="margin-top:8px;font-size:.78rem;">Read one out when they&rsquo;re stuck, and press this so it doesn&rsquo;t score &mdash; a word you gave them isn&rsquo;t a word they produced.</p>
         <p class="sub center" style="margin-top:10px;"><span data-i18n="wp_card.so_far">So far</span> <b class="mono" id="wp-hits">0</b></p>
       </div>
 

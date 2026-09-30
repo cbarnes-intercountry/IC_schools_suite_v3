@@ -52,6 +52,15 @@ const WP_DEFAULT_PATTERN = "verb";
 const WP_MIN_PARTNERS = 3;
 const WP_MAX_PARTNERS = 8;
 
+/* Three points for finding every partner on a card without being shown one.
+
+   A pair that has four of six will always be tempted to move on to a fresh word, where the first
+   two partners come easily. But the last two on a card are the ones worth having — they are the
+   collocations nobody reaches for — so digging to the end has to be worth more than starting again.
+
+   Unaided on purpose: a card finished with "Show one" is not a card they cleared. */
+const WP_CLEAR_BONUS = 3;
+
 const WP_WRITE_MS = 2000;
 const WP_MAX_SETS = 3;
 
@@ -125,6 +134,11 @@ function wpNormalise(word){
 
 function wpCardIsDone(card, found){
   return wpPartners(card).length > 0 && ((found||[]).length >= wpPartners(card).length);
+}
+
+/* Cleared means every partner produced and none revealed. */
+function wpCardIsCleared(card, found, revealed){
+  return wpCardIsDone(card, found) && ((revealed||[]).length === 0);
 }
 
 function wpStandings(participants, pairs){
@@ -360,7 +374,7 @@ function wpWatchParticipants(){
     WP.participants=(res&&res.participants)||[];
     wpFeedOk();
     wpRenderRoster();
-    if(WP.meta && WP.meta.round>0) wpRenderStage();
+    if(WP.meta && WP.meta.round>0){ wpRenderStage(); wpRelayPositions().catch(e=>console.warn(e)); }
   }, err=>{ wpFeedFailed(err); });
 }
 
@@ -409,7 +423,7 @@ async function wpDeal(){
 async function wpStartRound(){
   if(!WP.meta || !WP.meta.round){ return; }
   await wpResetScores();
-  await wpPushMeta({ roundStartedAt: Backend.serverNow() });
+  await wpPushMeta({ pos:{}, roundStartedAt: Backend.serverNow() });
 }
 
 async function wpSwapRoles(){
@@ -461,6 +475,18 @@ function wpStartTick(){
 }
 
 function wpStopTick(){ if(WP.tick){ clearInterval(WP.tick); WP.tick=null; } }
+
+/* The teacher is the only party allowed to write meta, so the teacher is the only party who can
+   tell the speaker which word their partner is on. Written only when it has actually changed;
+   the subscription fires on every score write, and relaying regardless would be a database write
+   per tap per pair. */
+async function wpRelayPositions(){
+  const meta=WP.meta;
+  if(!meta || !meta.round || !meta.roundStartedAt) return;
+  const now=pairPositions(WP.participants, metaMap(meta,"pairs"));
+  if(!positionsDiffer(metaMap(meta,"pos"), now)) return;
+  await wpPushMeta({ pos: now });
+}
 
 async function wpMaybeBankRound(){
   const meta=WP.meta;
@@ -659,7 +685,10 @@ function wpMyOrder(){
   return termOrderFor((WPSTU.cards||[]).length, seat.g, (WPSTU.meta&&WPSTU.meta.round)||1);
 }
 
-function wpMyCard(){ return wpCardAt(WPSTU.cards, wpMyOrder(), WPSTU.pos); }
+/* Seat 0's own number; everyone else's comes back through the teacher (see core/rounds.js). */
+function wpMyPos(){ return seatPosition(WPSTU.meta, wpMySeat(), WPSTU.pos); }
+
+function wpMyCard(){ return wpCardAt(WPSTU.cards, wpMyOrder(), wpMyPos()); }
 
 function wpResetCard(){
   WPSTU.found=[]; WPSTU.revealed=[]; WPSTU.extra=0;
@@ -757,17 +786,26 @@ function wpRenderHolder(){
   /* The checklist. Tapping one marks it said; a revealed one is shown struck through and does not
      score, so a stuck pair can move on without the card quietly being worth the same as one they
      actually produced. */
+  /* Every partner, readable, from the moment the card appears.
+   
+     The first version hid the unfound ones behind dots, on the reasoning that the holder "cannot
+     read the answer off their own screen before it is said". That is backwards, and it made the
+     game unplayable: the holder is not guessing, they are JUDGING — and a judge holding an answer
+     key they cannot read has no way to know which row to tap when their partner says "file a
+     claim". The only way to play it was to tap rows until one turned green.
+   
+     Reported by Chris, twice. The first time he said the answers "would need to be visible to one
+     screen so that he can tick off the answers" and was told they were. They were not. */
   const list=document.getElementById("wp-list");
   if(list){
     list.innerHTML = partners.map((p,i)=>{
       const got=WPSTU.found.indexOf(i)>=0;
-      const shown=WPSTU.revealed.indexOf(i)>=0;
-      const cls = got ? "wp-p wp-p-got" : (shown ? "wp-p wp-p-shown" : "wp-p");
-      const label = (got || shown) ? escapeHtml(p) : "·····";
+      const given=WPSTU.revealed.indexOf(i)>=0;
+      const cls = got ? "wp-p wp-p-got" : (given ? "wp-p wp-p-shown" : "wp-p");
       return '<button class="'+cls+'" onclick="wpTick('+i+')" '+
              'title="'+escapeHtml(t("wp.ti.tick", "They said it"))+'">'+
-             '<span class="wp-p-word">'+label+'</span>'+
-             '<span class="wp-p-mark">'+(got ? "✓" : (shown ? "–" : ""))+'</span></button>';
+             '<span class="wp-p-word">'+escapeHtml(p)+'</span>'+
+             '<span class="wp-p-mark">'+(got ? "✓" : (given ? "–" : ""))+'</span></button>';
     }).join("");
   }
 
@@ -780,7 +818,11 @@ function wpRenderHolder(){
   if(count) count.textContent = t("wp.n_of_n_found", "{found} of {total}",
     { found:WPSTU.found.length, total:partners.length });
   const doneBox=document.getElementById("wp-all-found");
-  if(doneBox) doneBox.style.display = done ? "block" : "none";
+  if(doneBox){
+    doneBox.style.display = done ? "block" : "none";
+    doneBox.textContent = t("wp.all_found_bonus",
+      "All of them, unaided — {n} extra. Next word.", {n:WP_CLEAR_BONUS});
+  }
   document.getElementById("wp-hits").textContent=String(WPSTU.hits);
 }
 
@@ -841,7 +883,12 @@ function wpTick(i){
   if(WPSTU.revealed.indexOf(i)>=0) return;
   WPSTU.found.push(i);
   WPSTU.hits++;
-  wpFlushScore(false);
+  /* The bonus lands the moment the last one goes in, so the pair hear it while the card is still
+     in front of them. It can only fire once: found never shrinks, and a tap on a row already found
+     returns above. */
+  const cleared=wpCardIsCleared(card, WPSTU.found, WPSTU.revealed);
+  if(cleared) WPSTU.hits += WP_CLEAR_BONUS;
+  wpFlushScore(cleared);
   wpRenderHolder();
 }
 
@@ -864,8 +911,10 @@ function wpAlsoWorks(){
   wpRenderHolder();
 }
 
-/* Reveal one they have not got. The escape hatch for a stuck pair, and it deliberately does not
-   score: a partner they were shown is not a partner they produced. */
+/* Hand one over. The holder can read the whole list — so this is not "show it to me", it is "I am
+   giving them this one", and the point of pressing it rather than just reading a word out is that
+   the app then knows not to score it and not to count the card as cleared. The escape hatch for a
+   stuck pair, recorded honestly. */
 function wpRevealOne(){
   const seat=wpMySeat();
   if(!seat || seat.r!==0) return;
@@ -885,6 +934,10 @@ function wpNextCard(){
   if(!seat || seat.r!==0) return;
   WPSTU.pos++;
   wpResetCard();
+  /* Forced, and not because the score moved — it did not. Moving on IS the event the other phone
+     is waiting for, and the throttle would hold it back two seconds on a card that has already
+     changed in front of them. */
+  wpFlushScore(true);
   wpRenderHolder();
 }
 
@@ -894,7 +947,7 @@ function wpFlushScore(force){
   /* Only the holder writes. The speakers' phones record nothing at all, so no student ever writes
      a number about another student — the same guard both other games use. */
   if(seat.r!==0) return;
-  const mine = { hits:WPSTU.hits, round:(WPSTU.meta&&WPSTU.meta.round)||1 };
+  const mine = { hits:WPSTU.hits, pos:WPSTU.pos, round:(WPSTU.meta&&WPSTU.meta.round)||1 };
   const now=Date.now();
   if(!force && (now - WPSTU.lastWrite) < WP_WRITE_MS){
     if(WPSTU.pendingWrite) return;

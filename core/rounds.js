@@ -188,3 +188,54 @@ function chosenSetNames(meta, wholeAreaLabel){
   if(Array.isArray(sets) && sets.length) return sets.map(x=>x.label || x.set || x.area).join(" + ");
   return (meta && meta.theme) || wholeAreaLabel;
 }
+
+
+/* ---------- which card a pair is on (v3.14) ----------
+
+   Reported from a lesson: in Word Partners the speaker's screen stayed on the first word all round.
+   The same defect was in Twenty Questions, where the asker's category badge never moved — invisible
+   only because most sets are a single category.
+
+   The cause is the shape of the security model rather than a slip. Only seat 0 advances the card,
+   and it advances a number held on that phone. The other phone in the pair cannot read it: a
+   student may read their own participant record and nobody else's, which is the rule that stops
+   anyone scoring a classmate and is not moving.
+
+   So the position goes the long way round. Seat 0 writes it into its own record; the teacher's
+   browser is already subscribed to every record and is the only party allowed to write meta, so it
+   copies the positions into meta; the other phones are already subscribed to meta and read it from
+   there. Two hops, both on subscriptions that already existed, and no rules change.
+
+   The cost, stated plainly: the teacher's browser is now load-bearing for the speaker's screen. If
+   the teacher closes the tab mid-round, speakers stop advancing — they were already relying on it
+   to bank the scores, so this widens an existing dependency rather than creating one. */
+function pairPositions(participants, pairs){
+  const out={};
+  (participants||[]).forEach(p=>{
+    const seat=(pairs||{})[p.studentId];
+    if(!seat || seat.r!==0) return;
+    out[seat.g]=Number((p.progress && p.progress.pos) || 0);
+  });
+  return out;
+}
+
+/* Cheap enough to run twice a second, and it has to be: relaying on every tick regardless would be
+   a database write per beat per room. */
+function positionsDiffer(a, b){
+  const A=a||{}, B=b||{};
+  const keys=Object.keys(A).concat(Object.keys(B));
+  for(let i=0;i<keys.length;i++){
+    if(Number(A[keys[i]]||0) !== Number(B[keys[i]]||0)) return true;
+  }
+  return false;
+}
+
+/* Seat 0 draws from its own number, which moves the instant it taps. Everyone else draws from the
+   relayed one, which is a second or so behind — fine for a card that lasts a minute, and far better
+   than a card that never changes at all. */
+function seatPosition(meta, seat, ownPos){
+  if(!seat) return 0;
+  if(seat.r===0) return Number(ownPos)||0;
+  const relayed=metaMap(meta, "pos");
+  return Number(relayed[seat.g])||0;
+}

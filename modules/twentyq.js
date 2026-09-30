@@ -32,7 +32,7 @@ let TQ = { sessionCode:null, runId:null, subjects:[], name:"", sets:[], packLang
            participants:[], unsub:null, meta:null, tick:null, projecting:false };
 
 let TQSTU = { runId:null, meta:null, subjects:[], unsub:null, wakeLock:null,
-              pos:0, hits:0, asked:0, revealed:false, round:0, tick:null,
+              pos:0, hits:0, solved:0, asked:0, revealed:false, round:0, tick:null,
               pendingWrite:null, lastWrite:0, phase:null, lost:false };
 
 /* How long a round runs. Far longer than Describe It's ninety seconds, and it has to be: a
@@ -421,7 +421,7 @@ function tqWatchParticipants(){
     TQ.participants=(res&&res.participants)||[];
     tqFeedOk();
     tqRenderRoster();
-    if(TQ.meta && TQ.meta.round>0) tqRenderStage();
+    if(TQ.meta && TQ.meta.round>0){ tqRenderStage(); tqRelayPositions().catch(e=>console.warn(e)); }
   }, err=>{ tqFeedFailed(err); });
 }
 
@@ -470,7 +470,7 @@ async function tqDeal(){
 async function tqStartRound(){
   if(!TQ.meta || !TQ.meta.round){ return; }
   await tqResetScores();
-  await tqPushMeta({ roundStartedAt: Backend.serverNow() });
+  await tqPushMeta({ pos:{}, roundStartedAt: Backend.serverNow() });
 }
 
 async function tqSwapRoles(){
@@ -539,6 +539,16 @@ function tqStartTick(){
 }
 
 function tqStopTick(){ if(TQ.tick){ clearInterval(TQ.tick); TQ.tick=null; } }
+
+/* The teacher relays the card position, because only the teacher may write meta. Written only when
+   it has changed. */
+async function tqRelayPositions(){
+  const meta=TQ.meta;
+  if(!meta || !meta.round || !meta.roundStartedAt) return;
+  const now=pairPositions(TQ.participants, metaMap(meta,"pairs"));
+  if(!positionsDiffer(metaMap(meta,"pos"), now)) return;
+  await tqPushMeta({ pos: now });
+}
 
 async function tqMaybeBankRound(){
   const meta=TQ.meta;
@@ -675,7 +685,7 @@ function tqCleanup(){
 
 async function tqStudentStart(session, surname, firstName){
   TQSTU={ runId:session.runId, meta:session.meta, subjects:session.questions||[],
-          unsub:null, wakeLock:null, pos:0, hits:0, asked:0, revealed:false, round:0,
+          unsub:null, wakeLock:null, pos:0, hits:0, solved:0, asked:0, revealed:false, round:0,
           tick:null, pendingWrite:null, lastWrite:0, phase:null, lost:false };
   try{ await Backend.joinSession(TQSTU.runId, STUDENT.id, surname, firstName, true); }
   catch(e){
@@ -700,10 +710,10 @@ function tqStudentWatch(){
     TQSTU.meta=res.meta;
     if(res.meta.status==="ended"){ tqStudentEnd(); return; }
     if((res.meta.round||0) !== (TQSTU.round||0)){
-      TQSTU.round=res.meta.round||0; tqResetCard(); TQSTU.pos=0; TQSTU.hits=0;
+      TQSTU.round=res.meta.round||0; tqResetCard(); TQSTU.pos=0; TQSTU.hits=0; TQSTU.solved=0;
     }
     if((res.meta.roundStartedAt||0) !== (before.roundStartedAt||0) && res.meta.roundStartedAt){
-      TQSTU.pos=0; TQSTU.hits=0; tqResetCard();
+      TQSTU.pos=0; TQSTU.hits=0; TQSTU.solved=0; tqResetCard();
     }
     tqRenderCard();
   });
@@ -738,8 +748,13 @@ function tqMyOrder(){
   return termOrderFor((TQSTU.subjects||[]).length, seat.g, (TQSTU.meta&&TQSTU.meta.round)||1);
 }
 
+/* Seat 0's own number; the asker's comes back through the teacher (see core/rounds.js). Without
+   this the asker's category badge stayed on the first subject's category for the whole round —
+   invisible while a set is all one category, and wrong the moment it is not. */
+function tqMyPos(){ return seatPosition(TQSTU.meta, tqMySeat(), TQSTU.pos); }
+
 function tqMyCard(){
-  return tqCardAt(TQSTU.subjects, tqMyOrder(), TQSTU.pos);
+  return tqCardAt(TQSTU.subjects, tqMyOrder(), tqMyPos());
 }
 
 /* A fresh card: questions back to zero, the hint hidden again, not yet lost. */
@@ -825,9 +840,9 @@ function tqRenderHolder(){
     ready.style.display="none"; play.style.display="none"; over.style.display="block";
     document.getElementById("tq-final-score").textContent=String(TQSTU.hits);
     document.getElementById("tq-final-line").textContent = t("tq.round_over_line",
-      "{n} {subjects} in {length}.",
-      { n:TQSTU.hits, length:roundLengthLabel(tqRoundSeconds(meta)),
-        subjects: plural(TQSTU.hits, t("tq.subject", "subject"), t("tq.subjects", "subjects")) });
+      "{solved} {subjects} in {length}.",
+      { solved:(TQSTU.solved||0), length:roundLengthLabel(tqRoundSeconds(meta)),
+        subjects: plural((TQSTU.solved||0), t("tq.subject", "subject"), t("tq.subjects", "subjects")) });
     tqShowMyTotal();
     tqFlushScore(true);
     return;
@@ -863,6 +878,12 @@ function tqRenderHolder(){
     leftEl.textContent = t("tq.n_left", "{n} left", {n:left});
     leftEl.className = left<=3 ? "di-clock low" : "di-clock";
   }
+  /* What it is worth if they get it now. The number falling with every answer is the clearest
+     statement of the rule there is, and it is on the screen of the person who can say it out loud. */
+  const worth=document.getElementById("tq-worth");
+  if(worth) worth.textContent = lost
+    ? t("tq.worth_nothing", "worth nothing now")
+    : t("tq.worth_n", "worth {n} if they get it now", {n:tqCardValue()});
 
   // Out of questions: the card is lost, and the only way on is the next one.
   const answers=document.getElementById("tq-answer-row");
@@ -963,15 +984,32 @@ function tqRevealHint(){
   tqRenderHolder();
 }
 
+/* A solved subject is worth the questions they did NOT use.
+
+   Six questions out of twenty scores fourteen; nineteen scores one; running out scores nothing.
+   One flat point per solve rewarded a wild guess exactly as much as a narrowing question, which is
+   the whole skill this game exists to train — and a pair can work this number out in their head,
+   which matters when they are arguing about it.
+
+   No separate bonus for speed. The round clock is already the time term: a quicker pair reaches
+   more subjects and scores more for it. Paying twice for the same thing would push a class towards
+   blurting, which is the opposite of forming a careful question. */
+function tqCardValue(){
+  return tqQuestionsLeft();
+}
+
 function tqGotIt(){
   const seat=tqMySeat();
   if(!seat || seat.r!==0) return;
   if(TQSTU.lost) return;
   if(!tqRoundIsRunning(TQSTU.meta)) return;
-  TQSTU.hits++;
+  TQSTU.hits += tqCardValue();
+  TQSTU.solved = (TQSTU.solved||0) + 1;
   TQSTU.pos++;
   tqResetCard();
-  tqFlushScore(false);
+  /* Forced rather than throttled: a solve both scores and changes the card, and the card is what
+     the asker's screen is waiting for. */
+  tqFlushScore(true);
   tqRenderHolder();
 }
 
@@ -982,6 +1020,9 @@ function tqNextCard(){
   if(!seat || seat.r!==0) return;
   TQSTU.pos++;
   tqResetCard();
+  /* Forced: moving on is not a score change, and it is exactly the event the asker's screen is
+     waiting for. */
+  tqFlushScore(true);
   tqRenderHolder();
 }
 
@@ -991,7 +1032,7 @@ function tqFlushScore(force){
   /* Only the holder writes. The askers' phones record nothing at all, so no student ever writes
      a number about another student — the same guard Describe It uses. */
   if(seat.r!==0) return;
-  const mine = { hits:TQSTU.hits, round:(TQSTU.meta&&TQSTU.meta.round)||1 };
+  const mine = { hits:TQSTU.hits, pos:TQSTU.pos, round:(TQSTU.meta&&TQSTU.meta.round)||1 };
   const now=Date.now();
   if(!force && (now - TQSTU.lastWrite) < TQ_WRITE_MS){
     if(TQSTU.pendingWrite) return;
