@@ -471,7 +471,7 @@ async function tqDeal(){
 async function tqStartRound(){
   if(!TQ.meta || !TQ.meta.round){ return; }
   await tqResetScores();
-  await tqPushMeta({ pos:{}, roundStartedAt: Backend.serverNow() });
+  await tqPushMeta({ pos:{}, rhits:{}, roundStartedAt: Backend.serverNow() });
 }
 
 async function tqSwapRoles(){
@@ -555,7 +555,8 @@ async function tqMaybeBankRound(){
   const meta=TQ.meta;
   if(!roundIsDueToBank(meta, tqRoundSeconds(meta))) return;
   TQ.participants = TQ.participants || [];
-  await tqPushMeta({ totals: bankPairScores(metaMap(meta,"totals"), TQ.participants, metaMap(meta,"pairs")),
+  await tqPushMeta({ totals: bankPairScores(metaMap(meta,"totals"), TQ.participants, metaMap(meta,"pairs"), "speakers"),
+                     rhits: pairRoundHits(TQ.participants, metaMap(meta,"pairs")),
                      bankedRound: meta.round });
 }
 
@@ -666,6 +667,10 @@ function tqRenderProjection(){
    of showing one. Nothing is kept either way. */
 async function tqEnd(){
   tqStopTick();
+  /* The students are told the game is over HERE, not when the teacher closes the leaderboard.
+     Before this the two were the same call, and splitting them left every phone in the room
+     counting down a round nobody was playing while the teacher read the scores. */
+  await tqSignalEnd();
   await showFinalScores({
     runId: TQ.runId,
     meta: TQ.meta,
@@ -675,9 +680,17 @@ async function tqEnd(){
   });
 }
 
+async function tqSignalEnd(){
+  try{
+    TQ.meta = Object.assign({}, TQ.meta||{},
+      finalMetaPatch(TQ.meta, TQ.participants, "speakers"));
+    await Backend.updateMeta(TQ.runId, TQ.meta);
+  }catch(e){ console.warn(e); }
+}
+
 async function tqReallyEnd(){
   try{
-    await Backend.updateMeta(TQ.runId, Object.assign({}, TQ.meta||{}, { status:"ended" }));
+    await tqSignalEnd();
     await Backend.deleteRun(TQ.runId);
   }catch(e){ console.warn(e); }
   tqCleanup();
@@ -852,9 +865,13 @@ function tqRenderHolder(){
   if(!running){
     ready.style.display="none"; play.style.display="none"; over.style.display="block";
     document.getElementById("tq-final-score").textContent=String(TQSTU.hits);
-    document.getElementById("tq-final-line").textContent = t("tq.round_over_line",
-      "{solved} {subjects} in {length}.",
+    /* The holder sees the count they recorded and is told plainly whose it is. Under individual
+       scoring this number does not move their own total, and a holder who thinks it does will
+       finish the lesson believing the leaderboard is broken. */
+    document.getElementById("tq-final-line").textContent = t("tq.round_over_for_partner",
+      "{solved} {subjects} in {length} — that goes to {who}.",
       { solved:(TQSTU.solved||0), length:roundLengthLabel(tqRoundSeconds(meta)),
+        who: tqAskerNames() || t("tq.your_partner", "your partner"),
         subjects: plural((TQSTU.solved||0), t("tq.subject", "subject"), t("tq.subjects", "subjects")) });
     tqShowMyTotal();
     tqFlushScore(true);
@@ -939,6 +956,18 @@ function tqRenderAsker(){
   }
   if(!running){
     ready.style.display="none"; play.style.display="none"; over.style.display="block";
+    /* The score is the asker's, but every tap that made it happened on the other phone, so it
+       arrives with the teacher's banking write a few seconds after the bell. Until it lands the
+       screen says so rather than showing a zero the student would read as their score. */
+    const n=seatRoundHits(meta, tqMySeat());
+    const landed=Object.prototype.hasOwnProperty.call(metaMap(meta,"rhits"), String((tqMySeat()||{}).g));
+    const score=document.getElementById("tq-asker-score");
+    const line=document.getElementById("tq-asker-final-line");
+    if(score) score.textContent = landed ? String(n) : "—";
+    if(line) line.textContent = landed
+      ? t("tq.asker_over_line", "{n} points in {length}.",
+          { n:n, length:roundLengthLabel(tqRoundSeconds(meta)) })
+      : t("tq_card.asker_waiting", "Counting up…");
     tqShowMyTotal();
     return;
   }
@@ -954,14 +983,27 @@ function tqRenderAsker(){
   if(frames) frames.innerHTML = tqFrames().map(f=>'<span class="tq-frame">'+escapeHtml(f)+'</span>').join("");
 }
 
+/* Both over-screens carry a running total. The asker's copy existed in the page from the start
+   and nothing ever wrote to it, so the student whose score it now is was the one student who could
+   not see it. */
+function tqAskerNames(){
+  const seat=tqMySeat();
+  if(!seat) return "";
+  return pairMembers(metaMap(TQSTU.meta,"pairs"), seat.g)
+    .filter(m=>m.studentId!==STUDENT.id).map(m=>m.name).join(", ");
+}
+
 function tqShowMyTotal(){
-  const el=document.getElementById("tq-my-total");
-  if(!el) return;
   const totals=metaMap(TQSTU.meta,"totals");
   const mine=Number(totals[STUDENT.id]);
-  if(!mine && mine!==0){ el.style.display="none"; return; }
-  el.style.display="block";
-  el.textContent=t("tq.your_running_total", "Your running total: {n}", {n:mine});
+  const text=t("tq.your_running_total", "Your running total: {n}", {n:mine});
+  ["tq-my-total","tq-my-total-asker"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    if(!mine && mine!==0){ el.style.display="none"; return; }
+    el.style.display="block";
+    el.textContent=text;
+  });
 }
 
 /* ---------- the three buttons ----------
@@ -1070,7 +1112,8 @@ function tqStudentEnd(){
   if(TQSTU.tick){ clearInterval(TQSTU.tick); TQSTU.tick=null; }
   if(TQSTU.pendingWrite){ clearTimeout(TQSTU.pendingWrite); TQSTU.pendingWrite=null; }
   tqReleaseAwake();
-  showScreen("screen-tq-done");
+  /* Their own result, built on their own phone out of the meta they already had. */
+  renderStudentScores(TQSTU.meta, STUDENT.id, (TQSTU.meta&&TQSTU.meta.name) || t("tq.twenty_questions", "Twenty Questions"));
 }
 
 document.addEventListener("visibilitychange", ()=>{

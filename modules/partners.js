@@ -424,7 +424,7 @@ async function wpDeal(){
 async function wpStartRound(){
   if(!WP.meta || !WP.meta.round){ return; }
   await wpResetScores();
-  await wpPushMeta({ pos:{}, roundStartedAt: Backend.serverNow() });
+  await wpPushMeta({ pos:{}, rhits:{}, roundStartedAt: Backend.serverNow() });
 }
 
 async function wpSwapRoles(){
@@ -493,7 +493,8 @@ async function wpMaybeBankRound(){
   const meta=WP.meta;
   if(!roundIsDueToBank(meta, wpRoundSeconds(meta))) return;
   WP.participants = WP.participants || [];
-  await wpPushMeta({ totals: bankPairScores(metaMap(meta,"totals"), WP.participants, metaMap(meta,"pairs")),
+  await wpPushMeta({ totals: bankPairScores(metaMap(meta,"totals"), WP.participants, metaMap(meta,"pairs"), "speakers"),
+                     rhits: pairRoundHits(WP.participants, metaMap(meta,"pairs")),
                      bankedRound: meta.round });
 }
 
@@ -603,6 +604,10 @@ function wpRenderProjection(){
    of showing one. Nothing is kept either way. */
 async function wpEnd(){
   wpStopTick();
+  /* The students are told the game is over HERE, not when the teacher closes the leaderboard.
+     Before this the two were the same call, and splitting them left every phone in the room
+     counting down a round nobody was playing while the teacher read the scores. */
+  await wpSignalEnd();
   await showFinalScores({
     runId: WP.runId,
     meta: WP.meta,
@@ -612,9 +617,17 @@ async function wpEnd(){
   });
 }
 
+async function wpSignalEnd(){
+  try{
+    WP.meta = Object.assign({}, WP.meta||{},
+      finalMetaPatch(WP.meta, WP.participants, "speakers"));
+    await Backend.updateMeta(WP.runId, WP.meta);
+  }catch(e){ console.warn(e); }
+}
+
 async function wpReallyEnd(){
   try{
-    await Backend.updateMeta(WP.runId, Object.assign({}, WP.meta||{}, { status:"ended" }));
+    await wpSignalEnd();
     await Backend.deleteRun(WP.runId);
   }catch(e){ console.warn(e); }
   wpCleanup();
@@ -780,9 +793,13 @@ function wpRenderHolder(){
   if(!running){
     ready.style.display="none"; play.style.display="none"; over.style.display="block";
     document.getElementById("wp-final-score").textContent=String(WPSTU.hits);
-    document.getElementById("wp-final-line").textContent = t("wp.round_over_line",
-      "{n} {partners} in {length}.",
+    /* The marker sees the count they recorded and is told plainly whose it is. Under individual
+       scoring this number does not move their own total, and a marker who thinks it does will
+       finish the lesson believing the leaderboard is broken. */
+    document.getElementById("wp-final-line").textContent = t("wp.round_over_for_partner",
+      "{n} {partners} in {length} — that goes to {who}.",
       { n:WPSTU.hits, length:roundLengthLabel(wpRoundSeconds(meta)),
+        who: wpSpeakerNames() || t("wp.your_partner", "your partner"),
         partners: plural(WPSTU.hits, t("wp.partner", "partner"), t("wp.partners", "partners")) });
     wpShowMyTotal();
     wpFlushScore(true);
@@ -851,6 +868,19 @@ function wpRenderSpeaker(){
   }
   if(!running){
     ready.style.display="none"; play.style.display="none"; over.style.display="block";
+    /* The score is the speaker's, but every tap that made it happened on the other phone, so it
+       arrives with the teacher's banking write a few seconds after the bell. Until it lands the
+       screen says so rather than showing a zero the student would read as their score. */
+    const n=seatRoundHits(meta, wpMySeat());
+    const landed=Object.prototype.hasOwnProperty.call(metaMap(meta,"rhits"), String((wpMySeat()||{}).g));
+    const score=document.getElementById("wp-speaker-score");
+    const line=document.getElementById("wp-speaker-final-line");
+    if(score) score.textContent = landed ? String(n) : "—";
+    if(line) line.textContent = landed
+      ? t("wp.round_over_line", "{n} {partners} in {length}.",
+          { n:n, length:roundLengthLabel(wpRoundSeconds(meta)),
+            partners: plural(n, t("wp.partner", "partner"), t("wp.partners", "partners")) })
+      : t("wp_card.speaker_waiting", "Counting up…");
     wpShowMyTotal();
     return;
   }
@@ -871,14 +901,27 @@ function wpRenderSpeaker(){
   }
 }
 
+/* Both over-screens carry a running total. The speaker's copy existed in the page from the start
+   and nothing ever wrote to it, so the student whose score it now is was the one student who could
+   not see it. */
+function wpSpeakerNames(){
+  const seat=wpMySeat();
+  if(!seat) return "";
+  return pairMembers(metaMap(WPSTU.meta,"pairs"), seat.g)
+    .filter(m=>m.studentId!==STUDENT.id).map(m=>m.name).join(", ");
+}
+
 function wpShowMyTotal(){
-  const el=document.getElementById("wp-my-total");
-  if(!el) return;
   const totals=metaMap(WPSTU.meta,"totals");
   const mine=Number(totals[STUDENT.id]);
-  if(!mine && mine!==0){ el.style.display="none"; return; }
-  el.style.display="block";
-  el.textContent=t("wp.your_running_total", "Your running total: {n}", {n:mine});
+  const text=t("wp.your_running_total", "Your running total: {n}", {n:mine});
+  ["wp-my-total","wp-my-total-speaker"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    if(!mine && mine!==0){ el.style.display="none"; return; }
+    el.style.display="block";
+    el.textContent=text;
+  });
 }
 
 /* ---------- the holder's buttons ---------- */
@@ -985,7 +1028,8 @@ function wpStudentEnd(){
   if(WPSTU.tick){ clearInterval(WPSTU.tick); WPSTU.tick=null; }
   if(WPSTU.pendingWrite){ clearTimeout(WPSTU.pendingWrite); WPSTU.pendingWrite=null; }
   wpReleaseAwake();
-  showScreen("screen-wp-done");
+  /* Their own result, built on their own phone out of the meta they already had. */
+  renderStudentScores(WPSTU.meta, STUDENT.id, (WPSTU.meta&&WPSTU.meta.name) || t("wp.word_partners", "Word Partners"));
 }
 
 document.addEventListener("visibilitychange", ()=>{

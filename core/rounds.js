@@ -84,9 +84,10 @@ function pairStandings(participants, pairs){
     const seat=(pairs||{})[p.studentId];
     if(!seat) return;
     const g=seat.g;
-    if(!byPair[g]) byPair[g]={ g:g, hits:0, names:[], ids:[], lead:"" };
+    if(!byPair[g]) byPair[g]={ g:g, hits:0, names:[], ids:[], speakers:[], lead:"" };
     byPair[g].names.push(seat.n || displayName(p.surname, p.firstName));
     byPair[g].ids.push(p.studentId);
+    if(seat.r!==0) byPair[g].speakers.push(p.studentId);
     if(seat.r===0){
       byPair[g].lead = seat.n || displayName(p.surname, p.firstName);
       byPair[g].hits = Number((p.progress && p.progress.hits) || 0);
@@ -100,18 +101,48 @@ function pairStandings(participants, pairs){
 /* The running total, per STUDENT rather than per pair.
 
    A pair is not a stable thing across a lesson — Swap roles keeps the two together, New pairs
-   does not — so a cumulative score has to belong to a person. Both members of a pair get the
-   round's score: the one who was not leading did half the work, and scoring only the lead would
-   make every other round feel like time off.
+   does not — so a cumulative score has to belong to a person.
 
-   Kept in the run's meta and written by the teacher, because a student's phone may read only its
-   own record and so could never add up anybody else's. */
-function bankPairScores(totals, participants, pairs){
+   `credit` decides WHOSE it is, because the seat that produces language is not the same seat in
+   every game:
+
+     "speakers"  everyone in the pair except seat 0. In Word Partners and Twenty Questions seat 0
+                 holds the list or the answer and marks; the others are the ones producing English.
+                 The count is theirs alone, and the marker earns on the swap.
+     "both"      the whole pair, which is what Describe It does: there seat 0 IS the describer, so
+                 the producing seat is already the one the count is recorded against.
+
+   Seat 0 still records the number either way — that is what keeps a student from ever writing a
+   score against a peer. The teacher's browser is what moves it onto the right name, because a
+   student's phone may read only its own record and so could never add up anybody else's. */
+function bankPairScores(totals, participants, pairs, credit){
   const out=Object.assign({}, totals||{});
   pairStandings(participants, pairs).forEach(g=>{
-    (g.ids||[]).forEach(id=>{ out[id]=(Number(out[id])||0)+Number(g.hits||0); });
+    const earners = credit==="speakers" ? (g.speakers||[]) : (g.ids||[]);
+    earners.forEach(id=>{ out[id]=(Number(out[id])||0)+Number(g.hits||0); });
   });
   return out;
+}
+
+/* The round's count per pair, for relaying to the seat that earned it.
+
+   The speaker's phone records nothing — every tap happens on the other one — so without this the
+   student the score belongs to is the one student who cannot see it. It rides along with the
+   banking write rather than being pushed live, so the number reaches them at the bell and not
+   during the round, where it would be one more thing to look at instead of their partner. */
+function pairRoundHits(participants, pairs){
+  const out={};
+  pairStandings(participants, pairs).forEach(g=>{ out[g.g]=Number(g.hits||0); });
+  return out;
+}
+
+/* Only the seats that did not do the marking ever ask this — the marker has the number on their
+   own phone already. So there is no own-count branch here, unlike seatPosition, where the holder
+   genuinely is the one who knows. */
+function seatRoundHits(meta, seat){
+  if(!seat) return 0;
+  const relayed=metaMap(meta, "rhits");
+  return Number(relayed[seat.g])||0;
 }
 
 /* Everyone who has played, best first, with the name they joined under. The name written into the
@@ -312,6 +343,85 @@ function renderFinalProjection(rows, title){
 }
 
 
+/* The last round, banked into meta rather than only into the teacher's screen.
+
+   `roundIsDueToBank` waits for the bell and a settling delay, which is right while a game is
+   running and wrong at the end of one: a teacher who ends mid-round would otherwise lose the round
+   the class had just played. It has to go into META and not just into a local variable, because
+   the students now read their own result off the same record — a total the teacher alone holds is
+   a total half the room cannot see. */
+function finalMetaPatch(meta, participants, credit){
+  const m=meta||{};
+  const patch={ status:"ended" };
+  if(m.round && m.roundStartedAt && (m.bankedRound||0) < m.round){
+    patch.totals=bankPairScores(metaMap(m,"totals"), participants||[], metaMap(m,"pairs"), credit);
+    patch.rhits=pairRoundHits(participants||[], metaMap(m,"pairs"));
+    patch.bankedRound=m.round;
+  }
+  return patch;
+}
+
+/* ---------- what the student sees ----------
+
+   A student's phone may read the run's meta but not other students' records, which is exactly
+   enough: the totals and the seat names both live in meta, so the whole board can be built on
+   their own device with nothing relayed and nothing new exposed.
+
+   They get their own line and the same top five that goes on the projector. The full list stays
+   with the teacher: a glance at a board on the wall and a ranked list of twenty-five named
+   classmates sitting on twenty-five phones are not the same thing. */
+function myStanding(rows, myId){
+  const ranked=rankStandings(rows);
+  let mine=null;
+  ranked.forEach(r=>{ if(r.id===myId) mine=r; });
+  return mine ? { rank:mine.rank, total:mine.total, of:ranked.length } : null;
+}
+
+function renderStudentScores(meta, myId, title){
+  const rows=finalStandings(metaMap(meta,"totals"), [], metaMap(meta,"pairs"));
+  const mine=myStanding(rows, myId);
+
+  const game=document.getElementById("stu-final-game");
+  if(game) game.textContent=title||"";
+
+  const box=document.getElementById("stu-final-mine");
+  if(box) box.style.display = mine ? "block" : "none";
+  if(mine){
+    const n=document.getElementById("stu-final-score");
+    if(n) n.textContent=String(mine.total);
+    const line=document.getElementById("stu-final-rank");
+    if(line) line.textContent=t("stu_final.you_finished", "You finished {rank} of {of}",
+      { rank: ordinal(mine.rank), of: mine.of });
+  }
+
+  const top=rankStandings(rows).filter(r=>r.total>0).slice(0, FINAL_PODIUM);
+  const board=document.getElementById("stu-final-board");
+  if(board) board.style.display = top.length ? "block" : "none";
+  const list=document.getElementById("stu-final-list");
+  /* The teacher's row style, not the projector's: the projection is sized for a wall at the back
+     of a room, and those rows wrap a name like "MOREAU, Léa" across three lines on a phone. */
+  if(list) list.innerHTML = top.map(r=>
+    '<div class="'+(r.id===myId ? "di-score-row di-score-me" : "di-score-row")+'">'+
+    '<span class="di-pair-no">'+r.rank+'</span>'+
+    '<span class="di-score-who">'+escapeHtml(r.name)+'</span>'+
+    '<span class="di-score-n mono">'+r.total+'</span></div>').join("");
+
+  showScreen("screen-student-scores");
+  return { mine:mine, top:top };
+}
+
+/* 1st, 2nd, 3rd — and in French, 1er, 2e. Left to the strings file rather than built from the
+   number here, because the rule is not the same in the two languages. */
+function ordinal(n){
+  const num=Number(n)||0;
+  const teen = num%100>=11 && num%100<=13;
+  const last = teen ? 0 : num%10;
+  if(last===1) return t("ordinal.st", "{n}st", { n:num });
+  if(last===2) return t("ordinal.nd", "{n}nd", { n:num });
+  if(last===3) return t("ordinal.rd", "{n}rd", { n:num });
+  return t("ordinal.th", "{n}th", { n:num });
+}
+
 /* What the End button does now: bank whatever the last round earned, show the standings, and hold
    the run open until the teacher closes the screen. The delete is the same delete it always was —
    it just happens after they have looked, rather than instead of. */
@@ -325,11 +435,7 @@ async function showFinalScores(opts){
      a teacher who ends the game mid-round would otherwise see a leaderboard missing the round the
      class had just played. */
   const meta=opts.meta||{};
-  let totals=metaMap(meta,"totals");
-  if(meta.round && meta.roundStartedAt && (meta.bankedRound||0) < meta.round){
-    totals=bankPairScores(totals, FINAL.participants, metaMap(meta,"pairs"));
-  }
-  FINAL.rows=finalStandings(totals, FINAL.participants, metaMap(meta,"pairs"));
+  FINAL.rows=finalStandings(metaMap(meta,"totals"), FINAL.participants, metaMap(meta,"pairs"));
   renderFinalLeaderboard(FINAL.rows, { title:opts.title, anon:runIsAnonymous(meta) });
   showScreen("screen-final-scores");
 }

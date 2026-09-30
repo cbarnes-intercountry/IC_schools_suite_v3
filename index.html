@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.15">
+<link rel="stylesheet" href="styles/app.css?v=3.16">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -838,35 +838,35 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.15"></script>
-<script src="lang/fr.js?v=3.15"></script>
-<script src="core/i18n.js?v=3.15"></script>
-<script src="core/registry.js?v=3.15"></script>
-<script src="core/backend.js?v=3.15"></script>
-<script src="core/auth.js?v=3.15"></script>
-<script src="core/ui.js?v=3.15"></script>
-<script src="core/session.js?v=3.15"></script>
-<script src="core/groups.js?v=3.15"></script>
-<script src="core/rounds.js?v=3.15"></script>
-<script src="core/bank.js?v=3.15"></script>
-<script src="core/media.js?v=3.15"></script>
-<script src="core/security.js?v=3.15"></script>
-<script src="core/answers.js?v=3.15"></script>
-<script src="modules/test.js?v=3.15"></script>
-<script src="modules/poll.js?v=3.15"></script>
-<script src="modules/roleplay.js?v=3.15"></script>
-<script src="modules/describeit.js?v=3.15"></script>
-<script src="modules/twentyq.js?v=3.15"></script>
-<script src="modules/partners.js?v=3.15"></script>
-<script src="admin/editor.js?v=3.15"></script>
-<script src="admin/import.js?v=3.15"></script>
-<script src="admin/reports.js?v=3.15"></script>
-<script src="admin/scenarios.js?v=3.15"></script>
-<script src="admin/terms.js?v=3.15"></script>
-<script src="admin/subjects.js?v=3.15"></script>
-<script src="admin/collocations.js?v=3.15"></script>
-<script src="admin/accounts.js?v=3.15"></script>
-<script src="boot.js?v=3.15"></script>
+<script src="lang/en.js?v=3.16"></script>
+<script src="lang/fr.js?v=3.16"></script>
+<script src="core/i18n.js?v=3.16"></script>
+<script src="core/registry.js?v=3.16"></script>
+<script src="core/backend.js?v=3.16"></script>
+<script src="core/auth.js?v=3.16"></script>
+<script src="core/ui.js?v=3.16"></script>
+<script src="core/session.js?v=3.16"></script>
+<script src="core/groups.js?v=3.16"></script>
+<script src="core/rounds.js?v=3.16"></script>
+<script src="core/bank.js?v=3.16"></script>
+<script src="core/media.js?v=3.16"></script>
+<script src="core/security.js?v=3.16"></script>
+<script src="core/answers.js?v=3.16"></script>
+<script src="modules/test.js?v=3.16"></script>
+<script src="modules/poll.js?v=3.16"></script>
+<script src="modules/roleplay.js?v=3.16"></script>
+<script src="modules/describeit.js?v=3.16"></script>
+<script src="modules/twentyq.js?v=3.16"></script>
+<script src="modules/partners.js?v=3.16"></script>
+<script src="admin/editor.js?v=3.16"></script>
+<script src="admin/import.js?v=3.16"></script>
+<script src="admin/reports.js?v=3.16"></script>
+<script src="admin/scenarios.js?v=3.16"></script>
+<script src="admin/terms.js?v=3.16"></script>
+<script src="admin/subjects.js?v=3.16"></script>
+<script src="admin/collocations.js?v=3.16"></script>
+<script src="admin/accounts.js?v=3.16"></script>
+<script src="boot.js?v=3.16"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -1451,7 +1451,8 @@
 
       <div class="card center" id="tq-asker-over" style="display:none;margin-top:14px;">
         <h2 data-i18n="tq_card.time">Time</h2>
-        <p data-i18n="tq_card.asker_over" class="sub">That&rsquo;s the round. Your teacher has the scores.</p>
+        <div class="di-term mono" id="tq-asker-score">&mdash;</div>
+        <p class="sub" id="tq-asker-final-line">Counting up&hellip;</p>
         <p class="sub di-my-total" id="tq-my-total-asker"></p>
       </div>
     </div>
@@ -1459,14 +1460,27 @@
 </div>
 
 <!-- TWENTY QUESTIONS — student, finished -->
-<div class="screen" id="screen-tq-done">
+
+
+
+<!-- WHAT THE STUDENT SEES AT THE END — shared by every game that keeps a running total.
+     Their own line, and the same top five that goes on the projector: what a student learns here
+     is their own place and who won, which is what the room already knows. The full list stays on
+     the teacher's screen. -->
+<div class="screen" id="screen-student-scores">
   <div class="card center">
+    <span class="badge" id="stu-final-game"></span>
     <h1 data-i18n="rp_done.s_end">That&rsquo;s the end</h1>
-    <p data-i18n="tq_done.nothing_kept" class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
+    <div id="stu-final-mine">
+      <div class="di-term mono" id="stu-final-score">0</div>
+      <p class="sub" id="stu-final-rank"></p>
+    </div>
+  </div>
+  <div class="card" id="stu-final-board">
+    <h2 data-i18n="stu_final.top_five" class="center">Top five</h2>
+    <div id="stu-final-list"></div>
   </div>
 </div>
-
-
 
 <!-- THE FINAL LEADERBOARD — shared by every game that keeps a running total -->
 <div class="screen" id="screen-final-scores">
@@ -1694,7 +1708,8 @@
 
       <div class="card center" id="wp-speaker-over" style="display:none;margin-top:14px;">
         <h2 data-i18n="wp_card.time">Time</h2>
-        <p data-i18n="wp_card.speaker_over" class="sub">That&rsquo;s the round. Your teacher has the scores.</p>
+        <div class="di-term mono" id="wp-speaker-score">&mdash;</div>
+        <p class="sub" id="wp-speaker-final-line">Counting up&hellip;</p>
         <p class="sub di-my-total" id="wp-my-total-speaker"></p>
       </div>
     </div>
@@ -1702,12 +1717,6 @@
 </div>
 
 <!-- WORD PARTNERS — student, finished -->
-<div class="screen" id="screen-wp-done">
-  <div class="card center">
-    <h1 data-i18n="rp_done.s_end">That&rsquo;s the end</h1>
-    <p data-i18n="wp_done.nothing_kept" class="sub">Thanks &mdash; nothing was marked and nothing was kept.</p>
-  </div>
-</div>
 
 <!-- DESCRIBE IT — the word pack editor -->
 <div class="screen" id="screen-di-editor">
