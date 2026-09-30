@@ -329,6 +329,7 @@ async function wpStartSession(){
     sets:WP.chosen.map(c=>({ area:c.area, set:c.set, label:c.label })),
     title:title,
     lang:wpChosenLang(),
+    anon: !!(document.getElementById("wp-anon")||{}).checked,
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
     pairs:{}, totals:{}, bankedRound:0, startedAt:null
@@ -597,9 +598,21 @@ function wpRenderProjection(){
     escapeHtml(g.names.join(" · "))+' <b class="mono">'+g.hits+'</b></div>').join("");
 }
 
+/* Ending the game now has two steps: look at the scores, then clear it. The delete is the same
+   delete it always was — it happens when the teacher closes the leaderboard rather than instead
+   of showing one. Nothing is kept either way. */
 async function wpEnd(){
-  if(!confirm(t("wp.end_game_nothing_kept",
-    "End the game?\n\nNothing is marked and nothing is kept — the words disappear from every phone."))) return;
+  wpStopTick();
+  await showFinalScores({
+    runId: WP.runId,
+    meta: WP.meta,
+    participants: WP.participants,
+    title: WP.name || t("wp.word_partners", "Word Partners"),
+    onFinish: wpReallyEnd
+  });
+}
+
+async function wpReallyEnd(){
   try{
     await Backend.updateMeta(WP.runId, Object.assign({}, WP.meta||{}, { status:"ended" }));
     await Backend.deleteRun(WP.runId);
@@ -995,6 +1008,8 @@ registerActivity("partners", {
   score: null,          // the count is a pair's, lives for one round, and is never marked
   finish: wpEnd,
   rejoin: wpRejoin,
+  anonymous: meta => runIsAnonymous(meta),   // no name is asked for, and none is stored
+
   label: "Word Partners",
   keeps: false          // nothing is archived: the records name students and hold no marks
 });

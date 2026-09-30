@@ -618,8 +618,18 @@ async function studentJoin(){
     const what = activityLabel(kind).toLowerCase();
     if(session.meta.status==="ended"){ alert(t("test.that_has_finished", "That {what} has finished.", {what:what})); return; }
     if(act.anonymous && act.anonymous(session.meta)){
-      // Nothing identifying is stored, and the name boxes are never shown.
-      surname=""; firstName=""; STUDENT.surname=""; STUDENT.firstName=""; STUDENT.name="";
+      /* Nothing identifying is stored, and the name boxes are never shown.
+
+         A game run anonymously still needs SOMETHING on the screen, because the pairs have to
+         address each other and the leaderboard has to list somebody. So the student is handed a
+         two-word name derived from their own id — not typed, not stored against a real one, and
+         not written down anywhere a teacher could look it up. It goes in firstName rather than
+         surname so it reads "Blue Falcon" rather than being shouted in the surname-first style
+         the register uses for real names. */
+      surname=""; STUDENT.surname="";
+      firstName = runIsAnonymous(session.meta) ? pseudonymFor(STUDENT.id) : "";
+      STUDENT.firstName=firstName;
+      STUDENT.name=firstName;
     } else if(!act.requiresName || act.requiresName(session.meta)){
       if(!surname || !firstName){ askForName(t("test.this_needs_your_name", "This {what} needs your name.", {what:what})); return; }
     }

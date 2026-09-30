@@ -317,3 +317,69 @@ function termOrderFor(count, pairNo, round){
   for(let i=n-1;i>0;i--){ const j=Math.floor(next()*(i+1)); const tmp=idx[i]; idx[i]=idx[j]; idx[j]=tmp; }
   return idx;
 }
+
+
+/* ---------- pseudonyms (v3.15) ----------
+
+   A teacher can run any of the games anonymously: the join screen asks for nothing at all, and the
+   app hands each student a two-word name. No real name is typed, so none is stored, so there is no
+   key for anybody to hold — including the teacher. That was a deliberate choice: a hidden label
+   that the database still knows the answer to is not anonymity, it is a database of names with the
+   display turned off.
+
+   What it costs, recorded because it is real: the roster shows "23 joined" and a list of
+   pseudonyms, so a teacher cannot tell WHICH student has not joined, only how many. And a student
+   on a second device is a second player.
+
+   Two words rather than a number because the pair has to SAY them: "Blue Falcon, you're with me"
+   is a sentence and "Player 14" is not. It is also two more words of English said twenty times a
+   round, which is not nothing in a language class. */
+const PSEUDO_ADJECTIVES = [
+  "Amber","Arctic","Bold","Brave","Bright","Calm","Clever","Copper","Crimson","Daring",
+  "Eager","Electric","Emerald","Fearless","Fleet","Golden","Grand","Hidden","Iron","Jade",
+  "Keen","Lucky","Midnight","Nimble","Noble","Northern","Patient","Quick","Quiet","Royal",
+  "Rapid","Restless","Scarlet","Sharp","Silent","Silver","Solar","Steady","Stormy","Swift",
+  "Thunder","Tidal","Velvet","Vivid","Wandering","Western","Wild","Winter","Wise","Zealous"
+];
+const PSEUDO_NOUNS = [
+  "Albatross","Badger","Bison","Cheetah","Cobra","Condor","Cougar","Crane","Dolphin","Dragon",
+  "Eagle","Falcon","Ferret","Fox","Gazelle","Gecko","Heron","Ibex","Jaguar","Kestrel",
+  "Kingfisher","Lynx","Magpie","Mantis","Marlin","Mongoose","Moose","Narwhal","Osprey","Otter",
+  "Panther","Pelican","Puffin","Python","Raven","Rhino","Salmon","Seal","Shark","Sparrow",
+  "Stallion","Stork","Swift","Tiger","Toucan","Viper","Walrus","Wolf","Wombat","Yak"
+];
+
+/* Derived from the student's own id rather than handed out by the teacher, so a phone that
+   reconnects gets the same name back without anybody coordinating — and so no list of who is who
+   ever has to exist. Two thousand five hundred combinations; in a class of 25 that is roughly a
+   one-in-eight chance of two students sharing a name, which the screens that list them together
+   resolve on sight (see dedupeNames). */
+function pseudonymFor(id){
+  const s=String(id||"");
+  let a=0, b=0;
+  for(let i=0;i<s.length;i++){
+    a=(a*31 + s.charCodeAt(i)) >>> 0;
+    b=(b*37 + s.charCodeAt(i)*(i+1)) >>> 0;
+  }
+  /* No guard for an empty id: the loop simply does not run, a and b stay zero, and the modulo
+     lands on the first word of each list. A guard that reproduces what the code already does is a
+     line no test can hold to account. */
+  return PSEUDO_ADJECTIVES[a % PSEUDO_ADJECTIVES.length]+" "+PSEUDO_NOUNS[b % PSEUDO_NOUNS.length];
+}
+
+/* Where names are listed together, two students who drew the same one are told apart with a
+   numeral. Only on the lists: inside a pair, "With Blue Falcon" is never ambiguous, because there
+   is only one other person. */
+function dedupeNames(rows, nameOf, setName){
+  const seen={}, count={};
+  (rows||[]).forEach(r=>{ const n=nameOf(r); count[n]=(count[n]||0)+1; });
+  return (rows||[]).map(r=>{
+    const n=nameOf(r);
+    if(count[n]<=1) return r;
+    seen[n]=(seen[n]||0)+1;
+    return setName(r, n+" "+seen[n]);
+  });
+}
+
+/* Whether this run hides who everybody is. One flag, read the same way by every game. */
+function runIsAnonymous(meta){ return !!(meta && meta.anon); }

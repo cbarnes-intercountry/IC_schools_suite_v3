@@ -372,6 +372,7 @@ async function tqStartSession(){
     sets:TQ.chosen.map(c=>({ area:c.area, set:c.set, label:c.label })),
     title:title,
     lang:tqChosenLang(),
+    anon: !!(document.getElementById("tq-anon")||{}).checked,
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
     pairs:{}, totals:{}, bankedRound:0, startedAt:null
@@ -660,9 +661,21 @@ function tqRenderProjection(){
     escapeHtml(g.names.join(" · "))+' <b class="mono">'+g.hits+'</b></div>').join("");
 }
 
+/* Ending the game now has two steps: look at the scores, then clear it. The delete is the same
+   delete it always was — it happens when the teacher closes the leaderboard rather than instead
+   of showing one. Nothing is kept either way. */
 async function tqEnd(){
-  if(!confirm(t("tq.end_game_nothing_kept",
-    "End the game?\n\nNothing is marked and nothing is kept — the subjects disappear from every phone."))) return;
+  tqStopTick();
+  await showFinalScores({
+    runId: TQ.runId,
+    meta: TQ.meta,
+    participants: TQ.participants,
+    title: TQ.name || t("tq.twenty_questions", "Twenty Questions"),
+    onFinish: tqReallyEnd
+  });
+}
+
+async function tqReallyEnd(){
   try{
     await Backend.updateMeta(TQ.runId, Object.assign({}, TQ.meta||{}, { status:"ended" }));
     await Backend.deleteRun(TQ.runId);
@@ -1080,6 +1093,8 @@ registerActivity("twentyq", {
   score: null,          // the count is a pair's, lives for one round, and is never marked
   finish: tqEnd,
   rejoin: tqRejoin,
+  anonymous: meta => runIsAnonymous(meta),   // no name is asked for, and none is stored
+
   label: "Twenty Questions",
   keeps: false          // nothing is archived: the records name students and hold no marks
 });

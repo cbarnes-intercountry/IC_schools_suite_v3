@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.14.1
+# Classroom Exam App — v3.15
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -28,6 +28,30 @@ loops and functions whose own variable was already called `t` — a teacher reco
 running total — so the call invoked that instead of the lookup. Teacher Accounts came back
 empty. `t` is a global now, so no local may use that name: every one was renamed, and the suite
 fails if the name comes back.
+
+**v3.15 adds a final leaderboard and an anonymous mode.**
+
+**The leaderboard.** Ending Twenty Questions or Word Partners now shows the final standings before
+the run is cleared. Your screen lists **everybody**, because the useful information is the
+distribution — who scored nothing all session is the thing worth noticing. **Project** puts the
+**top five only** on the wall: a class of 24 seeing exactly where they came teaches the bottom
+third where they came, and they stop trying. Celebratory at the front, diagnostic in your hand.
+
+Ties share a place, as they do in any sport. The round in progress is banked first, so ending
+mid-round does not lose the round the class just played. Nothing is kept — closing the screen
+deletes the run exactly as End always did.
+
+**Anonymous mode**, a tick box on each game's setup screen, off by default. Students join with the
+code and **nothing else**: no name is asked for, so none is stored, so there is no key for anybody
+to hold — including you. Each student is given a two-word name derived from their own id, so a
+phone that reconnects gets the same one back without anything being written down.
+
+Two words rather than a number because the pair has to say them: *"Blue Falcon, you're with me"* is
+a sentence and *"Player 14"* is not. It is also two more English words said twenty times a round.
+
+What it costs, plainly: the roster tells you **how many** have joined, not **which** — so you
+cannot see that one particular student is missing. A student on a second device is a second player.
+And two students can draw the same name; lists that show them together number them apart.
 
 **v3.14.1 makes the answer key readable by the person holding it.**
 
@@ -465,10 +489,10 @@ made later.
 From the folder *above* this one:
 
 ```
-node "_test v3.14.1.js"
+node "_test v3.15.js"
 ```
 
-1,288 checks. The suite reads the load order out of `index.html`, so adding a script file needs
+1,355 checks. The suite reads the load order out of `index.html`, so adding a script file needs
 no change to the test.
 
 ## Running Word Partners

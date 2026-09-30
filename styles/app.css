@@ -727,3 +727,16 @@
 /* What the card is worth right now (v3.14). Quiet, because it is information rather than a
    control, but present, because a score nobody can see is a score nobody believes. */
 .tq-worth{ margin:6px 0 0; font-size:.85rem; font-weight:700; opacity:.75; }
+/* A checkbox with a label that runs to three lines on a phone (v3.15). The default row layout
+   centres the box against the whole block; this keeps it beside the first line where it belongs. */
+.wrap-check{ display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-weight:600; }
+.wrap-check input{ flex:0 0 auto; width:1.15rem; height:1.15rem; margin:2px 0 0; }
+
+/* The final leaderboard on the projector (v3.15). Read from the back of a room, so everything is
+   larger than the in-hand version and only five rows ever appear. */
+.final-proj-list{ display:flex; flex-direction:column; gap:10px; margin-top:18px; }
+.final-proj-row{ font-size:2rem; font-weight:700; display:flex; align-items:baseline; gap:16px; }
+.final-proj-rank{
+  flex:0 0 auto; min-width:1.6em; text-align:center; font-size:1.4rem; opacity:.6;
+}
+.final-proj-row b{ margin-inline-start:auto; }

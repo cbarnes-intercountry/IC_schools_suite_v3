@@ -239,3 +239,112 @@ function seatPosition(meta, seat, ownPos){
   const relayed=metaMap(meta, "pos");
   return Number(relayed[seat.g])||0;
 }
+
+
+/* ---------- the final leaderboard (v3.15) ----------
+
+   One screen, shared by every game that keeps a running total, shown when the teacher ends the
+   game and BEFORE the run is deleted. Nothing is kept: it is the last thing anybody sees, not a
+   record. Close it and the run goes exactly as it did before.
+
+   How much of it the class sees is the whole design. The teacher's screen lists everybody, because
+   the useful information is the distribution — who scored nothing all session is the thing worth
+   noticing. The projector shows the top few only: a class of 24 seeing exactly where they came
+   teaches the bottom third where they came, and they stop trying. Celebratory at the front,
+   diagnostic in your hand. */
+const FINAL_PODIUM = 5;
+
+function finalStandings(totals, participants, pairs){
+  /* Two students can draw the same pseudonym; on a list they are told apart with a numeral. In a
+     pair it never matters, because there is only one other person to address. */
+  return dedupeNames(roundLeaderboard(totals, participants, pairs),
+                     r => r.name,
+                     (r, n) => Object.assign({}, r, { name:n }));
+}
+
+/* Ranks, with ties sharing a place: two students on nine are both second, and the next is fourth.
+   The alternative reads as a bug to anybody who has watched a sport. */
+function rankStandings(rows){
+  let place=0, seen=0, last=null;
+  return (rows||[]).map(r=>{
+    seen++;
+    if(last===null || r.total!==last){ place=seen; last=r.total; }
+    return Object.assign({}, r, { rank:place });
+  });
+}
+
+function renderFinalLeaderboard(rows, opts){
+  const o=opts||{};
+  const ranked=rankStandings(rows);
+  const ttl=document.getElementById("final-title");
+  if(ttl) ttl.textContent=o.title||"";
+  const sub=document.getElementById("final-sub");
+  if(sub) sub.textContent = o.anon
+    ? t("final.played_anonymously", "Played anonymously — these are the names the app gave out, and nobody can look up who is who.")
+    : t("final.nothing_kept", "Nothing is marked and nothing is kept. Close this and the game is gone.");
+
+  const list=document.getElementById("final-list");
+  if(list){
+    list.innerHTML = ranked.length
+      ? ranked.map(r=>'<div class="di-score-row'+(r.rank===1&&r.total>0?" di-score-top":"")+'">'+
+          '<span class="di-pair-no">'+r.rank+'</span>'+
+          '<span class="di-score-who">'+escapeHtml(r.name)+'</span>'+
+          '<span class="di-score-n mono">'+r.total+'</span></div>').join("")
+      : '<p class="sub">'+t("final.nobody_scored", "Nobody scored — there is nothing to show.")+'</p>';
+  }
+  const count=document.getElementById("final-count");
+  if(count) count.textContent = t("final.n_players", "{n} {players}",
+    { n:ranked.length, players: plural(ranked.length, t("final.player", "player"), t("final.players", "players")) });
+  return ranked;
+}
+
+/* The projector: the top few and nothing else. */
+function renderFinalProjection(rows, title){
+  const ranked=rankStandings(rows).filter(r=>r.total>0).slice(0, FINAL_PODIUM);
+  const ttl=document.getElementById("final-proj-title");
+  if(ttl) ttl.textContent=title||"";
+  const box=document.getElementById("final-proj-list");
+  if(box) box.innerHTML = ranked.length
+    ? ranked.map(r=>'<div class="final-proj-row"><span class="final-proj-rank">'+r.rank+'</span> '+
+      escapeHtml(r.name)+' <b class="mono">'+r.total+'</b></div>').join("")
+    : '<p class="rp-proj-hint">'+t("final.nobody_scored", "Nobody scored — there is nothing to show.")+'</p>';
+  return ranked;
+}
+
+
+/* What the End button does now: bank whatever the last round earned, show the standings, and hold
+   the run open until the teacher closes the screen. The delete is the same delete it always was —
+   it just happens after they have looked, rather than instead of. */
+let FINAL = { runId:null, meta:null, participants:[], rows:[], projecting:false, onFinish:null };
+
+async function showFinalScores(opts){
+  FINAL = { runId:opts.runId, meta:opts.meta, participants:opts.participants||[],
+            rows:[], projecting:false, onFinish:opts.onFinish };
+  /* Bank the round in progress first, whatever the clock says. `roundIsDueToBank` waits for the
+     bell and a settling delay, which is right while a game is running and wrong at the end of one:
+     a teacher who ends the game mid-round would otherwise see a leaderboard missing the round the
+     class had just played. */
+  const meta=opts.meta||{};
+  let totals=metaMap(meta,"totals");
+  if(meta.round && meta.roundStartedAt && (meta.bankedRound||0) < meta.round){
+    totals=bankPairScores(totals, FINAL.participants, metaMap(meta,"pairs"));
+  }
+  FINAL.rows=finalStandings(totals, FINAL.participants, metaMap(meta,"pairs"));
+  renderFinalLeaderboard(FINAL.rows, { title:opts.title, anon:runIsAnonymous(meta) });
+  showScreen("screen-final-scores");
+}
+
+function toggleFinalProjection(){
+  FINAL.projecting=!FINAL.projecting;
+  const el=document.getElementById("final-projection");
+  if(el) el.style.display = FINAL.projecting ? "block" : "none";
+  if(FINAL.projecting) renderFinalProjection(FINAL.rows, document.getElementById("final-title").textContent);
+}
+
+async function finishAfterScores(){
+  const done=FINAL.onFinish;
+  FINAL.projecting=false;
+  const el=document.getElementById("final-projection"); if(el) el.style.display="none";
+  FINAL = { runId:null, meta:null, participants:[], rows:[], projecting:false, onFinish:null };
+  if(done) await done();
+}
