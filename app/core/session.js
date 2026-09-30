@@ -1,0 +1,295 @@
+/* ============================================================================
+   Classroom Exam App — core/session.js
+   Part of index.html's script, split out in v3.0. Loaded as a plain script in the
+   order set by index.html; every file shares one global scope, so nothing is
+   imported or exported.
+   ============================================================================ */
+
+/* A run: its code, its QR, its meta, and picking one back up. */
+
+// Firebase drops empty objects, so every meta map has to be read defensively.
+function metaMap(meta, name){ return (meta && meta[name]) || {}; }
+
+function metaFlag(meta, name, idx){ return !!metaMap(meta,name)[String(idx)]; }
+
+
+// Auto-generate a unique, human-readable join code: 3 random letters + "-" + DDMMYY.
+// e.g. ABC-170726. Random part keeps codes distinct even for simultaneous sessions on the same day.
+function genSessionCode(){
+  const L="ABCDEFGHJKLMNPQRSTUVWXYZ";
+  let a=""; for(let i=0;i<3;i++) a+=L[Math.floor(Math.random()*L.length)];
+  const d=new Date();
+  const dd=String(d.getDate()).padStart(2,"0"), mm=String(d.getMonth()+1).padStart(2,"0"), yy=String(d.getFullYear()).slice(-2);
+  return a+"-"+dd+mm+yy;
+}
+
+
+/* Join codes are ABC-DDMMYY. Students type them on a phone, so the field does the work:
+   uppercase, drop anything that isn't a letter or digit, and put the dash in itself.
+   Pasting "abc-180926" or "abc180926" both normalise to "ABC-180926". */
+function formatSessionCode(el){
+  const raw=(el.value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  let letters="", digits="";
+  for(const ch of raw){
+    if(letters.length<3 && ch>="A" && ch<="Z"){ letters+=ch; continue; }
+    if(letters.length===3 && digits.length<6 && ch>="0" && ch<="9"){ digits+=ch; }
+  }
+  const out = letters + (letters.length===3 ? "-" : "") + digits;
+  if(el.value!==out){
+    el.value=out;
+    try{ el.setSelectionRange(out.length,out.length); }catch(e){}
+  }
+}
+
+/* ============ OPEN SESSIONS: REJOIN, PROMPT, 12-HOUR EXPIRY ============
+   Closing the browser doesn't end a session — the run lives in the database, and only the
+   teacher's own in-memory state is lost. These helpers find a run this teacher left open so
+   Home can offer it back, warn before a second one is started, and stop a forgotten session
+   lingering indefinitely.
+
+   A run counts as OPEN when it belongs to this teacher, isn't marked ended, and started less
+   than 12 hours ago. The clock runs from the start, not from the last student activity: a test
+   still open half a day later is finished whatever was happening in it. Expiry is decided here
+   rather than by a scheduled job — there is no server to run one — so a stale run is simply
+   treated as closed on sight, and written back as ended the next time this teacher looks. */
+const SESSION_TTL_MS = 12*60*60*1000;
+
+let OPEN_RUN = null;
+   // the run currently offered by the Rejoin button, if any
+
+function runIsExpired(s){ return (Date.now() - (s.runAt||0)) > SESSION_TTL_MS; }
+
+function runIsMine(s){
+  const mine=((TEACHER_USER&&TEACHER_USER.email)||"").toLowerCase();
+  // With no email on the account (the password fallback), ownership can't be established;
+  // offering someone else's live session back would be worse than offering nothing.
+  return !!mine && (s.teacherEmail||"").toLowerCase()===mine;
+}
+
+function runIsUnfinished(s){ return s.status!=="ended"; }
+
+
+/* Returns { open:[...], stale:[...] } for this teacher — open runs newest first, plus the
+   expired ones so the caller can tidy them away. */
+async function findOpenRuns(){
+  let sessions=[];
+  try{ const r=await Backend.listSessions(); sessions=r.sessions||[]; }
+  catch(e){ return { open:[], stale:[] }; }
+  const mine=sessions.filter(s=>runIsMine(s) && runIsUnfinished(s));
+  return { open: mine.filter(s=>!runIsExpired(s)), stale: mine.filter(runIsExpired) };
+}
+
+
+// Mark expired runs ended so they stop being counted, and drop any expired poll's responses —
+// a closed poll keeps nothing, whether it was closed by hand or by the clock.
+async function closeStaleRuns(stale){
+  for(const s of stale){
+    try{
+      const run=await Backend.getRun(s.runId);
+      const meta=Object.assign({}, (run&&run.meta)||{}, { status:"ended", endedBy:"timeout" });
+      await Backend.updateMeta(s.runId, meta);
+      if(activityKeepsNothing(s.kind)) await Backend.deleteRun(s.runId);
+    }catch(e){ console.warn("stale close failed", s.runId, e); }
+  }
+}
+
+
+/* Called whenever Teacher Home is shown. Only an ACTIVE run is offered: a session still sitting
+   in the waiting room has nothing to go back to, and rejoining one would only reopen an empty
+   lobby the teacher had already walked away from. */
+async function refreshOpenRunBanner(){
+  const box=document.getElementById("home-rejoin");
+  if(!box) return;
+  box.style.display="none"; OPEN_RUN=null;
+  const { open, stale } = await findOpenRuns();
+  if(stale.length) closeStaleRuns(stale);
+  /* The same set the guard counts, which until v3.5.1 it was not.
+
+     The button used to require status "active", while confirmNoOpenRun counted anything not
+     ended. Open a room, walk away before starting it, and the app told you a session was
+     already live and offered no way back to it — you could only end it by starting something
+     new. A waiting room is exactly the state you most want to return to: students may already
+     be sitting in it. */
+  if(!open.length) return;
+  const s=open[0];
+  OPEN_RUN=s;
+  const what = activityLabel(s.kind);
+  const waiting = s.status!=="active";
+  document.getElementById("home-rejoin-detail").textContent = waiting
+    ? t("session.open_run_waiting", "{what} {code} \u2014 waiting room open since {when}, {count} {students} joined.",
+        { what:what, code:s.code, count:s.studentCount,
+          students: plural(s.studentCount, t("session.student", "student"), t("session.students", "students")),
+          when: fmtDate(s.runAt) })
+    : t("session.open_run_detail", "{what} {code} \u2014 {count} {students} joined, started {when}.",
+        { what:what, code:s.code, count:s.studentCount,
+          students: plural(s.studentCount, t("session.student", "student"), t("session.students", "students")),
+          when: fmtDate(s.runAt) });
+  box.style.display="block";
+}
+
+
+/* Puts the teacher back on the live dashboard of a run they left. The run's own record is the
+   source of truth — questions, settings and pace all come back from the database, not from
+   whatever this browser last remembered. */
+async function rejoinOpenRun(){
+  if(!OPEN_RUN){ alert(t("session.session_no_longer_open", "That session is no longer open.")); return; }
+  const s=OPEN_RUN;
+  let run=null;
+  try{ run=await Backend.getRun(s.runId); }catch(e){ alert(t("session.couldn_t_reopen_session", "Couldn't reopen the session: ")+e.message); return; }
+  if(!run || !run.meta || run.meta.status==="ended"){ alert(t("session.session_already_ended", "That session has already ended.")); refreshOpenRunBanner(); return; }
+  // Each activity says how it picks itself back up; the core does not know their names.
+  // Every activity is registered, the test included since v3.3, so there is no default branch
+  // here any more — an unregistered kind is a data problem and says so.
+  const act = activity(s.kind);
+  if(act && act.rejoin) return act.rejoin(s, run);
+  alert(t("session.session_kind_app_does_recognise_so", "That session is a kind the app does not recognise, so it cannot be reopened."));
+}
+
+
+async function rejoinPollRun(s, run){
+  POLL.sessionCode = run.code || s.code;
+  POLL.runId = s.runId;
+  POLL.questions = run.questions || [];
+  POLL.settings = run.meta;
+  POLL.school = run.meta.school || "";
+  POLL.name = run.meta.name || POLL.name || "";
+  POLL.projecting = false;
+  POLL.participants = [];
+  document.getElementById("poll-live-code").textContent = POLL.sessionCode;
+  document.getElementById("poll-live-mode").textContent = POLL.settings.anonymous ? t("poll.anonymous", "Anonymous") : t("poll.named", "Named");
+  document.getElementById("poll-title").textContent = POLL.name || t("poll.live_poll", "Live poll");
+  document.getElementById("poll-title-meta").textContent =
+    t("session.n_questions", "{count} {questions}",
+      { count: POLL.questions.length,
+        questions: plural(POLL.questions.length, t("session.question", "question"), t("session.questions", "questions")) })
+    + (POLL.school ? " \u00b7 "+POLL.school : "");
+  document.getElementById("poll-join-code").textContent = POLL.sessionCode;
+  // A rejoined poll can be in its waiting room as well as running, so the screen follows the
+  // run rather than assuming the stage. (Before v3.5.1 the button only ever offered a running
+  // poll, and this line assumed it.)
+  const live = (run.meta||{}).status==="active";
+  document.getElementById("poll-lobby").style.display = live ? "none" : "block";
+  document.getElementById("poll-stage").style.display = live ? "block" : "none";
+  document.getElementById("poll-controls").style.display = live ? "block" : "none";
+  showScreen("screen-poll-live");
+  renderPollQR();
+  pollWatchParticipants();
+  pollStartTimerTick();
+  if(live) renderPollStage();
+}
+
+
+/* Guard in front of starting anything new. Counts a run still in the waiting room, because
+   students may be sitting in that lobby — walking away without ending it would strand them on
+   a screen that never advances. The Rejoin button offers the same set: a warning about a run
+   you cannot get back to is a dead end, which is what it was until v3.5.1. */
+async function confirmNoOpenRun(what){
+  const { open, stale } = await findOpenRuns();
+  if(stale.length) closeStaleRuns(stale);
+  if(!open.length) return true;
+  const s=open[0];
+  const act = activity(s.kind);
+  const kind = activityLabel(s.kind).toLowerCase();
+  const where = s.status==="active"
+    ? t("session.in_progress", "in progress")
+    : t("session.waiting_for_students", "waiting for students");
+  // One string per paragraph rather than a dozen joined fragments: French does not keep
+  // English word order, and a translator cannot reorder pieces that arrive separately.
+  const ok = confirm(
+    t("session.already_open", "You already have a {kind} open.", { kind:kind }) + "\n\n" +
+    t("session.open_run_line", "{code} \u2014 {count} {students} joined, {where}.",
+      { code:s.code, count:s.studentCount,
+        students: plural(s.studentCount, t("session.student", "student"), t("session.students", "students")),
+        where:where }) + "\n\n" +
+    (activityKeepsNothing(s.kind)
+      ? t("session.starting_new_ends_it_keeps_nothing",
+          "Starting a new {what} will end it. Any answers already given are kept and will still appear in the archive, but a {kind} keeps nothing, so its responses go when it closes.",
+          { what:what, kind:kind })
+      : t("session.starting_new_ends_it",
+          "Starting a new {what} will end it. Any answers already given are kept and will still appear in the archive.",
+          { what:what })) + "\n\n" +
+    t("session.end_it_and_continue", "End it and continue?"));
+  if(!ok) return false;
+  try{
+    const run=await Backend.getRun(s.runId);
+    const meta=Object.assign({}, (run&&run.meta)||{}, { status:"ended", endedBy:"superseded" });
+    await Backend.updateMeta(s.runId, meta);
+    if(activityKeepsNothing(s.kind)) await Backend.deleteRun(s.runId);
+  }catch(e){ alert(t("session.couldn_t_close_old_session", "Couldn't close the old session: ")+e.message); return false; }
+  return true;
+}
+
+function getJoinUrl(){ return location.origin+location.pathname+"?join="+encodeURIComponent(TEACHER.sessionCode); }
+
+function renderJoinQR(){
+  document.getElementById("dash-join-code").textContent=TEACHER.sessionCode;
+  const holder=document.getElementById("qr-code"); holder.innerHTML="";
+  if(location.protocol==="file:"){
+    holder.innerHTML='<p style="color:var(--danger);font-weight:600;max-width:400px;">This file is open locally (file://...), so the QR link won\'t work on other devices. Host it (GitHub Pages) and open that URL. Students can still type the code <b>'+TEACHER.sessionCode+'</b> '+t("session.manually", 'manually.')+'</p>';
+    return;
+  }
+  if(typeof QRCode!=="undefined") new QRCode(holder,{text:getJoinUrl(),width:180,height:180,correctLevel:QRCode.CorrectLevel.M});
+  else holder.textContent=t("session.qr_library_failed_load_share_code", "(QR library failed to load — share the code manually)");
+}
+
+function copyJoinLink(){
+  if(location.protocol==="file:"){ alert(t("session.open_hosted_url_first_there_s", "Open the hosted URL first — there's no shareable link from a local file.")); return; }
+  const url=getJoinUrl();
+  navigator.clipboard ? navigator.clipboard.writeText(url).then(()=>alert(t("session.link_copied", "Link copied:\n")+url)) : prompt(t("session.copy_this_link", "Copy this link:"),url);
+}
+
+// Enlarge the QR to (near) full screen so the class can scan it from a distance.
+// Enlarge the join QR. A poll and a test each have their own run and code, so the caller
+// says which ("poll" from the poll screens); otherwise the live test's code is used.
+function openQRFullscreen(which){
+  const isPoll = (which==="poll") || (!which && !!POLL.runId && isScreenActive("screen-poll-live"));
+  const code = isPoll ? POLL.sessionCode : TEACHER.sessionCode;
+  const url  = isPoll ? pollJoinUrl() : getJoinUrl();
+  const overlay=document.getElementById("qr-overlay");
+  const holder=document.getElementById("qr-overlay-code"); holder.innerHTML="";
+  document.getElementById("qr-overlay-text").textContent=code||"";
+  if(location.protocol!=="file:" && typeof QRCode!=="undefined" && code){
+    const s=Math.max(220, Math.min(Math.min(window.innerWidth, window.innerHeight)-180, 440));
+    new QRCode(holder,{text:url,width:s,height:s,correctLevel:QRCode.CorrectLevel.M});
+  } else {
+    holder.innerHTML='<p class="sub" style="max-width:320px;">'+t("session.qr_needs_hosted_url_students_type", 'QR needs the hosted URL. Students can type the code above.')+'</p>';
+  }
+  overlay.style.display="flex";
+}
+
+function closeQRFullscreen(){ document.getElementById("qr-overlay").style.display="none"; }
+
+// Read the rendered QR (canvas or img) as a PNG blob.
+function getQRBlob(sel, cb){
+  const c=document.querySelector(sel+" canvas");
+  if(c && c.toBlob){ c.toBlob(cb); return; }
+  const img=document.querySelector(sel+" img");
+  if(img && img.src){ fetch(img.src).then(r=>r.blob()).then(cb).catch(()=>cb(null)); return; }
+  cb(null);
+}
+
+// Copy the QR image to the clipboard (fallback: download it as PNG).
+function copyQRImage(sel, ev){
+  if(ev) ev.stopPropagation();
+  getQRBlob(sel, async(blob)=>{
+    if(!blob){ alert(t("session.qr_image_isn_t_available_yet", "QR image isn't available yet — make sure you're on the hosted URL.")); return; }
+    try{
+      if(navigator.clipboard && window.ClipboardItem){
+        await navigator.clipboard.write([new ClipboardItem({[blob.type||"image/png"]:blob})]);
+        alert(t("session.qr_image_copied_paste_into_slides", "QR image copied — paste it into your slides, email or chat."));
+      } else { throw new Error("no image clipboard"); }
+    }catch(e){
+      const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+      a.download="join-qr-"+(TEACHER.sessionCode||"code")+".png"; a.click();
+      alert(t("session.browser_t_copy_images_clipboard_so", "Your browser can't copy images to the clipboard, so the QR was downloaded as a PNG — attach or paste that instead."));
+    }
+  });
+}
+
+/* ============ STUDENT ============ */
+/* The student's own side of a session: who they are and which run they are in. A test, a
+   poll and a role play all identify the same person, so this belongs in core rather than
+   inside whichever activity happened to be written first. (It sat in modules/test.js until
+   v3.1, where the rule that modules never reach into each other caught it.) */
+let STUDENT = { sessionCode:null, runId:null, id:null, surname:null, firstName:null, name:null, questions:[], order:[], answers:{},
+  currentPos:0, timeSpent:{}, questionStartTs:null, cheatAlerts:[], meta:{}, paced:false, finished:false, testStarted:false };
