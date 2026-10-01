@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.16">
+<link rel="stylesheet" href="styles/app.css?v=3.17">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -706,8 +706,12 @@
            style="text-transform:uppercase;" oninput="formatSessionCode(this)">
     <!-- Hidden until we know the session actually wants a name: an anonymous poll never does. -->
     <div id="join-names" style="display:none;">
-      <label data-i18n="student_join.surname_family_name">Surname (family name)</label>
-      <input data-i18n-ph="student_join.ph.e_g_dubois" type="text" id="s-surname" placeholder="e.g. Dubois">
+      <!-- The surname half hides for the paired games, which ask a first name alone: it is what
+           a partner says out loud across a table, and a register-style "DUBOIS, Marie" is not. -->
+      <div id="join-surname-box">
+        <label data-i18n="student_join.surname_family_name">Surname (family name)</label>
+        <input data-i18n-ph="student_join.ph.e_g_dubois" type="text" id="s-surname" placeholder="e.g. Dubois">
+      </div>
       <label data-i18n="student_join.first_name">First name</label>
       <input data-i18n-ph="student_join.ph.e_g_marie" type="text" id="s-firstname" placeholder="e.g. Marie">
     </div>
@@ -838,35 +842,35 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.16"></script>
-<script src="lang/fr.js?v=3.16"></script>
-<script src="core/i18n.js?v=3.16"></script>
-<script src="core/registry.js?v=3.16"></script>
-<script src="core/backend.js?v=3.16"></script>
-<script src="core/auth.js?v=3.16"></script>
-<script src="core/ui.js?v=3.16"></script>
-<script src="core/session.js?v=3.16"></script>
-<script src="core/groups.js?v=3.16"></script>
-<script src="core/rounds.js?v=3.16"></script>
-<script src="core/bank.js?v=3.16"></script>
-<script src="core/media.js?v=3.16"></script>
-<script src="core/security.js?v=3.16"></script>
-<script src="core/answers.js?v=3.16"></script>
-<script src="modules/test.js?v=3.16"></script>
-<script src="modules/poll.js?v=3.16"></script>
-<script src="modules/roleplay.js?v=3.16"></script>
-<script src="modules/describeit.js?v=3.16"></script>
-<script src="modules/twentyq.js?v=3.16"></script>
-<script src="modules/partners.js?v=3.16"></script>
-<script src="admin/editor.js?v=3.16"></script>
-<script src="admin/import.js?v=3.16"></script>
-<script src="admin/reports.js?v=3.16"></script>
-<script src="admin/scenarios.js?v=3.16"></script>
-<script src="admin/terms.js?v=3.16"></script>
-<script src="admin/subjects.js?v=3.16"></script>
-<script src="admin/collocations.js?v=3.16"></script>
-<script src="admin/accounts.js?v=3.16"></script>
-<script src="boot.js?v=3.16"></script>
+<script src="lang/en.js?v=3.17"></script>
+<script src="lang/fr.js?v=3.17"></script>
+<script src="core/i18n.js?v=3.17"></script>
+<script src="core/registry.js?v=3.17"></script>
+<script src="core/backend.js?v=3.17"></script>
+<script src="core/auth.js?v=3.17"></script>
+<script src="core/ui.js?v=3.17"></script>
+<script src="core/session.js?v=3.17"></script>
+<script src="core/groups.js?v=3.17"></script>
+<script src="core/rounds.js?v=3.17"></script>
+<script src="core/bank.js?v=3.17"></script>
+<script src="core/media.js?v=3.17"></script>
+<script src="core/security.js?v=3.17"></script>
+<script src="core/answers.js?v=3.17"></script>
+<script src="modules/test.js?v=3.17"></script>
+<script src="modules/poll.js?v=3.17"></script>
+<script src="modules/roleplay.js?v=3.17"></script>
+<script src="modules/describeit.js?v=3.17"></script>
+<script src="modules/twentyq.js?v=3.17"></script>
+<script src="modules/partners.js?v=3.17"></script>
+<script src="admin/editor.js?v=3.17"></script>
+<script src="admin/import.js?v=3.17"></script>
+<script src="admin/reports.js?v=3.17"></script>
+<script src="admin/scenarios.js?v=3.17"></script>
+<script src="admin/terms.js?v=3.17"></script>
+<script src="admin/subjects.js?v=3.17"></script>
+<script src="admin/collocations.js?v=3.17"></script>
+<script src="admin/accounts.js?v=3.17"></script>
+<script src="boot.js?v=3.17"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -1041,11 +1045,6 @@
     <small data-i18n="di_setup.difficulty_hint" class="hint">Every term is written with four forbidden words. Show two for a warm-up, four to make them work for it &mdash; and you can turn it up between rounds.</small>
     <label data-i18n="di_setup.round_length" style="margin-top:14px;">Round length</label>
     <select id="di-seconds-select"></select>
-    <label class="wrap-check" style="margin-top:14px;">
-      <input type="checkbox" id="di-anon">
-      <span data-i18n="di_setup.anon">Play anonymously</span>
-    </label>
-    <small data-i18n="di_setup.anon_hint" class="hint">Students join with the code and nothing else &mdash; no name is asked for and none is stored. Each one is given a two-word name like Blue Falcon to play under. Nobody can look up who is who afterwards, including you: the roster will tell you how many have joined, not which.</small>
     <p id="di-summary" class="sub" style="margin-top:10px;"></p>
     <button data-i18n="rp_setup.open_room" class="btn-primary" id="di-start-btn" style="width:100%;margin-top:14px;" disabled onclick="diStartSession()">Open the room</button>
     <p data-i18n="di_setup.referee_note" class="sub" style="font-size:.78rem;margin-top:10px;">The forbidden words are also on the guesser&rsquo;s screen, with a button to call a foul &mdash; otherwise the describer is policing themselves. In a group of three the third student referees instead and the guesser is told nothing, which is the better game: seeing the forbidden words does narrow what the guesser is looking for.</p>
@@ -1256,11 +1255,6 @@
     <label data-i18n="tq_setup.round_length" style="margin-top:14px;">Round length</label>
     <select id="tq-seconds-select"></select>
     <small data-i18n="tq_setup.length_hint" class="hint">One subject takes two or three minutes of real questioning. Five minutes is two or three subjects for a working pair.</small>
-    <label class="wrap-check" style="margin-top:14px;">
-      <input type="checkbox" id="tq-anon">
-      <span data-i18n="tq_setup.anon">Play anonymously</span>
-    </label>
-    <small data-i18n="tq_setup.anon_hint" class="hint">Students join with the code and nothing else &mdash; no name is asked for and none is stored. Each one is given a two-word name like Blue Falcon to play under. Nobody can look up who is who afterwards, including you: the roster will tell you how many have joined, not which.</small>
     <p id="tq-summary" class="sub" style="margin-top:10px;"></p>
     <button data-i18n="rp_setup.open_room" class="btn-primary" id="tq-start-btn" style="width:100%;margin-top:14px;" disabled onclick="tqStartSession()">Open the room</button>
     <p data-i18n="tq_setup.counter_note" class="sub" style="font-size:.78rem;margin-top:10px;">Only the holder&rsquo;s phone shows the counter &mdash; a student can read their own record and nobody else&rsquo;s. So the asker has to ask how many they have left, in English, and the holder has to answer. That is the point, not a limitation: both of them end up talking instead of reading a screen.</p>
@@ -1540,11 +1534,6 @@
     <label data-i18n="wp_setup.round_length" style="margin-top:14px;">Round length</label>
     <select id="wp-seconds-select"></select>
     <small data-i18n="wp_setup.length_hint" class="hint">A card takes about a minute to work through properly. Two minutes is one or two cards for a first round; three is where a confident class ends up.</small>
-    <label class="wrap-check" style="margin-top:14px;">
-      <input type="checkbox" id="wp-anon">
-      <span data-i18n="wp_setup.anon">Play anonymously</span>
-    </label>
-    <small data-i18n="wp_setup.anon_hint" class="hint">Students join with the code and nothing else &mdash; no name is asked for and none is stored. Each one is given a two-word name like Blue Falcon to play under. Nobody can look up who is who afterwards, including you: the roster will tell you how many have joined, not which.</small>
     <p id="wp-summary" class="sub" style="margin-top:10px;"></p>
     <button data-i18n="rp_setup.open_room" class="btn-primary" id="wp-start-btn" style="width:100%;margin-top:14px;" disabled onclick="wpStartSession()">Open the room</button>
     <p data-i18n="wp_setup.also_works_note" class="sub" style="font-size:.78rem;margin-top:10px;">The holder has a &ldquo;That works too&rdquo; button. A pack lists six partners for a deadline; English has more, and a pair told that &ldquo;blow a deadline&rdquo; is wrong has been taught something false by a checklist. Anything that works scores.</p>

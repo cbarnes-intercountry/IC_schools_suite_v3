@@ -319,52 +319,52 @@ function termOrderFor(count, pairNo, round){
 }
 
 
-/* ---------- pseudonyms (v3.15) ----------
+/* ---------- pseudonyms: removed in v3.17 ----------
 
-   A teacher can run any of the games anonymously: the join screen asks for nothing at all, and the
-   app hands each student a two-word name. No real name is typed, so none is stored, so there is no
-   key for anybody to hold — including the teacher. That was a deliberate choice: a hidden label
-   that the database still knows the answer to is not anonymity, it is a database of names with the
-   display turned off.
+   v3.15 gave each student a two-word name ("Blue Falcon") derived from their own id, so a game
+   could be run with no name typed and none stored. It is gone, at Chris's decision, because the
+   classroom cost outweighed it: a teacher cannot pair up "Blue Falcon" and "Eager Condor" across
+   a room of twenty-five without reading both phones.
 
-   What it costs, recorded because it is real: the roster shows "23 joined" and a list of
-   pseudonyms, so a teacher cannot tell WHICH student has not joined, only how many. And a student
-   on a second device is a second player.
+   It also had a defect worth recording, since the replacement had to avoid it. Two students
+   could draw the same pseudonym — about a one-in-nine chance in a class of twenty-five — and the
+   collision was resolved only on the final leaderboard, by dedupeNames below. So two phones both
+   said "Daring Ferret" while the leaderboard said "Daring Ferret 1" and "Daring Ferret 2". That
+   is the mismatch Chris reported.
 
-   Two words rather than a number because the pair has to SAY them: "Blue Falcon, you're with me"
-   is a sentence and "Player 14" is not. It is also two more words of English said twenty times a
-   round, which is not nothing in a language class. */
-const PSEUDO_ADJECTIVES = [
-  "Amber","Arctic","Bold","Brave","Bright","Calm","Clever","Copper","Crimson","Daring",
-  "Eager","Electric","Emerald","Fearless","Fleet","Golden","Grand","Hidden","Iron","Jade",
-  "Keen","Lucky","Midnight","Nimble","Noble","Northern","Patient","Quick","Quiet","Royal",
-  "Rapid","Restless","Scarlet","Sharp","Silent","Silver","Solar","Steady","Stormy","Swift",
-  "Thunder","Tidal","Velvet","Vivid","Wandering","Western","Wild","Winter","Wise","Zealous"
-];
-const PSEUDO_NOUNS = [
-  "Albatross","Badger","Bison","Cheetah","Cobra","Condor","Cougar","Crane","Dolphin","Dragon",
-  "Eagle","Falcon","Ferret","Fox","Gazelle","Gecko","Heron","Ibex","Jaguar","Kestrel",
-  "Kingfisher","Lynx","Magpie","Mantis","Marlin","Mongoose","Moose","Narwhal","Osprey","Otter",
-  "Panther","Pelican","Puffin","Python","Raven","Rhino","Salmon","Seal","Shark","Sparrow",
-  "Stallion","Stork","Swift","Tiger","Toucan","Viper","Walrus","Wolf","Wombat","Yak"
-];
+   Typed first names collide far more often than that: two Maries in a class is ordinary. So the
+   replacement resolves the duplicate ONCE, at join, before anything is written, and stores the
+   resolved name — see uniqueFirstName in modules/test.js. Every screen then quotes one string.
 
-/* Derived from the student's own id rather than handed out by the teacher, so a phone that
-   reconnects gets the same name back without anybody coordinating — and so no list of who is who
-   ever has to exist. Two thousand five hundred combinations; in a class of 25 that is roughly a
-   one-in-eight chance of two students sharing a name, which the screens that list them together
-   resolve on sight (see dedupeNames). */
-function pseudonymFor(id){
-  const s=String(id||"");
-  let a=0, b=0;
-  for(let i=0;i<s.length;i++){
-    a=(a*31 + s.charCodeAt(i)) >>> 0;
-    b=(b*37 + s.charCodeAt(i)*(i+1)) >>> 0;
+   The code is in the v3.16 folder if anonymous play is ever wanted back. */
+
+/* The first names already in this room, so a second Marie can be told she is Marie 2 before she
+   is written down rather than after. Read from the database rather than from any local list: the
+   student joining has never seen the others. A failed read returns nothing, which means the
+   duplicate goes unresolved — better than refusing to let somebody join because a read blipped. */
+async function existingFirstNames(runId){
+  try{
+    const res=await Backend.listParticipants(runId);
+    return ((res&&res.participants)||[]).map(p=>String(p.firstName||"").trim()).filter(Boolean);
+  }catch(e){ console.warn("could not read the room's names", e); return []; }
+}
+
+/* "Marie" among two Maries becomes "Marie 2", then "Marie 3". Case-insensitive, because Marie
+   and marie are the same person's name to everyone in the room except a computer.
+
+   The first of a name keeps it unadorned: numbering everybody from one would make a class of
+   twenty-five unique names read like a car park. */
+function uniqueFirstName(wanted, taken){
+  const want=String(wanted||"").trim();
+  if(!want) return "";
+  const used={};
+  (taken||[]).forEach(n=>{ used[String(n).trim().toLowerCase()]=true; });
+  if(!used[want.toLowerCase()]) return want;
+  for(let n=2; n<100; n++){
+    const candidate=want+" "+n;
+    if(!used[candidate.toLowerCase()]) return candidate;
   }
-  /* No guard for an empty id: the loop simply does not run, a and b stay zero, and the modulo
-     lands on the first word of each list. A guard that reproduces what the code already does is a
-     line no test can hold to account. */
-  return PSEUDO_ADJECTIVES[a % PSEUDO_ADJECTIVES.length]+" "+PSEUDO_NOUNS[b % PSEUDO_NOUNS.length];
+  return want;
 }
 
 /* Where names are listed together, two students who drew the same one are told apart with a
@@ -382,4 +382,3 @@ function dedupeNames(rows, nameOf, setName){
 }
 
 /* Whether this run hides who everybody is. One flag, read the same way by every game. */
-function runIsAnonymous(meta){ return !!(meta && meta.anon); }

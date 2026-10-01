@@ -310,9 +310,11 @@ function renderFinalLeaderboard(rows, opts){
   const ttl=document.getElementById("final-title");
   if(ttl) ttl.textContent=o.title||"";
   const sub=document.getElementById("final-sub");
-  if(sub) sub.textContent = o.anon
-    ? t("final.played_anonymously", "Played anonymously — these are the names the app gave out, and nobody can look up who is who.")
-    : t("final.nothing_kept", "Nothing is marked and nothing is kept. Close this and the game is gone.");
+  /* The "played anonymously" line went with the pseudonyms in v3.17. A branch whose condition
+     nothing can set is a branch no test can hold to account, and it would read as a promise the
+     app no longer keeps. */
+  if(sub) sub.textContent = t("final.nothing_kept",
+    "Nothing is marked and nothing is kept. Close this and the game is gone.");
 
   const list=document.getElementById("final-list");
   if(list){
@@ -436,7 +438,7 @@ async function showFinalScores(opts){
      class had just played. */
   const meta=opts.meta||{};
   FINAL.rows=finalStandings(metaMap(meta,"totals"), FINAL.participants, metaMap(meta,"pairs"));
-  renderFinalLeaderboard(FINAL.rows, { title:opts.title, anon:runIsAnonymous(meta) });
+  renderFinalLeaderboard(FINAL.rows, { title:opts.title });
   showScreen("screen-final-scores");
 }
 

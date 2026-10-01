@@ -321,7 +321,6 @@ async function diStartSession(){
     sets:DI.chosen.map(c=>({ area:c.area, set:c.set, label:c.label })),
     title:title,
     lang:diChosenLang(),
-    anon: !!(document.getElementById("di-anon")||{}).checked,
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
     pairs:{}, totals:{}, bankedRound:0, startedAt:null
@@ -979,7 +978,11 @@ registerActivity("describeit", {
   score: null,          // the count is a pair's, lives for one round, and is never marked
   finish: diEnd,
   rejoin: diRejoin,
-  anonymous: meta => runIsAnonymous(meta),   // no name is asked for, and none is stored
+  /* A first name, always. The two-word pseudonyms this replaced could collide, and a
+     collision showed up differently on the phone and on the projector. A typed name can
+     collide too, so the duplicate is resolved once, at join, and the resolved name stored. */
+  firstNameOnly: () => true,
+  requiresName: () => true,
 
   label: "Describe It",
   keeps: false          // nothing is archived: the records name students and hold no marks

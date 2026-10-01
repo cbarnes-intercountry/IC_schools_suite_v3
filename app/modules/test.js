@@ -551,13 +551,21 @@ function buildEffectiveResults(participants, questions, meta){
 
 /* The join screen asks for the code first and only then, if the session actually needs one,
    for a name. An anonymous poll never shows the name boxes at all. */
-function askForName(msg){
+function askForName(msg, firstNameOnly){
   const box=document.getElementById("join-names");
   const first=!box || box.style.display!=="block";
   if(box) box.style.display="block";
+  /* The paired games ask a first name alone. A surname is the register's unit, not the
+     classroom's: what a partner says across a table is "Marie", and asking for DUBOIS as well
+     is both slower to type on a phone and more than the activity needs. */
+  const sur=document.getElementById("join-surname-box");
+  if(sur) sur.style.display = firstNameOnly ? "none" : "block";
   document.getElementById("join-status").textContent = msg || "";
   document.getElementById("join-btn").textContent = t("test.join", "Join");
-  if(first){ const s=document.getElementById("s-surname"); if(s&&s.focus) try{ s.focus(); }catch(e){} }
+  if(first){
+    const f=document.getElementById(firstNameOnly ? "s-firstname" : "s-surname");
+    if(f&&f.focus) try{ f.focus(); }catch(e){}
+  }
 }
 
 async function studentJoin(){
@@ -617,17 +625,35 @@ async function studentJoin(){
   if(act && act.join){
     const what = activityLabel(kind).toLowerCase();
     if(session.meta.status==="ended"){ alert(t("test.that_has_finished", "That {what} has finished.", {what:what})); return; }
+    const firstOnly = !!(act.firstNameOnly && act.firstNameOnly(session.meta));
     if(act.anonymous && act.anonymous(session.meta)){
-      /* Nothing identifying is stored, and the name boxes are never shown.
-
-         A game run anonymously still needs SOMETHING on the screen, because the pairs have to
-         address each other and the leaderboard has to list somebody. So the student is handed a
-         two-word name derived from their own id — not typed, not stored against a real one, and
-         not written down anywhere a teacher could look it up. It goes in firstName rather than
-         surname so it reads "Blue Falcon" rather than being shouted in the surname-first style
-         the register uses for real names. */
+      /* Nothing identifying is asked for and nothing is stored. Only the poll takes this path
+         now: the paired games used to, under a two-word pseudonym, and that is gone — see
+         uniqueFirstName below for why. */
+      surname=""; firstName="";
+      STUDENT.surname=""; STUDENT.firstName=""; STUDENT.name="";
+    } else if(firstOnly){
+      if(!firstName){
+        askForName(t("test.this_needs_your_first_name",
+          "This {what} needs your first name.", {what:what}), true);
+        return;
+      }
       surname=""; STUDENT.surname="";
-      firstName = runIsAnonymous(session.meta) ? pseudonymFor(STUDENT.id) : "";
+      /* Resolved HERE, before anything is written, and the resolved name is what gets stored.
+
+         Two students called Marie is ordinary in a class of twenty-five — far more likely than
+         the pseudonym clash this replaced. If the duplicate were resolved at render time
+         instead, the teacher's list would read "Marie 2" while that student's own phone still
+         said "Marie", which is exactly the mismatch this version exists to fix. Resolve once,
+         store it, and every screen is quoting the same string. */
+      const taken = await existingFirstNames(session.runId);
+      const unique = uniqueFirstName(firstName, taken);
+      if(unique !== firstName){
+        alert(t("test.already_a_name_here",
+          "There is already a {name} in this room, so you are {unique}.",
+          { name:firstName, unique:unique }));
+      }
+      firstName = unique;
       STUDENT.firstName=firstName;
       STUDENT.name=firstName;
     } else if(!act.requiresName || act.requiresName(session.meta)){
