@@ -22,12 +22,18 @@ const HUB_SHAPES = {
     name: r => [r.school, r.name].filter(Boolean).join(" \u2014 "),
     fields: [
       { key:"school",    label:["hub.f_school", "School"], required:true,
-        note:["hub.f_school_note", "Spelt the same on every campus \u2014 this is what groups them."] },
+        note:["hub.f_school_note", "The short name, spelt the same on every campus \u2014 this is what groups them."] },
+      { key:"schoolFull", label:["hub.f_school_full", "What the abbreviation stands for"],
+        note:["hub.f_school_full_note", "Shown under the school heading. Only one campus of each school needs it."] },
       { key:"name",      label:["hub.f_campus", "Campus"], required:true },
       { key:"oneLine",   label:["hub.f_oneline", "One line, for the list"] },
       { key:"address",   label:["hub.f_address", "Address"], lines:3 },
+      { key:"network",   label:["hub.f_network", "Transport network"],
+        note:["hub.f_network_note", "RATP, TCL, RTM, TBM, ILEVIA, ASTUCE or STAN. Leave empty and the postcode decides \u2014 set it only when that gets it wrong."] },
       { key:"lines",     label:["hub.f_lines", "Metro, RER and tram lines"],
-        note:["hub.f_lines_note", "Separated by commas: M9, RER A, T3b. The badges are drawn from these."] },
+        note:["hub.f_lines_note", "Separated by commas: M9, RER A, T3a. The badges are drawn from these, in the network\u2019s own colours."] },
+      { key:"buses",     label:["hub.f_buses", "Bus lines"],
+        note:["hub.f_buses_note", "Only where a bus is the way in. Separated by commas: B1, 21 jet, 24."] },
       { key:"transport", label:["hub.f_transport", "Getting there, in words"], lines:3 },
       { key:"mapImage",  label:["hub.f_mapimage", "Map image (web address)"],
         note:["hub.f_mapimage_note", "A link to a picture of the map. Where you host it decides who can see it."] },
@@ -36,6 +42,8 @@ const HUB_SHAPES = {
       { key:"rooms",     label:["hub.f_rooms", "Rooms"] },
       { key:"access",    label:["hub.f_access", "Getting in"], lines:2 },
       { key:"phone",     label:["hub.f_phone", "Phone"] },
+      { key:"icContact", label:["hub.f_ic_contact", "IC contact"],
+        note:["hub.f_ic_contact_note", "Who at Intercountry looks after this campus. Separate several with commas."] },
       { key:"notes",     label:["hub.f_notes", "Anything else"], lines:3 }
     ]
   },
@@ -90,6 +98,20 @@ const HUB_SHAPES = {
 };
 
 const HUB_SECTIONS = ["campuses", "people", "about", "contacts", "guides", "faq"];
+
+/* A refused write, said usefully.
+
+   "PERMISSION_DENIED: Permission denied" is the whole of what Firebase returns, and it names
+   neither of the two things that actually cause it here. Both are one-look checks, so the
+   message names them instead of leaving an owner to guess which. */
+function hubWhyRefused(e){
+  const msg = String((e && e.message) || e || "");
+  if(/permission[_ ]?denied/i.test(msg)){
+    return t("hub.denied_two_causes",
+      "The database refused it. Either the hub rules have not been published yet (Firebase console \u2192 Realtime Database \u2192 Rules \u2014 look for a \u201chub\u201d block), or this account is not an owner.");
+  }
+  return msg;
+}
 
 let ADMIN = { section:"campuses", editing:null, status:"" };
 
@@ -214,7 +236,7 @@ async function hubAdminSave(){
   try{
     await Backend.setHubItem(ADMIN.section, key, rec);
   }catch(e){
-    ADMIN.status=t("hub.save_failed", "Not saved: {why}", { why:(e&&e.message)||e });
+    ADMIN.status=t("hub.save_failed", "Not saved: {why}", { why:hubWhyRefused(e) });
     renderAdmin();
     return;
   }
@@ -233,7 +255,7 @@ async function hubAdminDelete(key){
   try{
     await Backend.deleteHubItem(ADMIN.section, key);
   }catch(e){
-    ADMIN.status=t("hub.remove_failed", "Not removed: {why}", { why:(e&&e.message)||e });
+    ADMIN.status=t("hub.remove_failed", "Not removed: {why}", { why:hubWhyRefused(e) });
     renderAdmin();
     return;
   }
@@ -276,7 +298,7 @@ async function hubAdminImport(){
   try{
     await Backend.replaceHubSection(ADMIN.section, map.records);
   }catch(e){
-    ADMIN.status=t("hub.import_failed", "Not imported: {why}", { why:(e&&e.message)||e });
+    ADMIN.status=t("hub.import_failed", "Not imported: {why}", { why:hubWhyRefused(e) });
     renderAdmin(); return;
   }
   await hubLoad(true);

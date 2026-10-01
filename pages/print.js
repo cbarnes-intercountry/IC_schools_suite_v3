@@ -38,18 +38,22 @@ function renderPrintSheet(){
       const lines=[];
       if(c.address) lines.push(escapeHtml(c.address).replace(/\n/g,", "));
       if(c.lines)   lines.push(escapeHtml(t("hub.getting_there", "Getting there"))+": "+escapeHtml(c.lines));
+      if(c.buses)   lines.push(escapeHtml(t("hub.by_bus", "By bus"))+": "+escapeHtml(c.buses));
       if(c.rooms)   lines.push(escapeHtml(t("hub.rooms", "Rooms"))+": "+escapeHtml(c.rooms));
       if(c.access)  lines.push(escapeHtml(t("hub.getting_in", "Getting in"))+": "+escapeHtml(c.access));
       if(c.phone)   lines.push(escapeHtml(t("hub.phone", "Phone"))+": "+escapeHtml(c.phone));
+      if(c.icContact) lines.push(escapeHtml(t("hub.ic_contact", "IC contact"))+": "+escapeHtml(c.icContact));
       return '<div class="print-block"><h3>'+escapeHtml(c.name||"")+'</h3>'+
         lines.map(l=>'<p>'+l+'</p>').join("")+'</div>';
     }).join("")
   ).join("");
 
+  /* `ct`, not `c`: a campus and a contact are both `c` in a file that renders both, and the
+     reader has to hold which one is which in their head for no reason. */
   const cbox=document.getElementById("print-contacts");
-  if(cbox) cbox.innerHTML = contacts.map(c=>
-    '<p><b>'+escapeHtml(c.problem||"")+'</b> — '+escapeHtml(c.who||"")+
-    (c.how ? " ("+escapeHtml(c.how)+")" : "")+'</p>').join("");
+  if(cbox) cbox.innerHTML = contacts.map(ct=>
+    '<p><b>'+escapeHtml(ct.problem||"")+'</b> — '+escapeHtml(ct.who||"")+
+    (ct.how ? " ("+escapeHtml(ct.how)+")" : "")+'</p>').join("");
 
   /* Said on the sheet itself, because a printout carries no clue how old it is once it is in a
      bag, and an entry code that changed in October is exactly the thing this sheet gets wrong. */

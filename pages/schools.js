@@ -35,15 +35,49 @@ function renderSchools(){
 
   box.innerHTML = order.map(school =>
     '<h2 class="hub-school-name">'+escapeHtml(school)+'</h2>'+
+    schoolFullLine(bySchool[school])+
     bySchool[school].map(c=>
+      /* Name and one line, and nothing else.
+         The badges used to be here too. They are transport information — what you need once you
+         are going somewhere, not while you are deciding which campus you mean — and a list where
+         every row carries four coloured discs is a list you scan past rather than read. They
+         live on the campus page, one tap away, where the address and the walking directions
+         they belong with are. */
       '<button class="hub-campus-link" onclick="hubOpenCampus(\''+escapeHtml(c.key)+'\')">'+
         '<span class="hub-campus-name">'+escapeHtml(c.name||"")+'</span>'+
         (c.oneLine ? '<span class="hub-campus-sub">'+escapeHtml(c.oneLine)+'</span>' : "")+
-        (c.lines ? lineBadges(c.lines) : "")+
       '</button>').join("")
   ).join("");
 
   hubSetReviewed("schools-reviewed", campuses);
+}
+
+/* What the abbreviation stands for, under the heading.
+
+   It lives on the campus rather than in a schools table, and the group takes the first campus
+   that filled it in. That is deliberate: `school` is the grouping key and has to be byte-identical
+   across all seven ISO campuses, so putting "Institut Supérieur d'Optique" in it would mean typing
+   it seven times, where one stray accent splits ISO into two headings. Here, two campuses that
+   disagree cost nothing worse than which wording wins. A second table could disagree silently;
+   this cannot. */
+function schoolFullLine(group){
+  const full=(group||[]).map(c=>String(c.schoolFull||"").trim()).filter(Boolean)[0];
+  return full ? '<p class="hub-school-full">'+escapeHtml(full)+'</p>' : "";
+}
+
+/* The same expansion, for ONE campus, found across its school rather than on its own record.
+
+   Without this, a colleague who opens KEDGE Marseille sees no expansion while KEDGE Paris shows
+   one, purely because Paris happened to be the campus somebody typed it on. The field is about
+   the school, so the answer has to be the school's, wherever it was entered. */
+function schoolFullFor(campus){
+  const school=String((campus||{}).school||"").trim();
+  if(!school) return "";
+  const all=hubSection("campuses");
+  return Object.keys(all)
+    .filter(k=>String(all[k].school||"").trim()===school)
+    .map(k=>String(all[k].schoolFull||"").trim())
+    .filter(Boolean)[0] || "";
 }
 
 function hubOpenCampus(key){
@@ -56,6 +90,8 @@ function hubOpenCampus(key){
   const box=document.getElementById("campus-body");
   if(box){
     const bits=[];
+    const full=schoolFullFor(c);
+    if(full) bits.push('<p class="hub-school-full">'+escapeHtml(full)+'</p>');
     if(c.address) bits.push('<p class="hub-address">'+escapeHtml(c.address).replace(/\n/g,"<br>")+'</p>');
 
     /* The map first, because a person who has just arrived at the wrong end of a street looks at
@@ -71,9 +107,23 @@ function hubOpenCampus(key){
         escapeHtml(t("hub.open_in_maps", "Open in Maps"))+'</button></div>');
     }
 
-    if(c.lines || c.transport){
+    /* Who at Intercountry looks after this campus, between where it is and how to reach it:
+       the question a teacher asks second, after finding the place and before anything goes
+       wrong. "IC contact" rather than "referent", which reads as somebody school-side. */
+    if(c.icContact){
+      bits.push('<h3>'+escapeHtml(t("hub.ic_contact", "IC contact"))+'</h3>'+
+        '<p class="hub-ic-contact">'+escapeHtml(c.icContact)+'</p>');
+    }
+
+    if(c.lines || c.buses || c.transport){
       bits.push('<h3>'+escapeHtml(t("hub.getting_there", "Getting there"))+'</h3>');
-      if(c.lines) bits.push(lineBadges(c.lines));
+      if(c.lines) bits.push(lineBadges(c.lines, networkFor(c)));
+      /* Buses on their own row, under their own label, so a campus reached by four bus numbers
+         does not look like a campus on four metro lines. */
+      if(c.buses){
+        bits.push('<p class="hub-bus-label">'+escapeHtml(t("hub.by_bus", "By bus"))+'</p>'+
+          busBadges(c.buses));
+      }
       if(c.transport) bits.push('<p class="hub-transport">'+escapeHtml(c.transport).replace(/\n/g,"<br>")+'</p>');
     }
 

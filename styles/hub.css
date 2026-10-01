@@ -145,6 +145,12 @@
   color:var(--ink-soft); margin:22px 0 8px; }
 .hub-school-name:first-child{ margin-top:6px; }
 
+/* What the abbreviation stands for. Set below the heading rather than beside it: at 390px
+   "École Supérieure de Commerce et d'Administration des Entreprises du Tourisme" beside "ESCAET"
+   would wrap into the campus buttons. Quiet, because it is a gloss and not a label. */
+.hub-school-full{ font-size:.82rem; font-style:italic; color:var(--ink-soft);
+  margin:-4px 0 10px; line-height:1.4; max-width:640px; }
+
 .hub-campus-link{ display:flex; flex-direction:column; align-items:flex-start; gap:5px;
   text-align:start; width:100%; padding:14px 16px; margin-bottom:8px; background:var(--surface); }
 .hub-campus-name{ font-size:1.05rem; font-weight:800; }
@@ -159,6 +165,17 @@
 /* A line the colour table does not know is grey and dashed, so it reads as "not recognised"
    rather than as a line that happens to be grey. */
 .line-badge-unknown{ border-style:dashed; }
+
+/* Buses: a rectangle, not a disc, and no colour. Bus numbers are not colour-coded, so colouring
+   them would invent a meaning that is not there; the shape difference is what tells you at a
+   glance that this row is buses and the row above it is rail. Wider, because "21 jet" and "565"
+   are not one or two characters. */
+.bus-badges{ margin-top:2px; }
+.bus-badge{ display:inline-grid; place-items:center; min-height:26px; padding:0 9px;
+  border-radius:6px; font-family:"Space Mono",monospace; font-weight:700; font-size:.82rem;
+  line-height:1; background:var(--paper-2); color:var(--ink); border:1.5px solid var(--ink); }
+.hub-bus-label{ font-size:.78rem; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--ink-soft); margin:12px 0 5px; }
 
 .hub-map{ display:block; width:100%; max-width:100%; height:auto; border:2px solid var(--ink);
   border-radius:12px; margin:12px 0 4px; background:var(--paper-2); }
@@ -303,3 +320,6 @@
   #screen-signin{ padding:16px; }
   #screen-signin .ds-panel.hub-signin{ padding:24px 20px; gap:var(--ds-space-5); }
 }
+
+/* The campus IC contact, set like the prose it is rather than like a field label. */
+.hub-ic-contact{ margin:0; line-height:1.55; font-size:.94rem; }
