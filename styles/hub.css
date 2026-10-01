@@ -174,8 +174,9 @@
 .bus-badge{ display:inline-grid; place-items:center; min-height:26px; padding:0 9px;
   border-radius:6px; font-family:"Space Mono",monospace; font-weight:700; font-size:.82rem;
   line-height:1; background:var(--paper-2); color:var(--ink); border:1.5px solid var(--ink); }
-.hub-bus-label{ font-size:.78rem; text-transform:uppercase; letter-spacing:.08em;
+.hub-mode-label{ font-size:.78rem; text-transform:uppercase; letter-spacing:.08em;
   color:var(--ink-soft); margin:12px 0 5px; }
+.hub-mode-label:first-child{ margin-top:4px; }
 
 .hub-map{ display:block; width:100%; max-width:100%; height:auto; border:2px solid var(--ink);
   border-radius:12px; margin:12px 0 4px; background:var(--paper-2); }

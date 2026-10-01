@@ -117,13 +117,11 @@ function hubOpenCampus(key){
 
     if(c.lines || c.buses || c.transport){
       bits.push('<h3>'+escapeHtml(t("hub.getting_there", "Getting there"))+'</h3>');
-      if(c.lines) bits.push(lineBadges(c.lines, networkFor(c)));
-      /* Buses on their own row, under their own label, so a campus reached by four bus numbers
-         does not look like a campus on four metro lines. */
-      if(c.buses){
-        bits.push('<p class="hub-bus-label">'+escapeHtml(t("hub.by_bus", "By bus"))+'</p>'+
-          busBadges(c.buses));
-      }
+      /* One labelled row per mode — Metro, RER, Tram, Bus — rather than one undifferentiated
+         row of discs. The colour tells you which line; the label tells you what you are
+         looking for when you come out of the station, which is the part a colleague who does
+         not know the city cannot infer. */
+      if(c.lines || c.buses) bits.push(lineModeRows(c.lines, networkFor(c), c.buses));
       if(c.transport) bits.push('<p class="hub-transport">'+escapeHtml(c.transport).replace(/\n/g,"<br>")+'</p>');
     }
 

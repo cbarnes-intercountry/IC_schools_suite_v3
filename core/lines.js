@@ -186,16 +186,27 @@ function lineKey(raw){
   return s;
 }
 
-/* The characters on the badge: "M9" shows 9, "RER A" shows A, "T3A" shows 3a, Lyon's "MB" shows
-   B. Anything the table does not know keeps whatever the teacher typed, trimmed — better a grey
-   badge reading "Navette" than nothing at all. */
+/* The characters on the badge: "M9" shows 9, "RER A" shows A, "T3A" shows T3a, Lyon's "MB"
+   shows B. Anything the table does not know keeps whatever the teacher typed, trimmed — better
+   a grey badge reading "Navette" than nothing at all.
+
+   A NUMBERED TRAM KEEPS ITS T. It used to render as the bare number, so Marseille's T2 and
+   Marseille's M2 both drew a disc reading "2" — different colours, same character, and at
+   IFPASS Lyon and IFPASS Marseille the two sit on the same page. The mode heading above them
+   says which is which, but a badge should not need its heading read to be unambiguous. This is
+   also how the operators sign them: the platform at Bercy says T3a, not 3a.
+
+   A LETTERED tram keeps the bare letter, because that IS its signage — Bordeaux signs Tram B
+   as "B", and "TB" is a string nobody would recognise. The collision the T prefix exists to
+   prevent cannot happen there: Bordeaux has no metro, and a lettered metro (Lyon) and a
+   lettered tram (Bordeaux) are never on one campus page. */
 function lineLabel(key, raw){
   let m=/^M(\d+)(B)?$/.exec(key);
   if(m) return m[1] + (m[2] ? "bis" : "");
   m=/^M([A-D])$/.exec(key);
   if(m) return m[1];
   m=/^T(\d+)([AB])?$/.exec(key);
-  if(m) return m[1] + (m[2] ? m[2].toLowerCase() : "");
+  if(m) return "T" + m[1] + (m[2] ? m[2].toLowerCase() : "");
   m=/^T([A-D])$/.exec(key);
   if(m) return m[1];
   m=/^RER ([A-E])$/.exec(key);
@@ -216,8 +227,14 @@ function lineBadge(raw, network){
   const col=(net && net.colours[key]) || LINE_FALLBACK;
   const known=!!(net && net.colours[key]);
   const typed=String(raw==null?"":raw).trim();
-  const title=known ? (net.name + " — " + typed)
-                    : t("hub.line_unverified", "{line} — network not recognised", { line:typed });
+  /* Two different reasons a badge is grey, and they are not the same thing to the person
+     reading it. Lyon's TER is grey because TER is not in TCL's table, NOT because Lyon is
+     unknown — saying "network not recognised" there is simply false, and a tooltip that is
+     wrong about why is worse than one that says nothing. */
+  const title = known ? (net.name + " — " + typed)
+    : net ? t("hub.line_not_listed", "{line} — {network}, colour not listed",
+              { line:typed, network:net.name })
+          : t("hub.line_no_network", "{line} — network not recognised", { line:typed });
   return '<span class="line-badge'+(known ? "" : " line-badge-unknown")+'" '+
     'style="background:'+col.bg+';color:'+col.fg+';" title="'+escapeHtml(title)+'">'+
     escapeHtml(lineLabel(key, raw))+'</span>';
@@ -229,6 +246,60 @@ function lineBadges(text, network){
   const parts=splitLines(text);
   if(!parts.length) return "";
   return '<span class="line-badges">'+parts.map(p=>lineBadge(p, network)).join("")+'</span>';
+}
+
+/* Which KIND of thing a line is, worked out from the normalised key.
+
+   The colour says which line; it does not say whether you are looking for a metro entrance, a
+   tram stop or a mainline platform, and at an unfamiliar campus that is the thing you need
+   first. A row of bare discs makes a colleague infer it from the colour, which only works if
+   they already know the city. */
+const TRANSILIEN_LETTERS = { H:1, J:1, K:1, L:1, N:1, P:1, R:1, U:1 };
+
+function lineMode(key, raw){
+  if(/^RER [A-E]$/.test(key)) return "rer";
+  if(/^M(\d+B?|[A-D])?$/.test(key)) return "metro";
+  if(/^T(\d+[AB]?|[A-D])$/.test(key)) return "tram";
+  if(TRANSILIEN_LETTERS[key]) return "transilien";
+  if(/^(TER|TRAIN|SNCF)\b/i.test(String(raw==null?"":raw).trim())) return "train";
+  return "other";
+}
+
+/* Metro before RER before tram, because that is roughly the order of "how most people arrive",
+   and a fixed order means two campuses never present the same information in two shapes.
+   `other` last: it is the bucket for anything the key rules do not recognise, and a thing
+   nobody could classify should not head the list. */
+const LINE_MODES = [
+  ["metro",      ["hub.mode_metro", "Metro"]],
+  ["rer",        ["hub.mode_rer", "RER"]],
+  ["transilien", ["hub.mode_transilien", "Transilien"]],
+  ["tram",       ["hub.mode_tram", "Tram"]],
+  ["train",      ["hub.mode_train", "Train"]],
+  ["other",      ["hub.mode_other", "Also"]]
+];
+
+/* The campus page's transport block: one labelled row per mode, buses included, in one place
+   so the rows cannot drift apart. Modes with nothing in them draw nothing — an empty "Tram"
+   heading is worse than no heading, because it reads as "no trams here" rather than "nobody
+   has typed any". */
+function lineModeRows(text, network, busText){
+  const parts=splitLines(text);
+  const byMode={};
+  parts.forEach(p=>{
+    const m=lineMode(lineKey(p), p);
+    (byMode[m] = byMode[m] || []).push(p);
+  });
+
+  const rows=LINE_MODES.filter(m=>byMode[m[0]] && byMode[m[0]].length).map(m=>
+    '<p class="hub-mode-label">'+escapeHtml(t(m[1][0], m[1][1]))+'</p>'+
+    '<span class="line-badges">'+byMode[m[0]].map(p=>lineBadge(p, network)).join("")+'</span>');
+
+  const buses=splitLines(busText);
+  if(buses.length){
+    rows.push('<p class="hub-mode-label">'+escapeHtml(t("hub.mode_bus", "Bus"))+'</p>'+
+      busBadges(busText));
+  }
+  return rows.join("");
 }
 
 /* Buses are deliberately NOT coloured.

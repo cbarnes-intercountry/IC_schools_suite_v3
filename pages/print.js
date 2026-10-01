@@ -38,7 +38,7 @@ function renderPrintSheet(){
       const lines=[];
       if(c.address) lines.push(escapeHtml(c.address).replace(/\n/g,", "));
       if(c.lines)   lines.push(escapeHtml(t("hub.getting_there", "Getting there"))+": "+escapeHtml(c.lines));
-      if(c.buses)   lines.push(escapeHtml(t("hub.by_bus", "By bus"))+": "+escapeHtml(c.buses));
+      if(c.buses)   lines.push(escapeHtml(t("hub.mode_bus", "Bus"))+": "+escapeHtml(c.buses));
       if(c.rooms)   lines.push(escapeHtml(t("hub.rooms", "Rooms"))+": "+escapeHtml(c.rooms));
       if(c.access)  lines.push(escapeHtml(t("hub.getting_in", "Getting in"))+": "+escapeHtml(c.access));
       if(c.phone)   lines.push(escapeHtml(t("hub.phone", "Phone"))+": "+escapeHtml(c.phone));
