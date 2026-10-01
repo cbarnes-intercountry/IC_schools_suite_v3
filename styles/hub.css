@@ -196,3 +196,110 @@
   line-height:1.4; margin:2px 0 4px; }
 
 .print-school{ font-size:1rem; margin:14px 0 6px; text-transform:uppercase; letter-spacing:.06em; }
+
+
+/* ---------------------------------------------------------------------------
+   v0.3.0 — the sign-in screen, in Exam Hall
+
+   The first screen restyled. Everything here either positions the design system's
+   own components or wins back a declaration that app.css takes from them; nothing
+   here invents a colour, a radius or a shadow.
+
+   WHY ANY OVERRIDES AT ALL. app.css is still loaded, because eleven screens have
+   not been restyled yet and would lose their styling without it. Its input rule is
+   `input[type=text],input[type=email],…` — an element plus an attribute, which beats
+   a single class. So `.ds-input` loses to it on specificity alone and the fields
+   would come out as app-styled boxes inside an Exam Hall panel. These rules raise
+   the system's own declarations back above it, scoped to this one screen, and they
+   go away as each screen moves across.
+   --------------------------------------------------------------------------- */
+
+#screen-signin{
+  font-family:var(--ds-font-body);
+  justify-content:center;
+  padding:var(--ds-page-pad);
+  position:relative;
+}
+
+/* The panel itself: narrow, centred, above the marginalia. */
+#screen-signin .ds-panel.hub-signin{
+  position:relative; z-index:1;
+  width:100%; max-width:430px;
+  display:flex; flex-direction:column; gap:var(--ds-space-6);
+  margin:auto;
+}
+
+#screen-signin .hub-brandline{ display:flex; align-items:center; gap:var(--ds-space-3); }
+#screen-signin .ds-logo-chip img{ width:100%; height:100%; object-fit:contain; }
+
+#screen-signin h1.ds-display{ margin:0; }
+#screen-signin .hub-signin-sub{ margin:calc(var(--ds-space-6) * -1 + var(--ds-space-2)) 0 0;
+  font-size:var(--ds-size-body); line-height:var(--ds-leading-body); }
+
+/* Winning the fields back from app.css's element+attribute selector. */
+#screen-signin input.ds-input{
+  height:var(--ds-control-h);
+  width:100%;
+  margin:0;
+  padding:0 var(--ds-space-5);
+  border:var(--ds-border);
+  border-radius:var(--ds-radius-md);
+  background:var(--ds-grad-field);
+  box-shadow:var(--ds-recess);
+  font-family:var(--ds-font-body);
+  font-size:var(--ds-size-body);
+  color:var(--ds-ink);
+}
+#screen-signin input.ds-input:focus{
+  outline:none;
+  border-color:var(--ds-magenta);
+  box-shadow:var(--ds-recess),0 0 0 3px var(--ds-focus-ring);
+}
+
+/* And the button back from app.css's `button{…}`. The hard offset is the brand's
+   press affordance, so it is the one thing that must not be lost. */
+#screen-signin button.ds-btn{
+  width:100%;
+  min-height:var(--ds-cta-h);
+  height:var(--ds-cta-h);
+  padding:0 26px;
+  border:var(--ds-border);
+  border-radius:var(--ds-radius-pill);
+  font-family:var(--ds-font-display);
+  font-weight:800;
+  font-size:var(--ds-size-cta);
+}
+#screen-signin button.ds-btn-primary{
+  background:var(--ds-grad-navy); color:#fff;
+  box-shadow:var(--ds-offset),var(--ds-lift-navy),var(--ds-sheen);
+}
+#screen-signin button.ds-btn:hover{ transform:translate(3px,3px);
+  box-shadow:var(--ds-offset-press),var(--ds-sheen); }
+#screen-signin button.ds-btn:active{ transform:translate(7px,7px); box-shadow:none; }
+
+/* The reset link is a button for keyboard and screen-reader reasons, so it has to be
+   stripped back to looking like one of the system's small uppercase labels. */
+#screen-signin button.hub-linkbtn{
+  align-self:flex-start;
+  min-height:0; height:auto; padding:2px 0;
+  background:none; border:none; box-shadow:none; border-radius:0;
+  color:var(--ds-navy); cursor:pointer;
+  font-family:var(--ds-font-body);
+}
+#screen-signin button.hub-linkbtn:hover{ color:var(--ds-magenta); text-decoration:underline;
+  transform:none; box-shadow:none; }
+
+#screen-signin .hub-signin-status{ margin:0; font-size:var(--ds-size-body);
+  line-height:var(--ds-leading-body); }
+#screen-signin .hub-signin-status:empty{ display:none; }
+
+#screen-signin .hub-signin-ver{ margin:0; font-size:var(--ds-size-label);
+  letter-spacing:var(--ds-tracking-label); }
+
+/* The system is desktop-first for the teacher console and phone-first for students.
+   This screen is a teacher's, but it is the one they will open on a phone in a
+   corridor, so the panel keeps its padding honest at 390px. */
+@media (max-width:480px){
+  #screen-signin{ padding:16px; }
+  #screen-signin .ds-panel.hub-signin{ padding:24px 20px; gap:var(--ds-space-5); }
+}

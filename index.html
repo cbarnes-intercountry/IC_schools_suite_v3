@@ -4,8 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>IC Teacher Hub</title>
-<link rel="stylesheet" href="styles/app.css?v=0.2.4">
-<link rel="stylesheet" href="styles/hub.css?v=0.2.4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Exam Hall first, so its tokens exist for everything after it; app.css then keeps the
+     screens that have not been restyled yet looking as they did; hub.css last. -->
+<link rel="stylesheet" href="styles/exam-hall.css?v=0.3.0">
+<link rel="stylesheet" href="styles/app.css?v=0.3.0">
+<link rel="stylesheet" href="styles/hub.css?v=0.3.0">
 </head>
 <body>
 
@@ -20,27 +26,58 @@
   </div>
 </div>
 
-<!-- SIGN IN — the whole hub sits behind it, so the directory stays out of search engines and
-     nobody needs a second password. -->
-<div class="screen active" id="screen-signin">
-  <div class="card center hub-signin">
-    <span class="badge" data-i18n="hub.ic">Intercountry</span>
-    <h1 data-i18n="hub.teacher_hub">Teacher Hub</h1>
-    <p data-i18n="hub.signin_sub" class="sub">The same account you use for tests and games.</p>
-    <!-- The key goes on a SPAN inside the label, never on the label itself: applyI18n sets
-         textContent, and on a label that wraps its input that deletes the input. -->
-    <label class="hub-label">
-      <span data-i18n="auth.email">Email</span>
-      <input id="t-email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false">
-    </label>
-    <label class="hub-label">
-      <span data-i18n="auth.password">Password</span>
-      <input id="t-pass" type="password" autocomplete="current-password">
-    </label>
-    <button class="btn-primary" onclick="hubSignIn()" data-i18n="auth.sign_in">Sign in</button>
-    <p id="signin-status" class="sub"></p>
-    <button class="link" onclick="hubResetPassword()" data-i18n="auth.forgot">Forgotten your password?</button>
-    <p class="sub mono app-version"></p>
+<!-- SIGN IN — the first screen restyled in Exam Hall. The whole hub sits behind it, so the
+     directory stays out of search engines and nobody needs a second password.
+
+     Built from the design system's own components: a PageField ground, a Panel with the
+     tri-colour rule, recessed fields that read as holes, and one navy Button carrying the
+     hard ink offset. No key sits on an element that wraps another — applyI18n replaces
+     content, and that is what deleted both inputs in v0.2.3. -->
+<div class="screen active ds-field" id="screen-signin">
+
+  <!-- Marginalia: decoration only, never behind body copy, never clickable. -->
+  <div class="ds-marginalia" aria-hidden="true">
+    <span class="ds-mark-rule"        style="left:-30px;top:16%;width:150px;transform:rotate(-14deg);"></span>
+    <span class="ds-mark-rule-dashed" style="right:-20px;top:30%;width:130px;transform:rotate(9deg);"></span>
+    <span class="ds-mark-ring"        style="right:8%;top:11%;width:58px;height:58px;"></span>
+    <span class="ds-mark-ring"        style="left:6%;bottom:16%;width:96px;height:96px;"></span>
+    <span class="ds-mark-chevron"     style="left:11%;top:9%;width:20px;height:20px;transform:rotate(45deg);"></span>
+    <span class="ds-mark-diamond"     style="right:13%;bottom:21%;width:26px;height:26px;"></span>
+    <span class="ds-mark-bracket"     style="left:5%;top:35%;width:30px;height:30px;"></span>
+    <span class="ds-mark-dot"         style="right:22%;top:21%;width:8px;height:8px;"></span>
+    <span class="ds-mark-dot"         style="left:19%;bottom:29%;width:6px;height:6px;"></span>
+  </div>
+
+  <div class="ds-panel hub-signin">
+    <span class="ds-panel-rule"></span>
+
+    <div class="hub-brandline">
+      <span class="ds-logo-chip"><img src="assets/ic-logo.png?v=0.3.0" alt="" width="38" height="38"></span>
+      <span class="ds-eyebrow" data-i18n="hub.eyebrow">TEACHER HUB</span>
+    </div>
+
+    <h1 class="ds-display" data-i18n="hub.signin_head">One place. One sign-in.</h1>
+    <p class="ds-muted hub-signin-sub" data-i18n="hub.signin_sub">Everything you need before a lesson, and the tools to run it.</p>
+
+    <div class="ds-field-group">
+      <label class="ds-label" for="t-email" data-i18n="auth.email">TEACHER EMAIL</label>
+      <input id="t-email" class="ds-input" type="email" autocomplete="username" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="ds-field-group">
+      <label class="ds-label" for="t-pass" data-i18n="auth.password">PASSWORD</label>
+      <input id="t-pass" class="ds-input" type="password" autocomplete="current-password">
+    </div>
+
+    <button class="ds-btn ds-btn-primary hub-signin-go" onclick="hubSignIn()"
+            data-i18n="auth.sign_in">Sign in &rarr;</button>
+
+    <p id="signin-status" class="hub-signin-status"></p>
+
+    <button class="ds-label hub-linkbtn" onclick="hubResetPassword()"
+            data-i18n="auth.forgot">FORGOTTEN PASSWORD?</button>
+
+    <p class="ds-muted mono app-version hub-signin-ver"></p>
   </div>
 </div>
 
@@ -204,20 +241,20 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="lang/en.js?v=0.2.4"></script>
-<script src="lang/fr.js?v=0.2.4"></script>
-<script src="core/i18n.js?v=0.2.4"></script>
-<script src="core/ui.js?v=0.2.4"></script>
-<script src="core/lines.js?v=0.2.4"></script>
-<script src="core/backend.js?v=0.2.4"></script>
-<script src="core/auth.js?v=0.2.4"></script>
-<script src="pages/home.js?v=0.2.4"></script>
-<script src="pages/about.js?v=0.2.4"></script>
-<script src="pages/schools.js?v=0.2.4"></script>
-<script src="pages/who.js?v=0.2.4"></script>
-<script src="pages/how.js?v=0.2.4"></script>
-<script src="pages/print.js?v=0.2.4"></script>
-<script src="admin/content.js?v=0.2.4"></script>
-<script src="boot.js?v=0.2.4"></script>
+<script src="lang/en.js?v=0.3.0"></script>
+<script src="lang/fr.js?v=0.3.0"></script>
+<script src="core/i18n.js?v=0.3.0"></script>
+<script src="core/ui.js?v=0.3.0"></script>
+<script src="core/lines.js?v=0.3.0"></script>
+<script src="core/backend.js?v=0.3.0"></script>
+<script src="core/auth.js?v=0.3.0"></script>
+<script src="pages/home.js?v=0.3.0"></script>
+<script src="pages/about.js?v=0.3.0"></script>
+<script src="pages/schools.js?v=0.3.0"></script>
+<script src="pages/who.js?v=0.3.0"></script>
+<script src="pages/how.js?v=0.3.0"></script>
+<script src="pages/print.js?v=0.3.0"></script>
+<script src="admin/content.js?v=0.3.0"></script>
+<script src="boot.js?v=0.3.0"></script>
 </body>
 </html>
