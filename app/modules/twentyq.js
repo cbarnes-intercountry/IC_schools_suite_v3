@@ -438,12 +438,21 @@ function tqFeedFailed(err){
     { reason:(err&&err.message)||t("tq.unknown_reason", "no reason given") });
 }
 
+/* Remove a student from the lobby. Lobby only — see removeFromLobby. */
+async function tqRemoveStudent(studentId){
+  const gone = await removeFromLobby(TQ.runId, TQ.participants, studentId, TQ.meta);
+  if(!gone) return;
+  TQ.participants = (TQ.participants||[]).filter(p=>p.studentId!==studentId);
+  tqRenderRoster();
+}
+
 function tqRenderRoster(){
   const n=TQ.participants.length;
   document.getElementById("tq-count").textContent=t("tq.n_joined", "{count} joined", {count:n});
   const el=document.getElementById("tq-roster");
-  el.innerHTML = TQ.participants.slice().sort(bySurname)
-    .map(p=>'<span class="chip">'+escapeHtml(displayName(p.surname,p.firstName))+'</span>').join("") ||
+  /* One removable chip per student, with how long since their phone last spoke — that is
+     what tells a teacher which of two records is the abandoned browser. */
+  el.innerHTML = lobbyRoster(TQ.participants, "tqRemoveStudent") ||
     '<p class="sub">'+t("tq.waiting_students_join", "Waiting for students to join…")+'</p>';
   const dealBtn=document.getElementById("tq-deal-btn");
   dealBtn.disabled = n<2;
@@ -470,7 +479,10 @@ async function tqDeal(){
 async function tqStartRound(){
   if(!TQ.meta || !TQ.meta.round){ return; }
   await tqResetScores();
-  await tqPushMeta({ pos:{}, rhits:{}, roundStartedAt: Backend.serverNow() });
+  /* `pos` is the pair's place in their list and survives the round; only the round's own
+     hit counter is cleared. Clearing pos here is what used to restart every pair at the
+     first subject. */
+  await tqPushMeta({ rhits:{}, roundStartedAt: Backend.serverNow() });
 }
 
 async function tqSwapRoles(){
@@ -542,12 +554,28 @@ function tqStopTick(){ if(TQ.tick){ clearInterval(TQ.tick); TQ.tick=null; } }
 
 /* The teacher relays the card position, because only the teacher may write meta. Written only when
    it has changed. */
+let TQ_RELAYING=false;
+
+/* RELAYING IS NOT RE-ENTRANT.
+
+   This runs from the participants feed, which fires freely, and it ends in a meta write that
+   can bring the feed round again. The `positionsDiffer` check is supposed to stop the second
+   pass — but it reads the module's own copy of meta, and Describe It assigns that copy AFTER
+   awaiting the write, so a re-entry during the await still saw the old positions and wrote
+   again, for ever. It blew the stack the first time Describe It was given a relay.
+
+   Twenty Questions and Word Partners happen to assign their copy BEFORE the await, so they
+   were safe — by the order of two lines, not by design. This flag says the invariant out loud
+   in all three, so reordering those lines cannot quietly reintroduce it. */
 async function tqRelayPositions(){
+  if(TQ_RELAYING) return;
   const meta=TQ.meta;
   if(!meta || !meta.round || !meta.roundStartedAt) return;
   const now=pairPositions(TQ.participants, metaMap(meta,"pairs"));
   if(!positionsDiffer(metaMap(meta,"pos"), now)) return;
-  await tqPushMeta({ pos: now });
+  TQ_RELAYING=true;
+  try{ await tqPushMeta({ pos: now }); }
+  finally{ TQ_RELAYING=false; }
 }
 
 async function tqMaybeBankRound(){
@@ -712,7 +740,7 @@ async function tqStudentStart(session, surname, firstName){
   TQSTU={ runId:session.runId, meta:session.meta, subjects:session.questions||[],
           unsub:null, wakeLock:null, pos:0, hits:0, solved:0, asked:0, revealed:false, round:0,
           tick:null, pendingWrite:null, lastWrite:0, phase:null, lost:false };
-  try{ await Backend.joinSession(TQSTU.runId, STUDENT.id, surname, firstName, true); }
+  try{ await Backend.joinSession(TQSTU.runId, STUDENT.id, surname, firstName, true, STUDENT.rejoining); }
   catch(e){
     alert(t("tq.join_refused",
       "You are not in the game: the database refused to record you ({reason}).\n\nTell your teacher — nothing you do would count.",
@@ -723,6 +751,9 @@ async function tqStudentStart(session, surname, firstName){
   if(badge){ badge.textContent=displayName(surname,firstName); badge.style.display="inline-block"; }
   showScreen("screen-tq-card");
   tqKeepAwake();
+  /* If the teacher removes them from the lobby, say so rather than leaving the phone
+     sitting on a card that will never start. */
+  TQSTU.removeWatch = watchForRemoval(TQSTU.runId, STUDENT.id, ()=>{ tqStudentEnd(); showRemovedScreen(); });
   tqStudentWatch();
   tqStudentTick();
 }
@@ -734,11 +765,17 @@ function tqStudentWatch(){
     const before=TQSTU.meta||{};
     TQSTU.meta=res.meta;
     if(res.meta.status==="ended"){ tqStudentEnd(); return; }
+    /* A new round does NOT send the pair back to the first subject. Their place in the list
+       carries over, so nobody is asked about a subject they held last round. Only the card
+       state and the round's own score reset. */
     if((res.meta.round||0) !== (TQSTU.round||0)){
-      TQSTU.round=res.meta.round||0; tqResetCard(); TQSTU.pos=0; TQSTU.hits=0; TQSTU.solved=0;
+      TQSTU.round=res.meta.round||0; tqResetCard();
+      TQSTU.pos=carryOverPos(res.meta, tqMySeat(), TQSTU.pos);
+      TQSTU.hits=0; TQSTU.solved=0;
     }
     if((res.meta.roundStartedAt||0) !== (before.roundStartedAt||0) && res.meta.roundStartedAt){
-      TQSTU.pos=0; TQSTU.hits=0; TQSTU.solved=0; tqResetCard();
+      TQSTU.pos=carryOverPos(res.meta, tqMySeat(), TQSTU.pos);
+      TQSTU.hits=0; TQSTU.solved=0; tqResetCard();
     }
     tqRenderCard();
   });
@@ -770,7 +807,7 @@ function tqMySeat(){
 function tqMyOrder(){
   const seat=tqMySeat();
   if(!seat) return [];
-  return termOrderFor((TQSTU.subjects||[]).length, seat.g, (TQSTU.meta&&TQSTU.meta.round)||1);
+  return termOrderFor((TQSTU.subjects||[]).length, seat.g);
 }
 
 /* Seat 0's own number; the asker's comes back through the teacher (see core/rounds.js). Without
@@ -1107,6 +1144,7 @@ function tqFlushScore(force){
 }
 
 function tqStudentEnd(){
+  if(TQSTU.removeWatch){ TQSTU.removeWatch(); TQSTU.removeWatch=null; }
   if(TQSTU.unsub){ TQSTU.unsub(); TQSTU.unsub=null; }
   if(TQSTU.tick){ clearInterval(TQSTU.tick); TQSTU.tick=null; }
   if(TQSTU.pendingWrite){ clearTimeout(TQSTU.pendingWrite); TQSTU.pendingWrite=null; }

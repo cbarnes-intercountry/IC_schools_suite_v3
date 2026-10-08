@@ -23,6 +23,34 @@ const POLL_TYPES = ["poll","cloud"];
 
 function isPollType(type){ return POLL_TYPES.indexOf(type)>=0; }
 
+/* ---------- a poll question that DOES have a right answer (v3.20) ----------
+
+   Until v3.20 "a poll is never marked" and "a poll has no right answer" were the same
+   sentence, and the code said it in both forms interchangeably. They are not the same
+   sentence any more. A poll question may now carry a key, which makes it a comprehension
+   check the class answers together — but it is still never marked: points stay 0, no score
+   is written, nothing reaches a report, and `keeps:false` still means the run is deleted at
+   Close Poll. The key exists only so the room can be told the answer.
+
+   Which is why this lives in core rather than in modules/poll.js: the editor, the importer
+   and the three poll views all have to agree on what counts as a key, and a second
+   implementation of that rule is how they would stop agreeing. (The same lesson as
+   RP_MAX_ROLES in v3.19 and uniqueFirstName in v3.17.)
+
+   The membership test is not ceremony. An author who marks choice C correct and later edits
+   the choices leaves a key naming an option that is no longer on the card; without this the
+   projector would highlight nothing while still announcing an answer, which is worse than
+   having no key at all. A key that has fallen off its own question is no key, and the
+   question quietly goes back to being an opinion vote. */
+function pollKey(q){
+  if(!q || q.type!=="poll") return null;
+  const c=q.correct;
+  if(c===undefined || c===null || c==="") return null;
+  return (q.options||[]).indexOf(c)>=0 ? c : null;
+}
+
+function pollIsChecked(q){ return pollKey(q)!==null; }
+
 function setKind(rec){
   if(!rec) return "quiz";
   // Whatever the record says it is, it is. Listing the known kinds here meant role play came

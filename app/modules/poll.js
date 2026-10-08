@@ -297,12 +297,18 @@ function renderPollStage(){
     box.innerHTML='<div class="cloud" id="poll-cloud"></div>';
     renderPollCloud(pollTallyCloud(votes, metaMap(POLL.settings,"removed")[String(idx)]));
   } else {
-    renderPollBars(box, pollTallyChoice(q, votes), votes.length);
+    // Revealed is the only branch that reaches here, so the key can never leak early.
+    renderPollBars(box, pollTallyChoice(q, votes), votes.length, pollKey(q));
   }
   renderPollRoster();
 }
 
-function renderPollBars(box, counts, total){
+/* `key`, since v3.20, is the correct choice on a checked poll, or null on an opinion vote.
+   It is passed in rather than read from the question here, because the ONLY moment it may be
+   drawn is when the teacher has revealed the results — and that decision belongs to the caller
+   that already knows the reveal state. A bar chart that worked it out for itself would be a
+   second place for "may the class see this yet" to be decided, and the two would drift. */
+function renderPollBars(box, counts, total, key){
   const entries=Object.keys(counts).map(k=>[k,counts[k]]);
   const max=Math.max(1, ...entries.map(e=>e[1]));
   const series=["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8"];
@@ -310,12 +316,27 @@ function renderPollBars(box, counts, total){
   const ranked=entries.slice().sort((a,b)=>b[1]-a[1]);
   entries.forEach(([label,n],i)=>{
     const pct= total>0 ? Math.round(n*100/total) : 0;
+    const right = key!==undefined && key!==null && label===key;
     const row=document.createElement("div");
     row.className="bar-row"+(n>0&&n===max?" top":"");
+    if(right) row.classList.add("correct");
     const rank=document.createElement("span"); rank.className="bar-rank";
     rank.textContent=(ranked.findIndex(e=>e[0]===label)+1);
     const body=document.createElement("div"); body.className="bar-body";
-    const l=document.createElement("div"); l.className="bar-label"; l.textContent=label;
+    const l=document.createElement("div"); l.className="bar-label";
+    /* A tick as well as the colour. The most-voted bar is already highlighted, so on a question
+       where the class got it right the two highlights sit on the same row and colour alone stops
+       distinguishing them — and a projector at the back of a room is where colour fails first.
+
+       Appended in order rather than inserted before a text node: `textContent` then
+       `insertBefore(tick, firstChild)` puts the tick first in a browser and last in the node
+       harness, and a check that reads differently in the two places is not a check. */
+    if(right){
+      const tick=document.createElement("span"); tick.className="bar-correct"; tick.textContent="✓";
+      tick.title=t("poll.correct_answer", "Correct answer");
+      l.appendChild(tick);
+    }
+    const name=document.createElement("span"); name.textContent=label; l.appendChild(name);
     const track=document.createElement("div"); track.className="bar-track";
     const fill=document.createElement("div"); fill.className="bar-fill";
     fill.style.background="var("+series[i%series.length]+")";
@@ -535,7 +556,8 @@ function renderPollDebrief(questions, participants, removed){
         det.appendChild(cl);
       }
     } else {
-      renderPollBars(det, pollTallyChoice(q, votes), votes.length);
+      // The debrief is after the event, so a key is always shown here.
+      renderPollBars(det, pollTallyChoice(q, votes), votes.length, pollKey(q));
     }
 
     // One question open at a time: the class discusses them one by one.
@@ -626,6 +648,22 @@ function pollQClosed(idx){
   return "";
 }
 
+/* The correct choice for question idx, or null — null meaning either "this is an opinion vote"
+   or "the teacher has not revealed yet".
+
+   This governs what the page DRAWS, and nothing more. The key itself is already on the phone:
+   the whole question object is written to the session and every joined student reads it, which
+   has been true of the marked test since v2 and is not something this function invents or can
+   fix. Anyone willing to open a developer console on a phone can read the answers to an exam
+   today. That is a real gap, it is wider than polls, and it wants its own version — a session
+   copy with the answers stripped, relayed through meta at reveal. Fixing it here, for the one
+   activity that is never marked and never kept, would look like a fix and protect nothing. */
+function pollShowKey(idx){
+  const q=PSTU.questions[idx];
+  if(!pollRevealState(PSTU.meta, idx, q)) return null;
+  return pollKey(q);
+}
+
 function renderPollStudent(){
   const body=document.getElementById("pv-body");
   const status=document.getElementById("pv-status");
@@ -645,17 +683,32 @@ function renderPollStudent(){
   const closed=pollQClosed(idx);
   body.innerHTML="";
 
+  /* On a checked poll the phone is told the answer at exactly the moment the projector is \u2014
+     the teacher's reveal, read from the same meta both of them follow. Marking the student's
+     own card the instant they tap would be kinder to them and useless to the lesson: the first
+     four to vote would tell the room, and the teacher would lose the pause the check is for. */
+  const key = pollShowKey(idx);
+
   if(closed==="voted"){
     const mine=PSTU.votes[String(idx)];
     const shown=Array.isArray(mine)?mine.join(", "):mine;
-    body.innerHTML='<div class="vote-done">Vote recorded'+(shown?': <b>'+escapeHtml(String(shown))+'</b>':'')+'</div>';
+    const verdict = key===null ? "" : (String(shown)===key ? "right" : "wrong");
+    body.innerHTML='<div class="vote-done'+(verdict?" "+verdict:"")+'">'+
+      escapeHtml(t("poll.vote_recorded", "Vote recorded"))+
+      (shown?': <b>'+escapeHtml(String(shown))+'</b>':'')+
+      (verdict==="right" ? '<div class="vote-verdict">\u2713 '+escapeHtml(t("poll.that_s_right", "That\u2019s right"))+'</div>' : '')+
+      (verdict==="wrong" ? '<div class="vote-verdict">'+escapeHtml(t("poll.answer_was", "The answer was {answer}", {answer:key}))+'</div>' : '')+
+      '</div>';
     status.textContent=t("poll.wait_next_question", "Wait for the next question.");
     return;
   }
   if(closed==="locked"||closed==="expired"){
     body.innerHTML='<div class="vote-locked">'+escapeHtml(
       (closed==="expired" ? t("poll.times_up", "Time\u2019s up") : t("poll.voting_closed", "Voting closed"))
-      + " " + t("poll.cant_answer_this_one", "\u2014 you can\u2019t answer this one."))+'</div>';
+      + " " + t("poll.cant_answer_this_one", "\u2014 you can\u2019t answer this one."))+'</div>'+
+      /* Someone who missed the question still gets the answer, or they learn nothing from the
+         one item they most needed to hear. */
+      (key===null ? "" : '<div class="vote-verdict standalone">'+escapeHtml(t("poll.answer_was", "The answer was {answer}", {answer:key}))+'</div>');
     status.textContent=t("poll.wait_next_question", "Wait for the next question.");
     return;
   }

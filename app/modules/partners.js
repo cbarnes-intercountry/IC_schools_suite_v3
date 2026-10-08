@@ -391,12 +391,21 @@ function wpFeedFailed(err){
     { reason:(err&&err.message)||t("wp.unknown_reason", "no reason given") });
 }
 
+/* Remove a student from the lobby. Lobby only — see removeFromLobby. */
+async function wpRemoveStudent(studentId){
+  const gone = await removeFromLobby(WP.runId, WP.participants, studentId, WP.meta);
+  if(!gone) return;
+  WP.participants = (WP.participants||[]).filter(p=>p.studentId!==studentId);
+  wpRenderRoster();
+}
+
 function wpRenderRoster(){
   const n=WP.participants.length;
   document.getElementById("wp-count").textContent=t("wp.n_joined", "{count} joined", {count:n});
   const el=document.getElementById("wp-roster");
-  el.innerHTML = WP.participants.slice().sort(bySurname)
-    .map(p=>'<span class="chip">'+escapeHtml(displayName(p.surname,p.firstName))+'</span>').join("") ||
+  /* One removable chip per student, with how long since their phone last spoke — that is
+     what tells a teacher which of two records is the abandoned browser. */
+  el.innerHTML = lobbyRoster(WP.participants, "wpRemoveStudent") ||
     '<p class="sub">'+t("wp.waiting_students_join", "Waiting for students to join…")+'</p>';
   const dealBtn=document.getElementById("wp-deal-btn");
   dealBtn.disabled = n<2;
@@ -423,7 +432,8 @@ async function wpDeal(){
 async function wpStartRound(){
   if(!WP.meta || !WP.meta.round){ return; }
   await wpResetScores();
-  await wpPushMeta({ pos:{}, rhits:{}, roundStartedAt: Backend.serverNow() });
+  // `pos` is the pair's place in their list and survives the round. See termOrderFor.
+  await wpPushMeta({ rhits:{}, roundStartedAt: Backend.serverNow() });
 }
 
 async function wpSwapRoles(){
@@ -480,12 +490,28 @@ function wpStopTick(){ if(WP.tick){ clearInterval(WP.tick); WP.tick=null; } }
    tell the speaker which word their partner is on. Written only when it has actually changed;
    the subscription fires on every score write, and relaying regardless would be a database write
    per tap per pair. */
+let WP_RELAYING=false;
+
+/* RELAYING IS NOT RE-ENTRANT.
+
+   This runs from the participants feed, which fires freely, and it ends in a meta write that
+   can bring the feed round again. The `positionsDiffer` check is supposed to stop the second
+   pass — but it reads the module's own copy of meta, and Describe It assigns that copy AFTER
+   awaiting the write, so a re-entry during the await still saw the old positions and wrote
+   again, for ever. It blew the stack the first time Describe It was given a relay.
+
+   Twenty Questions and Word Partners happen to assign their copy BEFORE the await, so they
+   were safe — by the order of two lines, not by design. This flag says the invariant out loud
+   in all three, so reordering those lines cannot quietly reintroduce it. */
 async function wpRelayPositions(){
+  if(WP_RELAYING) return;
   const meta=WP.meta;
   if(!meta || !meta.round || !meta.roundStartedAt) return;
   const now=pairPositions(WP.participants, metaMap(meta,"pairs"));
   if(!positionsDiffer(metaMap(meta,"pos"), now)) return;
-  await wpPushMeta({ pos: now });
+  WP_RELAYING=true;
+  try{ await wpPushMeta({ pos: now }); }
+  finally{ WP_RELAYING=false; }
 }
 
 async function wpMaybeBankRound(){
@@ -649,7 +675,7 @@ async function wpStudentStart(session, surname, firstName){
   WPSTU={ runId:session.runId, meta:session.meta, cards:session.questions||[],
           unsub:null, wakeLock:null, pos:0, hits:0, found:[], revealed:[], extra:0, round:0,
           tick:null, pendingWrite:null, lastWrite:0, phase:null };
-  try{ await Backend.joinSession(WPSTU.runId, STUDENT.id, surname, firstName, true); }
+  try{ await Backend.joinSession(WPSTU.runId, STUDENT.id, surname, firstName, true, STUDENT.rejoining); }
   catch(e){
     alert(t("wp.join_refused",
       "You are not in the game: the database refused to record you ({reason}).\n\nTell your teacher — nothing you do would count.",
@@ -660,6 +686,9 @@ async function wpStudentStart(session, surname, firstName){
   if(badge){ badge.textContent=displayName(surname,firstName); badge.style.display="inline-block"; }
   showScreen("screen-wp-card");
   wpKeepAwake();
+  /* If the teacher removes them from the lobby, say so rather than leaving the phone
+     sitting on a card that will never start. */
+  WPSTU.removeWatch = watchForRemoval(WPSTU.runId, STUDENT.id, ()=>{ wpStudentEnd(); showRemovedScreen(); });
   wpStudentWatch();
   wpStudentTick();
 }
@@ -672,10 +701,13 @@ function wpStudentWatch(){
     WPSTU.meta=res.meta;
     if(res.meta.status==="ended"){ wpStudentEnd(); return; }
     if((res.meta.round||0) !== (WPSTU.round||0)){
-      WPSTU.round=res.meta.round||0; WPSTU.pos=0; WPSTU.hits=0; wpResetCard();
+      WPSTU.round=res.meta.round||0;
+      WPSTU.pos=carryOverPos(res.meta, wpMySeat(), WPSTU.pos);
+      WPSTU.hits=0; wpResetCard();
     }
     if((res.meta.roundStartedAt||0) !== (before.roundStartedAt||0) && res.meta.roundStartedAt){
-      WPSTU.pos=0; WPSTU.hits=0; wpResetCard();
+      WPSTU.pos=carryOverPos(res.meta, wpMySeat(), WPSTU.pos);
+      WPSTU.hits=0; wpResetCard();
     }
     wpRenderCard();
   });
@@ -707,7 +739,7 @@ function wpMySeat(){
 function wpMyOrder(){
   const seat=wpMySeat();
   if(!seat) return [];
-  return termOrderFor((WPSTU.cards||[]).length, seat.g, (WPSTU.meta&&WPSTU.meta.round)||1);
+  return termOrderFor((WPSTU.cards||[]).length, seat.g);
 }
 
 /* Seat 0's own number; everyone else's comes back through the teacher (see core/rounds.js). */
@@ -1023,6 +1055,7 @@ function wpFlushScore(force){
 }
 
 function wpStudentEnd(){
+  if(WPSTU.removeWatch){ WPSTU.removeWatch(); WPSTU.removeWatch=null; }
   if(WPSTU.unsub){ WPSTU.unsub(); WPSTU.unsub=null; }
   if(WPSTU.tick){ clearInterval(WPSTU.tick); WPSTU.tick=null; }
   if(WPSTU.pendingWrite){ clearTimeout(WPSTU.pendingWrite); WPSTU.pendingWrite=null; }

@@ -45,6 +45,20 @@
   .bar-pct{font-family:"Space Mono",monospace;font-weight:700;font-size:.85rem;color:#fff;padding:0 10px;white-space:nowrap;}
   .bar-pct.out{color:var(--ink);}
   .bar-n{font-family:"Space Mono",monospace;font-weight:700;font-size:.78rem;color:var(--ink-soft);margin-left:8px;}
+  /* The correct choice on a checked poll (v3.20). Drawn only once the teacher reveals.
+     Three signals, not one: the tick, the colour and the heavier border — because .top is
+     already a highlight and the two land on the same row whenever the class got it right. */
+  /* A darker green than --success for the two things that are TEXT. The app's success colour
+     is #0E8A4F, which measures 4.41:1 on white — under AA, and the browser check says so. It
+     is fine on a phone held at arm's length and on the badges it was picked for; it is not
+     fine as the label naming the right answer on a wall six metres away, which is the one
+     place in this feature where a person has to read a word. The soft fill and the badges keep
+     --success; only the type is darkened. */
+  :root{ --success-ink:#0C7A46; }
+  .bar-row.correct .bar-label{color:var(--success-ink);}
+  .bar-row.correct .bar-track{border-color:var(--success-ink);box-shadow:0 0 0 2px var(--success-soft);}
+  .bar-correct{display:inline-block;margin-right:7px;color:var(--success-ink);font-weight:700;}
+  body.projecting .bar-correct{font-size:min(2.4vw,1.7rem);}
   /* tally */
   .poll-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:18px;}
   .poll-head-l{min-width:0;}
@@ -121,7 +135,14 @@
   .done-tick{width:86px;height:86px;margin:4px auto 16px;display:grid;place-items:center;border:3px solid var(--success);
     border-radius:50%;background:var(--success-soft);color:var(--success);font-size:2.6rem;font-weight:700;line-height:1;}
   .vote-locked{background:var(--amber-soft);border:2px solid var(--amber);color:var(--amber);border-radius:12px;padding:12px;font-weight:700;text-align:center;}
-  .vote-done{background:var(--success-soft);border:2px solid var(--success);color:var(--success);border-radius:12px;padding:16px;font-weight:700;text-align:center;}
+  .vote-done{background:var(--success-soft);border:2px solid var(--success);color:var(--success-ink);border-radius:12px;padding:16px;font-weight:700;text-align:center;}
+  /* A wrong answer on a checked poll is amber, not red. Nothing is being marked and nothing is
+     kept; the student is being told the answer, not failed. Red is the colour this app uses
+     when something has gone wrong, and a poll answer going the other way has not. */
+  .vote-done.wrong{background:var(--amber-soft);border-color:var(--amber);color:var(--amber);}
+  .vote-verdict{margin-top:9px;font-size:1.05rem;}
+  .vote-verdict.standalone{margin-top:10px;background:var(--paper);border:2px dashed var(--ink);
+    border-radius:12px;padding:12px;font-weight:700;text-align:center;}
   .screen{display:none;min-height:100vh;padding:22px 18px 40px;}
   .screen.active{display:flex;flex-direction:column;align-items:center;}
   .card{background:var(--surface);border:2px solid var(--ink);border-radius:18px;padding:24px;width:100%;max-width:640px;box-shadow:5px 5px 0 var(--ink);}
@@ -199,6 +220,10 @@
   .order-item.sortable-chosen{border-color:var(--magenta);box-shadow:3px 3px 0 var(--magenta);}
   .qe-answer-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;}
   .qe-answer-row input[type=text]{flex:1;}
+  /* The "which one is correct" column on a poll. Present in the markup in both modes so the
+     save path has one shape to read, and hidden here rather than removed. */
+  .poll-correct-radio{display:none;}
+  #poll-opts.poll-keyed .poll-correct-radio{display:inline-block;flex:none;width:22px;height:22px;}
   .qe-answer-row button{min-height:40px;padding:8px 12px;font-size:.85rem;box-shadow:2px 2px 0 var(--ink);}
   .timer-pill{font-family:"Space Mono",monospace;font-variant-numeric:tabular-nums;font-weight:700;background:#fff;border:2px solid var(--ink);color:var(--ink);border-radius:20px;padding:4px 12px;}
   .timer-pill.low{background:var(--amber-soft);border-color:var(--amber);color:var(--amber);}
@@ -401,6 +426,26 @@
   .fb-pts{font-family:"Space Mono",monospace;font-size:.88rem;margin-top:6px;opacity:.85;}
   .fb-title{font-family:"Bricolage Grotesque",serif;font-weight:800;font-size:1.85rem;letter-spacing:-.02em;margin:28px 0 6px;color:#fff;}
   .fb-sub{font-size:.95rem;line-height:1.5;opacity:.88;margin:0 0 22px;max-width:30ch;}
+  /* Did the paper reach the teacher (v3.20a). The panel is magenta, so the usual green and
+     amber would both disappear into it; these are solid blocks with their own background,
+     and the failure reads as a warning rather than as another line of reassurance. */
+  /* Only ever drawn when something went wrong — a saved paper says nothing, because the
+     result on the screen above it is the confirmation. */
+  .fb-sent{font-weight:700;border-radius:12px;padding:10px 16px;margin:0 0 14px;max-width:32ch;
+           font-size:.95rem;line-height:1.4;}
+  .fb-sent:empty{display:none;}
+  /* A failed save has no result, so the panel shows none: no pill claiming the test is
+     complete, no dial, no counts. Only what happened and what to do. */
+  .fb-panel.fb-failed .fb-pill,
+  .fb-panel.fb-failed .fb-dial,
+  .fb-panel.fb-failed .fb-stats,
+  .fb-panel.fb-failed #fb-name,
+  .fb-panel.fb-failed #fb-dot{display:none;}
+  /* A darker amber than --amber for this one message. #B26B00 measures 4.2:1 on white — under
+     AA, which the browser check reports — and this is the sentence a student has a few seconds
+     to read and act on before they leave the room with an unsubmitted paper. The badges and
+     pills keep --amber; only this warning is darkened. */
+  .fb-sent.bad{background:#fff;color:#8A5300;border:3px solid var(--amber);}
   .fb-stats{display:flex;gap:10px;width:100%;max-width:420px;justify-content:center;}
   .fb-stat{flex:1;background:rgba(255,255,255,.12);border:2px solid #fff;border-radius:14px;padding:12px 8px;}
   .fb-stat b{display:block;font-family:"Bricolage Grotesque",serif;font-weight:800;font-size:1.35rem;line-height:1.1;}
@@ -743,3 +788,41 @@
 
 /* The student's own line in the top five, so they find themselves without reading every row. */
 .di-score-me{ background:var(--ds-surface-2, rgba(0,0,0,.06)); border-radius:8px; }
+
+/* The lobby roster. One student per line: name, how long since their phone spoke, and a remove
+   button. Added v3.18, when a lesson threw up students connected twice and no way to clear one
+   out. Laid out as a column after a browser screenshot showed inline chips staggering and the
+   remove buttons overlapping the line above. */
+.roster-list{ display:flex; flex-direction:column; gap:8px; width:100%;
+  max-width:520px; margin:0 auto; text-align:start; }
+.chip-roster{ display:flex; align-items:center; gap:10px; width:100%;
+  padding:6px 6px 6px 14px; border-radius:12px; background:var(--surface,#fff);
+  border:2px solid currentColor; }
+.chip-roster .chip-name{ flex:1 1 auto; min-width:0; font-weight:800;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chip-roster .chip-when{ flex:0 0 auto; font-size:.76rem; opacity:.6;
+  font-variant-numeric:tabular-nums; white-space:nowrap; }
+.chip-roster .chip-flag{ flex:0 0 auto; font-size:.66rem; text-transform:uppercase;
+  letter-spacing:.05em; padding:2px 7px; border-radius:999px;
+  background:var(--accent,#E6007E); color:#fff; white-space:nowrap; }
+/* 44px, the same minimum every other tap target in this app is held to. It was 30 until a
+   browser measured it: small enough to miss on a phone, and this one deletes somebody. */
+.chip-roster .chip-x{ flex:0 0 auto; min-width:44px; min-height:44px; padding:0;
+  border-radius:8px; background:transparent; border:1.5px solid currentColor; opacity:.5;
+  font-size:1.1rem; line-height:1; cursor:pointer; }
+.chip-roster .chip-x:hover,
+.chip-roster .chip-x:focus{ opacity:1; }
+/* A student who said "this is me on another phone" is the one most likely to need removing,
+   so the row says so rather than leaving the teacher to work it out from two similar names. */
+.chip-roster[data-rejoin="1"]{ border-style:dashed; border-color:var(--accent,#E6007E); }
+
+/* Who else is in your group. A list rather than a sentence since v3.19, when groups grew to
+   six: five names in a paragraph is something you read, and a student holding a phone in a
+   noisy room needs something they can scan. */
+.rp-with-label{ display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.07em;
+  opacity:.6; margin-bottom:6px; }
+.rp-with{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.rp-with li{ display:flex; flex-direction:column; gap:1px; padding:6px 10px;
+  border-inline-start:3px solid currentColor; }
+.rp-with-name{ font-weight:700; }
+.rp-with-role{ font-size:.8rem; opacity:.7; }

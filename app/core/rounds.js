@@ -264,6 +264,24 @@ function positionsDiffer(a, b){
 /* Seat 0 draws from its own number, which moves the instant it taps. Everyone else draws from the
    relayed one, which is a second or so behind — fine for a card that lasts a minute, and far better
    than a card that never changes at all. */
+/* Where this pair has got to in their list, when a new round starts.
+
+   The position used to be set back to zero every round. With one permutation per pair (see
+   termOrderFor) that would deal the same opening subjects over and over, so instead the pair
+   CARRIES ON from where the last round left them.
+
+   Taken from the relayed per-pair position rather than from the student's own counter, because
+   the person who becomes the describer or holder in round two was guessing in round one and
+   their own counter never moved. Their own value is the fallback for the first round, before
+   anything has been relayed. */
+function carryOverPos(meta, seat, ownPos){
+  if(!seat) return 0;
+  const relayed=metaMap(meta, "pos");
+  const forPair=Number(relayed[seat.g]);
+  if(forPair > 0) return forPair;
+  return Number(ownPos) || 0;
+}
+
 function seatPosition(meta, seat, ownPos){
   if(!seat) return 0;
   if(seat.r===0) return Number(ownPos)||0;

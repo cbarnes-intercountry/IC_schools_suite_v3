@@ -105,7 +105,9 @@ function parseQuizRows(rows){
     // opened, so a sheet can suggest what to look for without committing to a particular image.
     const isq=get(row,"ImageSearch"); if(isq) q.imageSearch=isq;
     if(isPollType(type)){
-      // Poll questions are never marked, so Points and Correct are ignored on import.
+      /* Poll questions are never marked, so Points is ignored. Correct is NOT ignored any more
+         (v3.20): on a poll row it names the choice the class is told about at Reveal. On a
+         cloud row there is nothing for it to name, so it stays ignored there. */
       q.points=0; q.correct=null;
       // Results are revealed by default. New sheets use HideResults; older ones carried
       // ShowLive (blank = hidden), so honour that when HideResults isn't present at all.
@@ -122,6 +124,22 @@ function parseQuizRows(rows){
         const opts=["OptionA","OptionB","OptionC","OptionD","OptionE"].map(c=>get(row,c)).filter(Boolean);
         if(opts.length<2){ errors.push(t("import.row_poll_needs_choices", "Row {row}: poll needs at least 2 choices in OptionA..E.", {row:rowNum})); return; }
         q.options=opts;
+        /* Blank Correct means an opinion vote, which is what every sheet written before v3.20
+           has. A Correct that names nothing on the card is refused rather than dropped: an
+           author who typed it meant something by it, and a silently keyless question is found
+           out in front of the class. Same letter-or-text rule as an MCQ, so a teacher who has
+           filled in one sheet already knows this one. */
+        const correctRaw=get(row,"Correct");
+        if(correctRaw){
+          const letterIdx="ABCDE".indexOf(correctRaw.toUpperCase());
+          let c=null;
+          if(letterIdx>=0&&letterIdx<opts.length) c=opts[letterIdx];
+          else if(opts.includes(correctRaw)) c=correctRaw;
+          if(c===null){ errors.push(t("import.row_poll_correct_must_match",
+            "Row {row}: poll Correct “{value}” must be a letter or match a choice — leave it blank for an opinion vote.",
+            {row:rowNum, value:correctRaw})); return; }
+          q.correct=c;
+        }
       } else {
         q.maxWords=Math.max(1, Math.min(3, parseInt(get(row,"MaxWords"),10)||1));
       }
@@ -211,8 +229,11 @@ function parseScenarioRows(rows){
       errors.push(t("import.scenario_needs_two_roles", "Scenario \u201c{title}\u201d: needs at least two roles that are not optional \u2014 skipped.", {title:title}));
       return;
     }
-    if(sc.roles.length>3) errors.push(t("import.scenario_only_three_roles", "Scenario \u201c{title}\u201d: only the first three roles are used.", {title:title}));
-    sc.roles=sc.roles.slice(0,3);
+    /* Six since v3.19. The sheet was always one row per role, so nothing about the format
+       changed — only how many of those rows are kept. */
+    if(sc.roles.length>RP_MAX_ROLES) errors.push(t("import.scenario_only_six_roles",
+      "Scenario \u201c{title}\u201d: only the first {max} roles are used.", {title:title, max:RP_MAX_ROLES}));
+    sc.roles=sc.roles.slice(0, RP_MAX_ROLES);
     scenarios.push(sc);
   });
   return { scenarios:scenarios, errors:errors, lang:lang };

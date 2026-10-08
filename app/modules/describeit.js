@@ -369,7 +369,7 @@ function diWatchParticipants(){
     DI.participants=(res&&res.participants)||[];
     diFeedOk();
     diRenderRoster();
-    if(DI.meta && DI.meta.round>0) diRenderStage();
+    if(DI.meta && DI.meta.round>0){ diRenderStage(); diRelayPositions().catch(e=>console.warn(e)); }
   }, err=>{ diFeedFailed(err); });
 }
 
@@ -388,12 +388,21 @@ function diFeedFailed(err){
     { reason:(err&&err.message)||t("di.unknown_reason", "no reason given") });
 }
 
+/* Remove a student from the lobby. Lobby only — see removeFromLobby. */
+async function diRemoveStudent(studentId){
+  const gone = await removeFromLobby(DI.runId, DI.participants, studentId, DI.meta);
+  if(!gone) return;
+  DI.participants = (DI.participants||[]).filter(p=>p.studentId!==studentId);
+  diRenderRoster();
+}
+
 function diRenderRoster(){
   const n=DI.participants.length;
   document.getElementById("di-count").textContent=t("di.n_joined", "{count} joined", {count:n});
   const el=document.getElementById("di-roster");
-  el.innerHTML = DI.participants.slice().sort(bySurname)
-    .map(p=>'<span class="chip">'+escapeHtml(displayName(p.surname,p.firstName))+'</span>').join("") ||
+  /* One removable chip per student, with how long since their phone last spoke — that is
+     what tells a teacher which of two records is the abandoned browser. */
+  el.innerHTML = lobbyRoster(DI.participants, "diRemoveStudent") ||
     '<p class="sub">'+t("di.waiting_students_join", "Waiting for students to join…")+'</p>';
   const dealBtn=document.getElementById("di-deal-btn");
   dealBtn.disabled = n<2;
@@ -414,6 +423,36 @@ async function diDeal(){
   document.getElementById("di-lobby").style.display="none";
   document.getElementById("di-stage").style.display="block";
   diStartTick();
+}
+
+/* The pair's place in their term list, relayed through the teacher.
+
+   Added in v3.18. Twenty Questions and Word Partners already did this; Describe It did not,
+   because nothing needed it while every round restarted at zero. Now that a pair carries on
+   across rounds, the describer's count has to reach whoever describes next — and that student
+   was guessing last round, so their own counter never moved. */
+let DI_RELAYING=false;
+
+/* RELAYING IS NOT RE-ENTRANT.
+
+   This runs from the participants feed, which fires freely, and it ends in a meta write that
+   can bring the feed round again. The `positionsDiffer` check is supposed to stop the second
+   pass — but it reads the module's own copy of meta, and Describe It assigns that copy AFTER
+   awaiting the write, so a re-entry during the await still saw the old positions and wrote
+   again, for ever. It blew the stack the first time Describe It was given a relay.
+
+   Twenty Questions and Word Partners happen to assign their copy BEFORE the await, so they
+   were safe — by the order of two lines, not by design. This flag says the invariant out loud
+   in all three, so reordering those lines cannot quietly reintroduce it. */
+async function diRelayPositions(){
+  if(DI_RELAYING) return;
+  const meta=DI.meta;
+  if(!meta || !meta.round || !meta.roundStartedAt) return;
+  const now=pairPositions(DI.participants, metaMap(meta,"pairs"));
+  if(!positionsDiffer(metaMap(meta,"pos"), now)) return;
+  DI_RELAYING=true;
+  try{ await diPushMeta({ pos: now }); }
+  finally{ DI_RELAYING=false; }
 }
 
 async function diStartRound(){
@@ -660,7 +699,7 @@ async function diStudentStart(session, surname, firstName){
   DSTU={ runId:session.runId, meta:session.meta, terms:session.questions||[],
          unsub:null, wakeLock:null, pos:0, hits:0, round:0, tick:null,
          pendingWrite:null, lastWrite:0, buzzedAt:0, phase:null };
-  try{ await Backend.joinSession(DSTU.runId, STUDENT.id, surname, firstName, true); }
+  try{ await Backend.joinSession(DSTU.runId, STUDENT.id, surname, firstName, true, STUDENT.rejoining); }
   catch(e){
     alert(t("di.join_refused",
       "You are not in the game: the database refused to record you ({reason}).\n\nTell your teacher — nothing you do would count.",
@@ -671,6 +710,9 @@ async function diStudentStart(session, surname, firstName){
   if(badge){ badge.textContent=displayName(surname,firstName); badge.style.display="inline-block"; }
   showScreen("screen-di-card");
   diKeepAwake();
+  /* If the teacher removes them from the lobby, say so rather than leaving the phone
+     sitting on a card that will never start. */
+  DSTU.removeWatch = watchForRemoval(DSTU.runId, STUDENT.id, ()=>{ diStudentEnd(); showRemovedScreen(); });
   diStudentWatch();
   diStudentTick();
 }
@@ -682,12 +724,17 @@ function diStudentWatch(){
     const before=DSTU.meta||{};
     DSTU.meta=res.meta;
     if(res.meta.status==="ended"){ diStudentEnd(); return; }
-    // A new round means a new deal: fresh terms, count back to zero.
+    /* A new round swaps the roles; it does not send the pair back to the first term. Their
+       place in the list carries over, so the new describer is not handed terms the new guesser
+       described to them last round. */
     if((res.meta.round||0) !== (DSTU.round||0)){
-      DSTU.round=res.meta.round||0; DSTU.pos=0; DSTU.hits=0;
+      DSTU.round=res.meta.round||0;
+      DSTU.pos=carryOverPos(res.meta, diMySeat(), DSTU.pos);
+      DSTU.hits=0;
     }
     if((res.meta.roundStartedAt||0) !== (before.roundStartedAt||0) && res.meta.roundStartedAt){
-      DSTU.pos=0; DSTU.hits=0;
+      DSTU.pos=carryOverPos(res.meta, diMySeat(), DSTU.pos);
+      DSTU.hits=0;
     }
     diRenderCard();
   });
@@ -719,7 +766,7 @@ function diMySeat(){
 function diMyOrder(){
   const seat=diMySeat();
   if(!seat) return [];
-  return termOrderFor((DSTU.terms||[]).length, seat.g, (DSTU.meta&&DSTU.meta.round)||1);
+  return termOrderFor((DSTU.terms||[]).length, seat.g);
 }
 
 /* The clock's digits, and nothing else.
@@ -929,7 +976,7 @@ function diFlushScore(force){
   /* Only the describer writes. The referee's button counts nothing (see diBuzz), so there is
      nothing for anyone else to record — and nobody can write a number about anybody else. */
   if(seat.r!==0) return;
-  const mine = { hits:DSTU.hits, round:(DSTU.meta&&DSTU.meta.round)||1 };
+  const mine = { hits:DSTU.hits, pos:DSTU.pos, round:(DSTU.meta&&DSTU.meta.round)||1 };
   const now=Date.now();
   if(!force && (now - DSTU.lastWrite) < DI_WRITE_MS){
     if(DSTU.pendingWrite) return;
@@ -950,6 +997,7 @@ function diFlushScore(force){
 }
 
 function diStudentEnd(){
+  if(DSTU.removeWatch){ DSTU.removeWatch(); DSTU.removeWatch=null; }
   if(DSTU.unsub){ DSTU.unsub(); DSTU.unsub=null; }
   if(DSTU.tick){ clearInterval(DSTU.tick); DSTU.tick=null; }
   if(DSTU.pendingWrite){ clearTimeout(DSTU.pendingWrite); DSTU.pendingWrite=null; }

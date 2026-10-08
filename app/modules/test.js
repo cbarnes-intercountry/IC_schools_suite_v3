@@ -268,22 +268,72 @@ function dashboardFeedFailed(err){
 }
 
 
+/* ---------- where a student's raw work is, and who marked it (v3.20a) ----------
+
+   One place that knows the shape of a submitted record, because three callers need it and the
+   shape changed in v3.20a: the result now carries the student's ANSWERS, not their score.
+
+   A v3.20a result says so, with `raw:true`. The first draft of this inferred it instead — a
+   new result holds answers as a map, an old one as an array of marked rows — and that would
+   have failed in the database and nowhere else: the Realtime Database returns an object whose
+   keys are 0..n as a JSON ARRAY, so `{0:"A",1:"B"}` comes back as `["A","B"]` and every
+   fully-answered paper would have been filed as a pre-v3.20a record and shown as unmarkable.
+   An explicit flag cannot be coerced. */
+function rawWork(p){
+  const pr=(p||{}).progress;
+  if(pr && pr.answers) return { order:pr.order||[], answers:pr.answers||{}, timeSpent:pr.timeSpent||{} };
+  const r=(p||{}).result;
+  if(r && r.raw && r.answers) return { order:r.order||[], answers:r.answers||{}, timeSpent:r.timeSpent||{} };
+  return null;
+}
+
+/* A record from before v3.20a: a score the student's own phone wrote, with no answers kept to
+   check it against. Reported rather than quietly shown as if it had been marked. */
+function selfMarked(p){
+  const r=(p||{}).result;
+  if(rawWork(p) || !r || r.raw) return false;
+  return typeof r.score === "number" || Array.isArray(r.answers);
+}
+
+/* Was this student still working when the teacher ended the test, or had they already gone
+   quiet? A phone writes at least every 20 seconds while a test is open, so activity within a
+   minute of the bell means they were there — and a run ended before v3.20b carries no
+   `endedAt`, in which case we cannot tell and do not guess. */
+const AT_THE_BELL_MS = 60*1000;
+
+function workingAtTheBell(p, meta){
+  const endedAt=(meta && meta.endedAt) || (TEACHER.settings && TEACHER.settings.endedAt) || 0;
+  if(!endedAt || !p || !p.lastSeen) return false;
+  return (endedAt - p.lastSeen) <= AT_THE_BELL_MS;
+}
+
+function studentAlerts(p){
+  const pr=(p||{}).progress, r=(p||{}).result;
+  if(pr && Array.isArray(pr.cheatAlerts)) return pr.cheatAlerts;
+  return (r && Array.isArray(r.cheatAlerts)) ? r.cheatAlerts : [];
+}
+
 // Live progress for one student: how many answered, and how many of those are right/wrong.
-// Scored against the teacher's own copy of the questions, so it also works mid-test.
+// Scored against the teacher's own copy of the questions — mid-test and, since v3.20a, after
+// the student has submitted too. It was the submitted case that read the phone's own verdicts,
+// so the squares silently changed author the moment a student pressed Finish.
 function participantProgress(p, questions){
   const total=(questions||[]).length;
   const secs=acc=>acc?" · "+Math.round(acc)+"s":"";
-  if(p.result){
-    const rows=p.result.answers||[];
-    const correct=rows.filter(a=>a.isCorrect).length;
-    // Cells carry their own tooltip so hovering a square tells you which question it was.
-    const cells=rows.map((a,i)=>({ cls:a.isCorrect?"ok":"no",
-      tip:"Q"+(i+1)+" · "+(a.isCorrect?"correct":"wrong")+secs(a.timeSpentSec) }));
-    return { answered:rows.length, total:total||rows.length, correct, wrong:rows.length-correct, done:true, cells };
+  const work=rawWork(p);
+  if(!work){
+    if(selfMarked(p)){
+      const rows=p.result.answers||[];
+      const correct=rows.filter(a=>a.isCorrect).length;
+      return { answered:rows.length, total:total||rows.length, correct, wrong:rows.length-correct,
+               done:true, selfMarked:true,
+               cells:rows.map((a,i)=>({ cls:a.isCorrect?"ok":"no",
+                 tip:"Q"+(i+1)+" · "+(a.isCorrect?"correct":"wrong")+secs(a.timeSpentSec) })) };
+    }
+    return { answered:0, total, correct:0, wrong:0, done:false, cells:[] };
   }
-  if(!p.progress) return { answered:0, total, correct:0, wrong:0, done:false, cells:[] };
-  const order=p.progress.order||[], answers=p.progress.answers||{}, spent=p.progress.timeSpent||{};
-  const at=p.progress.currentPos;
+  const order=work.order, answers=work.answers, spent=work.timeSpent;
+  const at=(p.progress||{}).currentPos;
   let answered=0, correct=0;
   const scored=scoreAnswers(questions||[], order, answers, {});
   const cells=scored.answerRows.map((row,pos)=>{
@@ -297,7 +347,8 @@ function participantProgress(p, questions){
     return { cls, tip: t("test.sq_tip", "Q{n} \u00b7 {what}", {n:pos+1, what:what}) + secs(spent[pos])
                       + (pos===at ? t("test.sq_here_now", " \u00b7 here now") : "") };
   });
-  return { answered, total:total||order.length, correct, wrong:answered-correct, done:false, cells };
+  // `done` is the student's claim to have finished; the marks beside it are the teacher's.
+  return { answered, total:total||order.length, correct, wrong:answered-correct, done:!!p.result, cells };
 }
 
 
@@ -397,8 +448,13 @@ function renderDashboardList(){
     else { pill.className="pill live"; pill.innerHTML='<i></i>In test'; }
     st.appendChild(pill);
 
+    /* The teacher's own figure, not the phone's. This column used to print
+       `p.result.percentage` — the one number in the room the student wrote themselves — and
+       from v3.20a a submitted result carries no percentage at all, so reading it would print
+       NaN%. `prog` is already marked, above, against this device's copy of the questions. */
     const sc=document.createElement("span"); sc.className="sc";
-    sc.textContent = p.result ? Math.round(p.result.percentage)+"%" : "—";
+    const pct = prog.total>0 ? Math.round(prog.correct*100/prog.total) : 0;
+    sc.textContent = p.result ? pct+"%" : "—";
     if(!p.result) sc.style.color="var(--ink-soft)";
 
     const ac=document.createElement("span"); ac.className="ac";
@@ -437,6 +493,11 @@ async function resetCheatFor(studentId){
 async function teacherEndTest(){
   if(!confirm(t("test.end_test_all_students_now", "End the test for all students now?"))) return;
   TEACHER.settings.status="ended";
+  /* When the bell went (v3.20b). Without it a student who was mid-question when the test was
+     ended is indistinguishable in the recap from one whose phone died twenty minutes earlier:
+     both have progress and no result, and both were reported as "Incomplete (disconnected)".
+     One of those is a normal ending and the other wants looking into. */
+  TEACHER.settings.endedAt=Date.now();
   try{ await Backend.updateMeta(TEACHER.runId, TEACHER.settings); }catch(e){ console.warn(e); }
   document.getElementById("recap-code").textContent=TEACHER.sessionCode;
   setTimeout(showTeacherRecap, 3000);
@@ -500,7 +561,10 @@ function renderRecapTable(){
   });
   list.innerHTML="";
   rows.forEach((r,i)=>{
-    const alerts=(r.cheatAlerts||[]).length, pass=r.percentage>=50, done=r.status==="Submitted";
+    /* `done` was a string comparison against the English word "Submitted" — which stopped
+       being true the moment the status went through the lookup, and would have gone quietly
+       wrong in French rather than loudly. It is a flag on the row now. */
+    const alerts=(r.cheatAlerts||[]).length, pass=r.percentage>=50, done=!!r.submitted;
     const div=document.createElement("div"); div.className="recap-row";
     div.innerHTML='<span class="rk">'+(i+1)+'</span>'
       +'<span class="nm" title="'+escapeHtml(displayName(r.surname,r.firstName))+'">'+escapeHtml(displayName(r.surname,r.firstName))+'</span>'
@@ -524,24 +588,52 @@ function startNewTestFromRecap(){
 }
 
 
-/* Merge submitted results + progress fallback for disconnected students. Returns an array. */
+/* Every row on the recap and in the CSV, marked here (v3.20a).
+
+   WHAT CHANGED AND WHY. This used to take a submitted student's own figures — score,
+   percentage, per-question verdicts — straight from `p.result`, which is a record the student's
+   phone writes to their own node and which the rules let them write. A student could put
+   `{score: 20, totalPossible: 20}` there and the dashboard, the recap and the exported CSV all
+   reported it. Only the students who did NOT submit were ever marked by this device.
+
+   So: the student submits work and a claim to have finished; the mark is computed here, from
+   their answers, against the teacher's own copy of the questions. The same function that has
+   always marked the disconnected ones now marks everybody, which is also what the live squares
+   do — there is one marker in the room and it is this machine.
+
+   What is still read from the student's record, because they are the only source for it and
+   none of it is a mark: that they pressed Finish, when, and their own cheat-alert log. The log
+   is theirs to write and therefore theirs to edit; it is a deterrent and a record, never
+   evidence, and nothing here pretends otherwise. */
 function buildEffectiveResults(participants, questions, meta){
   const teamMap=(meta && meta.teamMap) || (TEACHER.settings && TEACHER.settings.teamMap) || {};
   const tag=(p,r)=>{ const acc=teamMap[p.studentId]; if(acc) r.team=acc; return r; };
   return participants.map(p=>{
     const base=p.cheatBaseline||0;  // teacher-cleared alerts are dropped from reports too
-    if(p.result){
-      const r=Object.assign({status:"Submitted", surname:p.surname, firstName:p.firstName}, p.result);
-      r.cheatAlerts=(p.result.cheatAlerts||[]).slice(base);
-      return tag(p,r);
-    }
-    if(p.progress){
-      const scored=scoreAnswers(questions, p.progress.order||[], p.progress.answers||{}, p.progress.timeSpent||{});
-      return tag(p, { surname:p.surname, firstName:p.firstName, status:t("test.status_incomplete_disconnected", "Incomplete (disconnected)"),
+    const alerts=studentAlerts(p).slice(base);
+    const work=rawWork(p);
+    if(work){
+      const scored=scoreAnswers(questions, work.order, work.answers, work.timeSpent);
+      return tag(p, { surname:p.surname, firstName:p.firstName, submitted:!!p.result,
+        status: p.result ? t("test.status_submitted", "Submitted")
+              : workingAtTheBell(p, meta) ? t("test.status_at_the_bell", "Working at the bell")
+                         : t("test.status_incomplete_disconnected", "Incomplete (disconnected)"),
         score:scored.score, totalPossible:scored.totalPossible, percentage:scored.percentage,
-        answers:scored.answerRows, cheatAlerts:(p.progress.cheatAlerts||[]).slice(base), finishedAt:p.lastSeen });
+        answers:scored.answerRows, cheatAlerts:alerts,
+        finishedAt:(p.result && p.result.finishedAt) || p.lastSeen });
     }
-    return tag(p, { surname:p.surname, firstName:p.firstName, status:t("test.status_joined_no_answers", "Joined (no answers)"),
+    /* A run sat before v3.20a: the answers were deleted on submit, so there is nothing left to
+       mark and the only figure is the one the phone wrote. Shown, because deleting a term's
+       history helps nobody — and labelled, because it is not the same kind of number as the
+       rows above it. */
+    if(selfMarked(p)){
+      const r=Object.assign({ surname:p.surname, firstName:p.firstName }, p.result,
+        { status:t("test.status_self_marked", "Submitted (self-marked — pre-3.20a run)"),
+          submitted:true, selfMarked:true, cheatAlerts:alerts });
+      return tag(p, r);
+    }
+    return tag(p, { surname:p.surname, firstName:p.firstName, submitted:false,
+      status:t("test.status_joined_no_answers", "Joined (no answers)"),
       score:0, totalPossible:0, percentage:0, answers:[], cheatAlerts:[], finishedAt:p.lastSeen });
   });
 }
@@ -646,16 +738,30 @@ async function studentJoin(){
          instead, the teacher's list would read "Marie 2" while that student's own phone still
          said "Marie", which is exactly the mismatch this version exists to fix. Resolve once,
          store it, and every screen is quoting the same string. */
-      const taken = await existingFirstNames(session.runId);
-      const unique = uniqueFirstName(firstName, taken);
-      if(unique !== firstName){
-        alert(t("test.already_a_name_here",
-          "There is already a {name} in this room, so you are {unique}.",
-          { name:firstName, unique:unique }));
+      const taken = await existingFirstNames(session.runId, STUDENT.id);
+      let rejoining = false;
+      if(nameIsTaken(firstName, taken)){
+        /* Two causes, and only the student knows which. Asked as a plain question rather than
+           guessed at: a second Marie and the same Marie on a second phone look identical to the
+           app, and silently renaming her to "Marie 2" hides the one the teacher needs to act on.
+
+           Either way she gets her OWN record — the rules let a student write only the key that
+           matches their sign-in, which is what stops one student editing another's score, and
+           that is worth far more than saving the teacher a tap. What the answer changes is
+           whether the teacher is TOLD, so the stale record can be removed. */
+        rejoining = confirm(t("test.already_a_name_rejoining",
+          "There is already a {name} in this room.\n\nPress OK if that is you, joining again on another phone.\nPress Cancel if you are a different {name}.",
+          { name:firstName }));
+        const unique = uniqueFirstName(firstName, taken);
+        if(!rejoining){
+          alert(t("test.so_you_are_unique", "You are {unique}, so your teacher can tell you apart.",
+            { unique:unique }));
+        }
+        firstName = unique;
       }
-      firstName = unique;
       STUDENT.firstName=firstName;
       STUDENT.name=firstName;
+      STUDENT.rejoining=rejoining;
     } else if(!act.requiresName || act.requiresName(session.meta)){
       if(!surname || !firstName){ askForName(t("test.this_needs_your_name", "This {what} needs your name.", {what:what})); return; }
     }
@@ -764,7 +870,15 @@ function startStudentStatusPolling(){
       if(startHint) startHint.style.display="none";
       if(waitStatus) waitStatus.textContent=t("test.test_already_ended_please_check_teacher_2", "This test has already ended. Please check with your teacher.");
     }
-    // End the test for students who are taking it.
+    /* The teacher has ended the test for everyone. This is the ordinary way a timed test
+       finishes, not a failure, and the student's paper is already in the database — their
+       progress has been syncing throughout. So the phone finishes LOCALLY: it writes
+       nothing, because the run is closed and the database would refuse it, and it shows the
+       normal Test Complete screen with their marks.
+
+       Until v3.20b this called the ordinary submit, which (once the write window landed in
+       v3.20a) was refused — so pressing End Test would have shown "Something went wrong" to
+       every student still working, which is most of the class on a manually timed test. */
     if(meta.status==="ended" && STUDENT.testStarted && !STUDENT.finished){ studentSubmitTest(true); }
     // Teacher pause/resume of the timers.
     if(STUDENT.testStarted && !STUDENT.finished) applyPauseState(!!meta.paused);
@@ -825,7 +939,14 @@ function startStudentTest(){
   goToQuestion(STUDENT.resuming ? (STUDENT.resumePos||0) : 0);
   STUDENT.resuming=false;
   showScreen("screen-student-test");
-  // Autosave progress to SharePoint periodically so a disconnect doesn't lose work.
+  /* One full write as the test opens (v3.20b). Answer writes carry only the field that
+     changed, and the question ORDER is not one of those fields — it is settled once, when the
+     paper is dealt. Without this the order reached the database only at the first 20-second
+     checkpoint, so a student who answered and then had the test ended under them in the first
+     twenty seconds had answers in their record and no order to read them against: the teacher
+     marked them 0 of 0. */
+  syncProgress(true);
+  // Autosave progress periodically so a disconnect doesn't lose work.
   STUDENT.checkpointInterval=setInterval(()=>{
     if(STUDENT.questionStartTs!==null){
       const elapsed=(Date.now()-STUDENT.questionStartTs)/1000;
@@ -903,8 +1024,84 @@ function resumeStudent(){
 
 let _syncTimer=null, _syncPending=false;
 
-function syncProgress(immediate){
-  if(STUDENT.finished||!STUDENT.sessionCode) return;
+/* ---------- how fast an answer reaches the teacher (v3.20b) ----------
+
+   Three write paths, because the three things that change have nothing in common.
+
+   A TAP is a discrete, finished decision: an option chosen, a puzzle row moved. It writes
+   straight away, so the square on the dashboard turns over in about the time of a round trip.
+   This costs no extra writes at all — one tap produced one write before, and still does; the
+   four seconds it used to wait first were pure delay.
+
+   TYPING is not finished until the student stops. A short-answer field fires on every
+   keystroke, so this is the one that has to be batched, and the four seconds existed for it
+   alone. 1.2 seconds is short enough to feel live on the dashboard and long enough that a
+   sentence is a handful of writes rather than fifty.
+
+   A CHEAT ALERT writes immediately and on its own. It is rare, it is the thing a teacher most
+   wants to see while it is still happening, and it must never be waiting behind a debounce
+   meant for a text box.
+
+   Everything except the alerts writes only the field that changed. `syncProgress` — the whole
+   object — is kept for the moments where the whole object is the point: joining, pausing,
+   resuming, and the final flush at submit. */
+const TYPING_SYNC_MS = 1200;
+
+/* What a progress write has to carry alongside the answer itself: where the student is, and
+   how long they have spent. Both are read by the dashboard, and `lastUpdate` is what makes a
+   stalled phone visible. */
+function answerFields(pos){
+  const f={ lastUpdate:Date.now(), currentPos:STUDENT.currentPos };
+  f["answers/"+pos]=STUDENT.answers[pos];
+  if(STUDENT.timeSpent[pos]!==undefined) f["timeSpent/"+pos]=STUDENT.timeSpent[pos];
+  return f;
+}
+
+function writeFields(fields){
+  if(!STUDENT.sessionCode) return Promise.resolve(true);
+  return Backend.saveProgressFields(STUDENT.runId, STUDENT.id, STUDENT.surname||"", STUDENT.firstName||"", fields)
+    .then(()=>true).catch(e=>{ console.warn(e); return false; });
+}
+
+/* A tap. Nothing to wait for. */
+function syncAnswerNow(pos){
+  if(STUDENT.finished) return Promise.resolve(true);
+  return writeFields(answerFields(pos===undefined?STUDENT.currentPos:pos));
+}
+
+/* Typing. Leading-edge batch: the first keystroke schedules the write, the rest of the word
+   rides along with it. */
+let _typeTimer=null, _typePending=false;
+function syncAnswerTyped(pos){
+  if(STUDENT.finished) return;
+  const at = pos===undefined ? STUDENT.currentPos : pos;
+  if(_typePending) return;
+  _typePending=true;
+  clearTimeout(_typeTimer);
+  _typeTimer=setTimeout(()=>{
+    _typePending=false;
+    /* Re-checked at fire time, not only when scheduled: a student can finish inside the
+       batching window, and this write would then land after the run closed — refused, logged,
+       and alarming for no reason. The final flush has already sent everything. */
+    if(!STUDENT.finished) writeFields(answerFields(at));
+  }, TYPING_SYNC_MS);
+}
+
+/* An alert. The whole array rather than an append, because two alerts a few milliseconds
+   apart would otherwise race for the same index and one would be lost — and the array is a
+   handful of small objects even in a bad lesson. */
+function syncAlerts(){
+  if(!STUDENT.sessionCode) return Promise.resolve(true);
+  return writeFields({ cheatAlerts:STUDENT.cheatAlerts||[], lastUpdate:Date.now() });
+}
+
+/* The whole object. Joining, pausing, resuming, the 20-second heartbeat, and the final flush.
+   `force` is for the one caller that runs AFTER STUDENT.finished is set: without it the guard
+   that stops a finished test writing also stops the write that makes the mark computable, and
+   the student's last answers would not be there when the teacher's device marks the paper.
+   Returns the promise so that caller can wait for it and say so if it fails. */
+function syncProgress(immediate, force){
+  if((STUDENT.finished && !force) || !STUDENT.sessionCode) return Promise.resolve(true);
   const doIt=async()=>{ _syncPending=false;
     try{ await Backend.saveProgress(STUDENT.runId, STUDENT.id, STUDENT.surname, STUDENT.firstName,
       { order:STUDENT.order, answers:STUDENT.answers, timeSpent:STUDENT.timeSpent, cheatAlerts:STUDENT.cheatAlerts,
@@ -912,13 +1109,14 @@ function syncProgress(immediate){
         started:!!STUDENT.testStarted, currentPos:STUDENT.currentPos,
         qLocked:STUDENT.qLocked||{}, qDeadlines:STUDENT.qDeadlines||{},
         deadline:STUDENT.deadline||null, lastUpdate:Date.now() });
-    }catch(e){ console.warn(e); } };
-  if(immediate){ doIt(); return; }
-  // Debounce answer-driven saves to limit flow runs.
-  if(_syncPending) return;
+      return true;
+    }catch(e){ console.warn(e); return false; } };
+  if(immediate){ return doIt(); }
+  if(_syncPending) return Promise.resolve(true);
   _syncPending=true;
   clearTimeout(_syncTimer);
   _syncTimer=setTimeout(doIt, 4000);
+  return Promise.resolve(true);
 }
 
 function renderCurrentQuestion(){
@@ -945,12 +1143,12 @@ function renderCurrentQuestion(){
     // NO_KEYBOARD_HELP is not decoration: with autocapitalise on, a student who does not
     // know that nationalities take a capital types "french" and the phone hands them the
     // mark. See core/answers.js.
-    area.innerHTML='<input type="text" id="free-answer" '+NO_KEYBOARD_HELP+dis+' value="'+escapeHtml(existing||"")+'" oninput="STUDENT.answers[STUDENT.currentPos]=this.value; refreshPalette(); syncProgress();">';
+    area.innerHTML='<input type="text" id="free-answer" '+NO_KEYBOARD_HELP+dis+' value="'+escapeHtml(existing||"")+'" oninput="STUDENT.answers[STUDENT.currentPos]=this.value; refreshPalette(); syncAnswerTyped();">';
   } else if(q.type==="numeric"){
     // Deliberately not type="number": that lets the browser normalise or discard what was
     // typed before marking sees it, and whether 3,5 survives depends on the phone's locale.
     // We take the raw string and judge it ourselves. inputmode keeps the numeric keypad.
-    area.innerHTML='<input type="text" inputmode="decimal" id="free-answer" '+NO_KEYBOARD_HELP+dis+' value="'+escapeHtml(existing||"")+'" oninput="STUDENT.answers[STUDENT.currentPos]=this.value; refreshPalette(); syncProgress();">';
+    area.innerHTML='<input type="text" inputmode="decimal" id="free-answer" '+NO_KEYBOARD_HELP+dis+' value="'+escapeHtml(existing||"")+'" oninput="STUDENT.answers[STUDENT.currentPos]=this.value; refreshPalette(); syncAnswerTyped();">';
   } else if(q.type==="order"){
     renderOrderArea(pos, q, locked);
   }
@@ -988,7 +1186,7 @@ function renderOrderArea(pos, q, locked){
 function readOrderFromDOM(pos){
   const list=document.getElementById("order-sortable"); if(!list) return;
   STUDENT.answers[pos]=[...list.querySelectorAll(".order-item")].map(el=>el.getAttribute("data-val"));
-  refreshPalette(); syncProgress();
+  refreshPalette(); syncAnswerNow(pos);
 }
 
 function moveOrderItem(pos,idx,dir){
@@ -998,7 +1196,7 @@ function moveOrderItem(pos,idx,dir){
   STUDENT.answers[pos]=arr;
   const q=STUDENT.questions[STUDENT.order[pos]];
   renderOrderArea(pos, q, false);
-  syncProgress();
+  syncAnswerNow(pos);
 }
 
 // Per-question countdown: active only in student-paced (open) mode when the question has a limit.
@@ -1025,7 +1223,7 @@ function selectAnswer(val,btn){
   STUDENT.answers[STUDENT.currentPos]=val;
   document.querySelectorAll("#q-answer-area .option-btn").forEach(b=>b.classList.remove("selected"));
   btn.classList.add("selected");
-  refreshPalette(); syncProgress();
+  refreshPalette(); syncAnswerNow();
 }
 
 function renderPalette(){
@@ -1091,6 +1289,61 @@ function studentConfirmSubmit(){
   if(go) studentSubmitTest(false);
 }
 
+/* Two states, and the failing one is not a variation on the passing one.
+
+   NOTHING IS SAID WHEN IT WORKS. A test is marked automatically and the student should simply
+   see their result; a line confirming the paper "reached the teacher" turns an automatic mark
+   into a handover and invites a question nobody needs to ask. The score IS the confirmation —
+   it could not be there if the paper had not saved.
+
+   WHEN IT FAILS THERE IS NO RESULT TO SHOW. The first version of this screen kept the dial,
+   the stats and "Test Complete" and added a warning underneath, which says two opposite things
+   at once: the test is not complete, and a percentage next to "your answers did not save" is a
+   number about nothing. So the panel drops to what is true — something went wrong, and tell
+   your teacher before you leave.
+
+   This case has to be loud. A failed submit used to be a console.warn behind a feedback screen
+   reading "18 / 20", and the student put their phone away. With the write window closing at
+   the end of the test (v3.20a) it is no longer only a network accident: a student who presses
+   Finish after the teacher has ended the test gets one. */
+/* Has the run closed under us? The meta subscription keeps STUDENT.meta current, so this is
+   a read rather than a round trip — and it is what separates "the test is over" from "this
+   phone cannot reach the database". */
+function runHasEnded(){ return !!(STUDENT.meta && STUDENT.meta.status === "ended"); }
+
+function showSubmitState(ok){
+  const panel=document.getElementById("fb-panel");
+  if(panel) panel.classList.toggle("fb-failed", !ok);
+
+  const box=document.getElementById("fb-sent");
+  if(box){
+    box.className="fb-sent";
+    box.textContent = ok ? "" : t("test.answers_did_not_save",
+      "Your answers did not save \u2014 tell your teacher now, before you leave.");
+    if(!ok) box.classList.add("bad");
+  }
+
+  /* No data-i18n on #fb-lead: an element a script writes must not also carry a key, or the
+     next language switch repaints it regardless of what happened. The English in the markup
+     is the pre-script fallback and nothing more. */
+  const lead=document.getElementById("fb-lead");
+  if(lead) lead.textContent = ok ? t("test.nicely_done", "Nicely done,")
+                                 : t("test.something_went_wrong", "Something went wrong.");
+}
+
+/* A run that has already closed is finished on this device and nothing is written.
+
+   Anything typed since the last sync — at most a second or two of a part-typed short answer,
+   since taps now save immediately — is not in the database and is marked unanswered, which is
+   what it is. The student's own count on this screen includes it; the teacher's does not. That
+   gap is a second wide, and the alternative is showing a student a lower mark than they earned
+   for an answer they did give.
+
+   Whether the run has closed is asked of STUDENT.meta, which the meta subscription keeps
+   current — and that is the ONLY place it is asked. An earlier draft also passed a flag from
+   the subscription that had just seen `ended`, which was the same fact arriving twice: a
+   mutation that removed the flag changed nothing, because meta already said so. Two sources
+   for one truth is one too many, and the one that cannot drift is the one in the record. */
 async function studentSubmitTest(auto){
   if(STUDENT.finished) return;
   STUDENT.finished=true;
@@ -1098,6 +1351,7 @@ async function studentSubmitTest(auto){
   if(!auto && document.fullscreenElement) document.exitFullscreen && document.exitFullscreen();
   if(STUDENT.timerInterval) clearInterval(STUDENT.timerInterval);
   if(STUDENT.checkpointInterval) clearInterval(STUDENT.checkpointInterval);
+  if(_typeTimer){ clearTimeout(_typeTimer); _typeTimer=null; _typePending=false; }
   clearQuestionTimer();
   if(_focusPoll){ clearInterval(_focusPoll); _focusPoll=null; }
   if(_vpTimer){ clearTimeout(_vpTimer); _vpTimer=null; }
@@ -1110,9 +1364,41 @@ async function studentSubmitTest(auto){
     const elapsed=(Date.now()-STUDENT.questionStartTs)/1000;
     STUDENT.timeSpent[STUDENT.currentPos]=(STUDENT.timeSpent[STUDENT.currentPos]||0)+elapsed;
   }
+  /* Flush first, forced past the finished guard, and WAIT. The teacher's device marks from
+     these answers; anything typed since the last checkpoint exists only here until this write
+     lands. Skipped when the run is already closed — there is nothing a refused write can add,
+     and attempting it is what turned the end of a test into an error screen. */
+  /* A run that is already closed refuses writes by design, so neither the flush nor the
+     submit below is a failure — there is simply nothing left to send. Checked once, here,
+     because the flush fails first and a check that only covered the submit still reported
+     the ordinary end of a test as a fault. */
+  const closed = runHasEnded();
+  const flushed = closed ? true : await syncProgress(true, true);
+
+  /* The submitted record is the student's WORK and their claim to have finished — no score,
+     no percentage, no per-question verdicts. Those are the teacher's to compute, from this.
+     The raw answers are repeated here as well as in progress so that a mark can still be
+     rebuilt if one of the two writes is the one that fails. */
+  const result={ raw:true, surname:STUDENT.surname, firstName:STUDENT.firstName, finishedAt:Date.now(),
+                 order:STUDENT.order, answers:STUDENT.answers, timeSpent:STUDENT.timeSpent,
+                 cheatAlerts:STUDENT.cheatAlerts };
+  let sent=true;
+  if(closed){ sent=true; }
+  else {
+    try{ await Backend.submitResult(STUDENT.runId, STUDENT.id, STUDENT.surname, STUDENT.firstName, result); }
+    catch(e){
+      console.warn(e);
+      /* A refusal that arrived because the teacher ended the test between this student
+         pressing Finish and the write landing is the same ordinary ending, a second late.
+         Only a refusal with the run still open is worth alarming anybody about. */
+      sent = runHasEnded();
+    }
+  }
+
+  /* The student still sees their own marking straight away — it is computed on this phone, as
+     it always was. It is advisory: the number that counts is the teacher's. */
   const {answerRows,score,totalPossible,percentage}=scoreAnswers(STUDENT.questions,STUDENT.order,STUDENT.answers,STUDENT.timeSpent);
-  const result={ surname:STUDENT.surname, firstName:STUDENT.firstName, score, totalPossible, percentage, answers:answerRows, cheatAlerts:STUDENT.cheatAlerts, finishedAt:Date.now() };
-  try{ await Backend.submitResult(STUDENT.runId, STUDENT.id, STUDENT.surname, STUDENT.firstName, result); }catch(e){ console.warn(e); }
+  showSubmitState(sent && flushed!==false);
   const correct=answerRows.filter(r=>r.isCorrect).length;
   const totalSec=Math.round(answerRows.reduce((acc,r)=>acc+(r.timeSpentSec||0),0));
   document.getElementById("fb-name").textContent=STUDENT.firstName||STUDENT.name;

@@ -154,7 +154,9 @@ async function saveQuizToLibrary(){
       questions: plural(strays.length, t("poll.question", "question"), t("poll.questions", "questions")) };
     alert(mode==="poll"
       ? t("editor.strays_in_poll", "A poll can only contain Poll and Word Cloud questions.\n\n{count} {questions} here are quiz types \u2014 remove them, or save this in the Test Creator instead.", strayCount)
-      : t("editor.strays_in_quiz", "A quiz can\u2019t contain Poll or Word Cloud questions \u2014 they have no correct answer, so they can\u2019t be marked.\n\nRemove those {count} {questions}, or save this in the Poll Creator instead.", strayCount));
+      /* Wording corrected in v3.20: a poll question CAN now carry a correct answer. What makes
+         it a poll is that it is never marked and never kept, not that it has no answer. */
+      : t("editor.strays_in_quiz", "A quiz can\u2019t contain Poll or Word Cloud questions \u2014 a poll is never marked and nothing it collects is kept.\n\nRemove those {count} {questions}, or save this in the Poll Creator instead.", strayCount));
     return;
   }
   try{
@@ -243,6 +245,14 @@ function renderQBank(){
     const txt=document.createElement("span"); txt.className="qtxt"; txt.textContent=q.text||t("editor.no_text_yet", "(no text yet)");
     const tag=document.createElement("span"); tag.className="qtag"; tag.textContent=TAGS[q.type]||"?";
     div.appendChild(num); div.appendChild(txt);
+    /* A checked poll and an opinion poll are both tagged POLL and read identically in the list,
+       and the difference decides what happens on the projector. Flag the one with an answer. */
+    if(pollIsChecked(q)){
+      const kt=document.createElement("span"); kt.className="qtag"; kt.textContent=t("editor.tag_answer", "ANSWER");
+      kt.style.background="var(--success-soft)"; kt.style.borderColor="var(--success)"; kt.style.color="var(--success)";
+      kt.title=t("editor.tag_answer_title", "One choice is marked correct — shown when you reveal the results");
+      div.appendChild(kt);
+    }
     // Results are live by default now, so flag the exception instead: a lost tick stays obvious.
     if(isPollType(q.type) && q.hideResults){
       const lv=document.createElement("span"); lv.className="qtag"; lv.textContent=t("editor.hidden", "HIDDEN");
@@ -321,10 +331,25 @@ function readQuestionFromForm(){
     q.items=items; q.correct=items.slice();
   }
   else if(type==="poll"){
-    const opts=[]; document.querySelectorAll("#poll-opts .qe-answer-row input[type=text]").forEach(inp=>{ const v=inp.value.trim(); if(v) opts.push(v); });
+    /* Read the rows, not the text boxes, so a choice and the radio beside it stay together.
+       Reading the inputs in two separate passes is how the key ends up one row out when an
+       author leaves a blank row in the middle. */
+    const opts=[]; let correctIdx=null;
+    document.querySelectorAll("#poll-opts .qe-answer-row").forEach(row=>{
+      const v=row.querySelector("input[type=text]").value.trim();
+      const radio=row.querySelector("input[type=radio]");
+      if(v){ opts.push(v); if(radio && radio.checked) correctIdx=opts.length-1; }
+    });
     if(opts.length<2){ alert(t("editor.poll_needs_least_2_choices", "A poll needs at least 2 choices.")); return null; }
     q.options=opts; q.hideResults=document.getElementById("poll-hideresults").checked;
-    q.points=0; q.correct=null;   // opinion vote: nothing to mark
+    q.points=0;   // marked or not, a poll scores nothing
+    /* A check with nothing ticked would save as an opinion vote and look identical in the
+       bank, so the author would find out in front of the class. Refuse instead. */
+    const wantsKey=document.getElementById("poll-answer-mode").value==="check";
+    if(wantsKey && correctIdx===null){
+      alert(t("editor.poll_check_needs_correct", "Mark which choice is correct, or set this back to an opinion vote.")); return null;
+    }
+    q.correct = wantsKey ? opts[correctIdx] : null;
   }
   else if(type==="cloud"){
     q.maxWords=Math.max(1,Math.min(3,parseInt(document.getElementById("cloud-maxwords").value,10)||1));
@@ -379,13 +404,25 @@ function renderQEditorOptions(q){
     const items=(q.type==="order"&&q.items)?q.items:null;
     if(items&&items.length){ items.forEach(it=>addOrderItem(it)); } else { addOrderItem(); addOrderItem(); addOrderItem(); }
   } else if(type==="poll"){
-    area.innerHTML='<label>'+t("editor.choices_no_correct_answer", "Choices (no correct answer \u2014 this is an opinion vote)")+'</label><div id="poll-opts"></div>'+
+    /* Two kinds of poll question since v3.20, chosen here rather than inferred from whether a
+       radio happens to be ticked. An author who meant an opinion vote and brushed a radio would
+       otherwise have built a comprehension check without being told. */
+    const key=pollKey(q);
+    area.innerHTML='<label>'+t("editor.what_kind_of_poll", 'What kind of question is this?')+'</label>'+
+      '<select id="poll-answer-mode" onchange="pollAnswerModeChanged()">'+
+        '<option value="opinion">'+t("editor.poll_mode_opinion", 'Opinion vote \u2014 no correct answer')+'</option>'+
+        '<option value="check">'+t("editor.poll_mode_check", 'Comprehension check \u2014 one choice is correct')+'</option>'+
+      '</select>'+
+      '<label style="margin-top:12px;">'+t("editor.choices", 'Choices')+'</label><div id="poll-opts"></div>'+
       '<button type="button" class="btn-outline" onclick="addPollOption()">'+t("editor.add_choice", "+ Add choice")+'</button>'+
+      '<small class="hint" id="poll-live-warn" style="display:none;color:var(--amber);"></small>'+
       '<div class="toggle-row" style="margin-top:10px;"><span>'+t("editor.hide_results_until_i_press_reveal", 'Hide results until I press Reveal')+'<br><small class="hint">'+t("editor.class_sees_only_response_counter_until", 'On = the class sees only a response counter until you press Reveal')+'</small></span>'+
-      '<label class="switch"><input type="checkbox" id="poll-hideresults"><span class="slider"></span></label></div>';
+      '<label class="switch"><input type="checkbox" id="poll-hideresults" onchange="pollAnswerModeChanged()"><span class="slider"></span></label></div>';
+    document.getElementById("poll-answer-mode").value = key ? "check" : "opinion";
     const opts=(q.type==="poll"&&q.options)?q.options:null;
-    if(opts&&opts.length){ opts.forEach(o=>addPollOption(o)); } else { addPollOption(); addPollOption(); }
+    if(opts&&opts.length){ opts.forEach(o=>addPollOption(o, key!==null && o===key)); } else { addPollOption(); addPollOption(); }
     document.getElementById("poll-hideresults").checked = (q.type==="poll") ? !!q.hideResults : false;
+    pollAnswerModeChanged();
   } else if(type==="cloud"){
     const mw=(q.type==="cloud"&&q.maxWords)?q.maxWords:1;
     area.innerHTML='<label>'+t("editor.words_per_student", 'Words per student')+'</label>'+
@@ -399,12 +436,35 @@ function renderQEditorOptions(q){
   }
 }
 
-function addPollOption(value){
+/* The radio is in every row whichever mode the question is in, and the wrapper hides the column
+   in opinion mode. Building the rows differently per mode would mean readQuestionFromForm had
+   two shapes to cope with, and the mode could change under it between render and save. */
+function addPollOption(value, checked){
   const wrap=document.getElementById("poll-opts");
   const row=document.createElement("div"); row.className="qe-answer-row";
-  row.innerHTML='<input type="text" placeholder="Choice text"><button type="button" class="btn-outline" style="padding:6px 10px;" onclick="this.parentElement.remove()">x</button>';
+  row.innerHTML='<input type="radio" name="poll-correct" class="poll-correct-radio"'+(checked?" checked":"")+
+    ' title="'+escapeHtml(t("editor.mark_this_correct", "Mark this choice correct"))+'">'+
+    '<input type="text" placeholder="'+escapeHtml(t("editor.ph_choice_text", "Choice text"))+'">'+
+    '<button type="button" class="btn-outline" style="padding:6px 10px;" onclick="this.parentElement.remove()">x</button>';
   if(value!==undefined) row.querySelector("input[type=text]").value=value;
   wrap.appendChild(row);
+}
+
+/* Shows the radios in check mode, and says the one thing an author can get wrong without
+   noticing: a checked question whose results are live announces the answer to the half of the
+   class that has not voted yet. Said rather than silently corrected — flipping the author's own
+   toggle for them is how a setting ends up fighting the person who set it. */
+function pollAnswerModeChanged(){
+  const mode=document.getElementById("poll-answer-mode"), opts=document.getElementById("poll-opts");
+  const warn=document.getElementById("poll-live-warn"), hide=document.getElementById("poll-hideresults");
+  if(!mode||!opts) return;
+  const check = mode.value==="check";
+  opts.classList.toggle("poll-keyed", check);
+  if(!warn||!hide) return;
+  const loud = check && !hide.checked;
+  warn.style.display = loud ? "block" : "none";
+  if(loud) warn.textContent = t("editor.poll_key_shown_live",
+    "Results are live, so the answer appears as soon as the first student votes. Turn on “hide results” to keep it until you reveal.");
 }
 
 function addMCQOption(value, checked){

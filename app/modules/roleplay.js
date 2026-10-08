@@ -22,39 +22,89 @@ let RSTU = { runId:null, meta:null, scenarios:[], unsub:null, wakeLock:null, hid
 /* ---------- allocation (pure: no DOM, no database) ---------- */
 
 /* A scenario's roles are core unless marked optional. Core roles set the group size; the
-   optional one exists so that a spare student joins a group as a third voice rather than
-   standing about. 23 students and a two-role scenario is eleven pairs and one trio. */
+   optional ones exist so that spare students join a group as further voices rather than
+   standing about. 23 students and a two-role scenario is eleven pairs and one trio.
+
+   UP TO SIX ROLES (v3.19), and up to six people in a group. It was three, and the third was
+   the only one that could be optional — so the shape of a class was core-sized groups plus at
+   most one spare each. With several optional roles a scenario declares a floor and a ceiling:
+   "4 core + 2 optional" means groups of four that grow to six as spares are absorbed, and a
+   class of 25 comes out as six fours and a five with nobody left over.
+
+   The talking-time cost is real and belongs with the scenario, not the code: in a pair each
+   student speaks about half the time, in a six under a fifth. A six-hander earns its place
+   only when every role holds something the others need. */
 function rpCoreRoles(sc){ return ((sc&&sc.roles)||[]).filter(r=>!r.optional); }
-function rpExtraRole(sc){ return ((sc&&sc.roles)||[]).find(r=>r.optional) || null; }
+
+/* Every optional role, in the order the scenario declares them — the seats a group grows into.
+   Was `.find`, which silently used the first and ignored the rest. */
+function rpExtraRoles(sc){ return ((sc&&sc.roles)||[]).filter(r=>r.optional); }
+
+/* The largest a group can get: every role filled. */
+function rpMaxGroupSize(sc){
+  return Math.min(RP_MAX_ROLES, Math.max(2, rpCoreRoles(sc).length) + rpExtraRoles(sc).length);
+}
 
 /* The allocation carries each student's name with it. A student's phone can read the run's
    meta but not the other participants, so without the name here nobody could be told who
    they are looking for in the room. */
 function rpAllocate(participants, scenario){
-  const core = Math.max(2, rpCoreRoles(scenario).length);
-  const extra = !!rpExtraRole(scenario);
+  const roles = ((scenario&&scenario.roles)||[]).slice(0, RP_MAX_ROLES);
+  /* Seat INDICES, not counts, for both kinds. A student's `r` is an index into the role list,
+     so counting would only work while the optional roles happened to come last — which nothing
+     enforces. Mark role 2 of four optional and a counting version hands a core student the
+     optional seat and leaves a real role unplayed. */
+  const coreSeats  = roles.map((r,i)=>r.optional ? -1 : i).filter(i=>i>=0);
+  const extraSeats = roles.map((r,i)=>r.optional ? i : -1).filter(i=>i>=0);
+  /* Two is the floor even for a malformed scenario: a "group" of one has nobody to talk to.
+     A scenario with fewer than two core roles is refused at import and in the editor, so this
+     only catches data that got in another way. */
+  while(coreSeats.length < 2) coreSeats.push(coreSeats.length);
+  const core = coreSeats.length;
+
   const named = {};
   (participants||[]).forEach(p=>{ named[p.studentId]=displayName(p.surname,p.firstName); });
   const ids = shuffle((participants||[]).map(p=>p.studentId));
   const groups = {}, observers = {};
   const full = Math.floor(ids.length / core);
   let i = 0;
-  for(let g=1; g<=full; g++) for(let r=0; r<core; r++){ const id=ids[i++]; groups[id]={ g:g, r:r, n:named[id]||"" }; }
-  // Spares: into a group as the optional role, one group at a time, while any remain.
-  let g = 1;
-  while(i < ids.length && extra && g <= full){ const id=ids[i++]; groups[id]={ g:g, r:core, n:named[id]||"" }; g++; }
+  for(let g=1; g<=full; g++) for(let k=0; k<core; k++){ const id=ids[i++]; groups[id]={ g:g, r:coreSeats[k], n:named[id]||"" }; }
+
+  /* Spares fill the optional seats a layer at a time: every group gains a fifth before any
+     gains a sixth. Round-robin rather than filling one group to bursting, so group sizes stay
+     within one of each other and no pair of students is left playing a six-hander alone. */
+  for(let layer=0; layer<extraSeats.length && i<ids.length; layer++){
+    for(let g=1; g<=full && i<ids.length; g++){
+      const id=ids[i++];
+      groups[id]={ g:g, r:extraSeats[layer], n:named[id]||"" };
+    }
+  }
+
   // Anyone still over gets a noticing task rather than a part. Never a marking task: no
   // student assesses another in this app.
   while(i < ids.length){ const id=ids[i++]; observers[id]=named[id]||"?"; }
   return { groups: groups, observers: observers };
 }
 
-/* Same partners, different parts. In a trio the parts cycle rather than swap. */
+/* Same partners, different parts. In a trio the parts cycle rather than swap; in a six they
+   cycle too, so after five swaps everybody has played everything.
+
+   Rotates the SEATS a group actually holds, rather than counting (r+1) modulo the group size.
+   The arithmetic version assumed seats ran 0,1,2… with no gaps — true until roles could be
+   marked optional anywhere in the list. A group holding roles 0, 1 and 4 would have had its
+   role-1 student rotated into seat 2, which nobody is playing and which may not exist. */
 function rpRotateRoles(groups){
-  const size = {};
-  Object.keys(groups||{}).forEach(id=>{ const g=groups[id].g; size[g]=Math.max(size[g]||0, groups[id].r+1); });
+  const byGroup = {};
+  Object.keys(groups||{}).forEach(id=>{ (byGroup[groups[id].g]=byGroup[groups[id].g]||[]).push(id); });
   const out = {};
-  Object.keys(groups||{}).forEach(id=>{ const c=groups[id]; out[id]={ g:c.g, r:(c.r+1)%(size[c.g]||1), n:c.n||"" }; });
+  Object.keys(byGroup).forEach(key=>{
+    const ids = byGroup[key].slice().sort((a,b)=>groups[a].r-groups[b].r);
+    const seats = ids.map(id=>groups[id].r);
+    /* Everyone moves along one seat, in seat order. The last student takes the first seat. */
+    ids.forEach((id,k)=>{
+      out[id]={ g:groups[id].g, r:seats[(k+1)%seats.length], n:groups[id].n||"" };
+    });
+  });
   return out;
 }
 
@@ -131,13 +181,20 @@ async function rpSetPicked(){
   if(!rec){ alert(t("rp.set_gone", "That set has gone.")); return; }
   RP.scenarios=rec.questions||[]; RP.name=rec.name||t("rp.role_play", "Role play");
   const first=rpScenarioAt(RP.scenarios,0);
-  const core=rpCoreRoles(first).length, extra=rpExtraRole(first);
+  const core=Math.max(2, rpCoreRoles(first).length), extras=rpExtraRoles(first);
+  const most=rpMaxGroupSize(first);
+  /* A range when the scenario can grow, a single number when it cannot — "groups of 4 to 6"
+     tells a teacher what to expect in the room before they deal. */
+  const size = most>core
+    ? t("rp.size_range", "{min} to {max}", { min:core, max:most })
+    : String(core);
   document.getElementById("rp-summary").textContent =
     t("rp.setup_summary", "{count} {scenarios} \u00b7 groups of {size}",
-      { count:RP.scenarios.length, size:core,
+      { count:RP.scenarios.length, size:size,
         scenarios: plural(RP.scenarios.length, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) })
-    + " " + (extra
-        ? t("rp.spare_joins_as", "(a spare student joins one group as {role})", { role:extra.label })
+    + " " + (extras.length
+        ? t("rp.spares_join_as", "(spare students join groups as {roles})",
+            { roles: extras.map(r=>r.label).filter(Boolean).join(", ") })
         : t("rp.spare_listens", "(a spare student gets a listening task)"));
   document.getElementById("rp-start-btn").disabled = RP.scenarios.length===0;
 }
@@ -406,12 +463,22 @@ function renderRpCard(){
   if(role.useful){ use.style.display="block"; document.getElementById("rp-card-useful-text").textContent=role.useful; }
   else use.style.display="none";
 
-  // Who you are looking for in the room, and what they are playing.
+  /* Who you are looking for in the room, and what they are playing.
+
+     A LIST, one per line, since v3.19. As a sentence it was fine for the one other person in a
+     pair; at five others it became a run-on paragraph that a student has to read through to
+     find the name they are hunting for across a noisy room. The role is what they are looking
+     for, so it sits under the name rather than in brackets after it. */
   const others=rpGroupMembers(groups, mine.g).filter(m=>m.studentId!==STUDENT.id);
-  document.getElementById("rp-card-partners").textContent =
-    others.length
-      ? t("rp.with_partners", "With {who}", { who: others.map(m=>m.name+" ("+rpRoleLabel(sc,m.r)+")").join(", ") })
-      : t("rp.waiting_for_a_partner", "Waiting for a partner\u2026");
+  const box=document.getElementById("rp-card-partners");
+  if(!others.length){
+    box.textContent=t("rp.waiting_for_a_partner", "Waiting for a partner\u2026");
+  }else{
+    box.innerHTML='<span class="rp-with-label">'+escapeHtml(t("rp.in_your_group", "In your group"))+'</span>'+
+      '<ul class="rp-with">'+others.map(m=>
+        '<li><span class="rp-with-name">'+escapeHtml(m.name)+'</span>'+
+        '<span class="rp-with-role">'+escapeHtml(rpRoleLabel(sc, m.r))+'</span></li>').join("")+'</ul>';
+  }
 }
 
 function rpStudentEnd(){

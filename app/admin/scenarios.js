@@ -90,7 +90,8 @@ function renderScenarioList(){
     '<div class="qrow'+(i===SCEN.index?" active":"")+'" onclick="pickScenario('+i+')">'+
     '<span class="qrow-no">'+(i+1)+'</span>'+
     '<span class="qrow-text">'+escapeHtml(sc.title||t("scenarios.untitled", "(untitled scenario)"))+'</span>'+
-    '<span class="qrow-meta">'+rpCoreRoles(sc).length+(rpExtraRole(sc)?"+1":"")+' roles</span>'+
+    '<span class="qrow-meta">'+rpCoreRoles(sc).length+
+      (rpExtraRoles(sc).length?"+"+rpExtraRoles(sc).length:"")+' roles</span>'+
     '</div>').join("");
   const nm=document.getElementById("rp-set-name"); if(nm) nm.value=SCEN.name;
 }
@@ -130,18 +131,37 @@ function writeScenarioForm(){
   document.getElementById("rp-f-title").value=sc.title||"";
   document.getElementById("rp-f-situation").value=sc.situation||"";
   const roles=sc.roles||[];
-  for(let r=0;r<3;r++){
+  /* Two always on screen, the rest shown only when the scenario has them. Six blocks live in
+     the markup and are revealed rather than built, so a pair scenario is still a short page. */
+  for(let r=0;r<RP_MAX_ROLES;r++){
     const has=!!roles[r];
     document.getElementById("rp-role-"+r).style.display = (r<2||has) ? "block" : "none";
     document.getElementById("rp-f-label-"+r).value=(roles[r]&&roles[r].label)||"";
     document.getElementById("rp-f-brief-"+r).value=(roles[r]&&roles[r].brief)||"";
     document.getElementById("rp-f-secret-"+r).value=(roles[r]&&roles[r].secret)||"";
     document.getElementById("rp-f-useful-"+r).value=(roles[r]&&roles[r].useful)||"";
-    if(r===2) document.getElementById("rp-f-optional").checked = !!(roles[2]&&roles[2].optional);
+    /* Every role past the second can be optional, not just the third. A four-core, two-optional
+       scenario is groups of four that grow to six — the point of raising the cap. */
+    if(r>=2){
+      const box=document.getElementById("rp-f-optional-"+r);
+      if(box) box.checked = has ? !!roles[r].optional : true;
+    }
     countBrief(r);
   }
-  document.getElementById("rp-add-role").style.display = roles.length>=3 ? "none" : "inline-flex";
-  document.getElementById("rp-drop-role").style.display = roles.length>=3 ? "inline-flex" : "none";
+  const n=Math.max(2, roles.length);
+  document.getElementById("rp-add-role").style.display  = n>=RP_MAX_ROLES ? "none" : "inline-flex";
+  document.getElementById("rp-drop-role").style.display = n>2 ? "inline-flex" : "none";
+}
+
+/* How many role blocks are on screen — the form's own answer, not the record's, because the
+   teacher may have just added one. */
+function visibleRoleCount(){
+  let n=0;
+  for(let r=0;r<RP_MAX_ROLES;r++){
+    const el=document.getElementById("rp-role-"+r);
+    if(el && el.style.display!=="none") n++;
+  }
+  return Math.max(2, n);
 }
 
 function readScenarioForm(){
@@ -149,25 +169,27 @@ function readScenarioForm(){
   sc.title=document.getElementById("rp-f-title").value.trim();
   sc.situation=document.getElementById("rp-f-situation").value.trim();
   const roles=[];
-  const count=document.getElementById("rp-role-2").style.display==="none" ? 2 : 3;
+  const count=visibleRoleCount();
   for(let r=0;r<count;r++){
     const role={ label:document.getElementById("rp-f-label-"+r).value.trim(),
                  brief:document.getElementById("rp-f-brief-"+r).value.trim(),
                  secret:document.getElementById("rp-f-secret-"+r).value.trim(),
                  useful:document.getElementById("rp-f-useful-"+r).value.trim() };
-    if(r===2 && document.getElementById("rp-f-optional").checked) role.optional=true;
+    const box=(r>=2) ? document.getElementById("rp-f-optional-"+r) : null;
+    if(box && box.checked) role.optional=true;
     roles.push(role);
   }
   sc.roles=roles;
 }
 
-function addThirdRole(){
+function addRole(){
   readScenarioForm();
   const sc=SCEN.list[SCEN.index];
+  if(sc.roles.length>=RP_MAX_ROLES) return;
   sc.roles.push({ label:"", brief:"", secret:"", useful:"", optional:true });
   writeScenarioForm(); renderScenarioList();
 }
-function dropThirdRole(){
+function dropRole(){
   readScenarioForm();
   const sc=SCEN.list[SCEN.index];
   if(sc.roles.length>2) sc.roles.pop();

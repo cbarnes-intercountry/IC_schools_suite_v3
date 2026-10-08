@@ -136,9 +136,13 @@ const Backend = {
       studentCount: Object.keys(partVal[r.runId]||{}).length }));
     return { sessions };
   },
-  async joinSession(runId, studentId, surname, firstName, consent){
+  /* `rejoining` is the student's own answer to "is this you, on another phone?" — recorded so
+     the teacher's roster can point at the record worth removing. It is a claim, not a finding:
+     the app cannot verify it, and does not act on it by itself. */
+  async joinSession(runId, studentId, surname, firstName, consent, rejoining){
     await this._ready();
-    await this._part(runId).child(studentId).update({ surname, firstName, consent:!!consent, status:"joined", lastSeen:this._now() });
+    await this._part(runId).child(studentId).update({ surname, firstName, consent:!!consent,
+      rejoining:!!rejoining, status:"joined", lastSeen:this._now() });
     return {ok:true};
   },
   async listParticipants(runId){
@@ -151,12 +155,54 @@ const Backend = {
     await this._part(runId).child(studentId).update({ surname, firstName, status:"in_progress", lastSeen:this._now(), progress });
     return {ok:true};
   },
+  /* One field of a student's progress, rather than all of it (v3.20b).
+
+     saveProgress rewrites the WHOLE progress object on every change — every answer, every
+     timing, the whole alert log — and it grows through the test. That was affordable at a
+     four-second batch; it is not what you want several times a second once answering writes
+     straight through. This writes the one path that changed.
+
+     `lastSeen` goes with it, in the same update, and that is not decoration: the dashboard
+     calls a student Dropped after 30 seconds without a write, so a delta that did not touch
+     lastSeen would show the class disconnecting while they answered.
+
+     One update, not two calls: Firebase applies a multi-path update atomically, so a student
+     is never briefly recorded as present with the previous answer. */
+  async saveProgressFields(runId, studentId, surname, firstName, fields){
+    await this._ready();
+    const patch={ surname, firstName, status:"in_progress", lastSeen:this._now() };
+    Object.keys(fields||{}).forEach(k=>{ patch["progress/"+k]=fields[k]; });
+    await this._part(runId).child(studentId).update(patch);
+    return {ok:true};
+  },
+  /* The student submits their WORK, not their mark (v3.20a).
+
+     Two things changed here and they go together. The result no longer carries a score — the
+     teacher's device computes every mark, from the answers, so a number written by a phone is
+     never the number on a report. And `progress` is no longer deleted on submit: it holds the
+     raw answers, and deleting it was throwing away the only thing the mark can honestly be
+     rebuilt from. The record is a few kilobytes either way, and the run is deleted when the
+     test is archived.
+
+     A failed write must reach the student. It used to be swallowed into console.warn, so a
+     phone that lost the network at the bell showed a cheerful score screen and no submission
+     existed. The caller reports it now, which is why this still throws. */
   async submitResult(runId, studentId, surname, firstName, result){
     await this._ready();
-    await this._part(runId).child(studentId).update({ surname, firstName, status:"submitted", lastSeen:this._now(), result, progress:null });
+    await this._part(runId).child(studentId).update({ surname, firstName, status:"submitted", lastSeen:this._now(), result });
     return {ok:true};
   },
   // One student's own record — used to resume after an unintentional disconnect.
+  /* Remove one student from a room. Permitted by the rules already: an active teacher may
+     write any participant key, which includes clearing it. No rules change was needed.
+
+     Only offered before a game is dealt. Afterwards the record is half of a pair, and deleting
+     it would leave a partner with nobody and a pairs map naming a ghost. */
+  async removeParticipant(runId, studentId){
+    await this._ready();
+    await this._part(runId).child(studentId).remove();
+    return {ok:true};
+  },
   async getParticipant(runId, studentId){
     await this._ready();
     return (await this._part(runId).child(studentId).once("value")).val() || null;
@@ -282,6 +328,25 @@ const Backend = {
       return ()=>{ cancelled=true; if(ref&&h) ref.off("value", h); };
     }
     return ()=>{};   // no database: nothing to listen to, but callers still get an unsubscribe
+  },
+  /* A student watching their OWN record, which is the only participant node the rules let
+     them read. Used for one thing: noticing that a teacher removed them, so the phone says so
+     instead of sitting there looking like the lesson has not started.
+
+     `cb` receives the record, or null when it is gone. A null before the record has ever been
+     seen is ordinary — the listener attaches before the join write lands — so the caller, not
+     this method, decides what a null means. */
+  subscribeOwnRecord(runId, studentId, cb){
+    if(this.live){
+      let ref=null, h=null, cancelled=false;
+      this._ready().then(()=>{
+        if(cancelled) return;
+        ref=this._part(runId).child(studentId);
+        h=ref.on("value", snap=>{ cb(snap.val()); });
+      });
+      return ()=>{ cancelled=true; if(ref&&h) ref.off("value", h); };
+    }
+    return ()=>{};
   },
   /* The live class list.
 

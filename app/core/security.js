@@ -23,7 +23,11 @@ function effectiveCheatCount(p){ return Math.max(0, rawCheatAlerts(p).length - (
 function logCheat(type){
   if(STUDENT.finished || STUDENT._suppressCheat) return; // ignore events during submit/confirm
   STUDENT.cheatAlerts.push({type,time:Date.now()});
-  syncProgress(true);
+  /* Its own write, immediately (v3.20b). An alert is the thing a teacher most wants to see
+     while it is still happening, and it must never sit behind the batching that exists for a
+     text box. It also must not ride on an answer write: those now carry only the field that
+     changed, so an alert folded into one would simply not be sent. */
+  syncAlerts();
 }
 
 function requestFS(el){

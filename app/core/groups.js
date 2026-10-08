@@ -307,17 +307,132 @@ function pairMembers(pairs, g){
    teacher's screen agree about term 4 without either asking the other.
 
    Neighbouring pairs get different orders, which matters in a room: twelve pairs all shouting
-   about "excess" at the same moment is a much easier game than it should be. */
-function termOrderFor(count, pairNo, round){
+   about "excess" at the same moment is a much easier game than it should be.
+
+   ONE PERMUTATION PER PAIR, FOR THE WHOLE GAME — not one per round. It used to take the round
+   number as well, so every round reshuffled the whole pool and the position restarted at zero.
+   A pair gets through three or four subjects in a round, so round two routinely dealt them
+   subjects they had already solved — and the student now ASKING is the one who held those
+   subjects and knows the answers. Measured on the real generator: with a pool of twelve and
+   four solved per round, 88% of pairs met a repeat; with a pool of eight, 97%.
+
+   Reported from a lesson: "one pair had the exact same people appear after swapping roles, in
+   the same order, making it very easy."
+
+   With one permutation and a position that carries across rounds, a pair cannot meet a subject
+   twice until they have been through every one. */
+function termOrderFor(count, pairNo){
   const n=Math.max(0, count|0);
   const idx=[]; for(let i=0;i<n;i++) idx.push(i);
   // A small deterministic generator. Not cryptography — it only has to differ per pair.
-  let s=(pairNo*7919 + round*104729 + 12345) >>> 0;
+  let s=(pairNo*7919 + 12345) >>> 0;
   const next=()=>{ s=(s*1664525 + 1013904223)>>>0; return s/4294967296; };
   for(let i=n-1;i>0;i--){ const j=Math.floor(next()*(i+1)); const tmp=idx[i]; idx[i]=idx[j]; idx[j]=tmp; }
   return idx;
 }
 
+
+/* How many roles a role-play scenario may declare, and so how many students can be in one
+   group. Three until v3.19, when Chris asked for six.
+
+   Here rather than in modules/roleplay.js because three files need it — the module that
+   allocates, the editor that writes scenarios, and the importer that reads them. A constant
+   three files share is not a module's private business, which the suite's architecture rule
+   says out loud: a module may not reach into another module's declarations. */
+const RP_MAX_ROLES = 6;
+
+/* ---------- the lobby roster, with a way to remove somebody (v3.18) ----------
+
+   Reported from a lesson: "Important to be able to delete users from the session. Some students
+   were able to connect twice."
+
+   WHY A DOUBLE JOIN HAPPENS, since the remedy depends on it. The identity is the anonymous
+   sign-in, falling back to a per-code local id. Within one browser that is stable — a reload or
+   a second go at the code writes to the SAME record, which was verified rather than assumed.
+   What makes a second record is a second BROWSER: tapping the link in Teams or WhatsApp opens
+   an in-app browser with its own storage, and opening it again in Chrome is, as far as the
+   database can tell, a different person. A private window does the same.
+
+   The app cannot reliably tell that from two genuine students, and the technique that would
+   try — fingerprinting the device — misfires in a room of similar handsets and is the wrong
+   thing to do to a class. So the student is asked at the door (see nameIsTaken), and the
+   teacher gets a one-tap removal here for whichever record is stale.
+
+   `lastSeen` is what identifies the stale one: a phone that joined and went quiet is almost
+   always the abandoned browser. */
+
+function lastSeenLabel(ts){
+  const when=Number(ts)||0;
+  if(!when) return "";
+  const mins=Math.floor((Date.now()-when)/60000);
+  if(mins<1) return t("roster.just_now", "just now");
+  if(mins===1) return t("roster.a_minute_ago", "1 min ago");
+  return t("roster.n_minutes_ago", "{n} min ago", { n:mins });
+}
+
+/* One chip per student: the name, how long since their phone said anything, the rejoin claim if
+   they made one, and a remove button. `removeFn` is the game's own handler name — the three
+   games each own their room, and none of them reaches into another. */
+function lobbyRoster(participants, removeFn){
+  const rows=(participants||[]).slice().sort(bySurname);
+  if(!rows.length) return "";
+  /* A COLUMN, not a row of chips. Inline chips of unequal width staggered on a phone, the
+     remove buttons overlapped the line above, and a two-word name wrapped inside its own chip.
+     One student per line, name left, button right, is also the shape a teacher scans down
+     while looking for the one that has gone quiet. */
+  return '<div class="roster-list">'+rows.map(p=>{
+    const when=lastSeenLabel(p.lastSeen);
+    /* The rejoin marker rides on a data attribute rather than a conditional class name: a
+       bare " chip-rejoin" in a ternary is a loose string literal, and the hardcoded-text check
+       is right to object to those. Styling keys off [data-rejoin="1"]. */
+    return '<span class="chip chip-roster" data-rejoin="'+(p.rejoining ? "1" : "0")+'">'+
+      '<span class="chip-name">'+escapeHtml(displayName(p.surname,p.firstName))+'</span>'+
+      (p.rejoining ? '<span class="chip-flag">'+escapeHtml(t("roster.says_second_phone", "says: 2nd phone"))+'</span>' : "")+
+      (when ? '<span class="chip-when">'+escapeHtml(when)+'</span>' : "")+
+      '<button class="chip-x" title="'+escapeHtml(t("roster.remove", "Remove"))+'" '+
+        'onclick="'+removeFn+'(\''+escapeHtml(String(p.studentId))+'\')">\u00d7</button>'+
+    '</span>';
+  }).join("")+'</div>';
+}
+
+/* Shared by the three games. Refuses once the game is dealt, because a removed student would
+   leave their partner with nobody and the pairs map naming somebody who is gone. */
+async function removeFromLobby(runId, participants, studentId, meta){
+  if(meta && Number(meta.round) > 0){
+    alert(t("roster.only_before_start",
+      "Students can only be removed before the game is dealt. Removing one now would leave their partner without anybody."));
+    return false;
+  }
+  const who=(participants||[]).filter(p=>p.studentId===studentId)[0];
+  const name=who ? displayName(who.surname, who.firstName) : studentId;
+  if(!confirm(t("roster.remove_confirm",
+    "Remove {name} from the room?\n\nTheir phone will say they were removed and can join again with the code.",
+    { name:name }))) return false;
+  try{ await Backend.removeParticipant(runId, studentId); }
+  catch(e){ alert(t("roster.remove_failed", "Couldn't remove them: ")+((e&&e.message)||e)); return false; }
+  return true;
+}
+
+/* A student whose record disappears was removed by their teacher.
+
+   Watched rather than polled, and deliberately cautious: it only fires once the record has
+   been SEEN at least once, so the listener attaching before the join write lands cannot throw
+   a student out of a room they just entered. A read that fails does not call back at all, so a
+   dropped connection reads as silence, not as removal.
+
+   Removal is offered in the lobby only, so in practice this lands on a phone that is waiting
+   for the game to be dealt. */
+function watchForRemoval(runId, studentId, onRemoved){
+  let seen=false;
+  return Backend.subscribeOwnRecord(runId, studentId, rec=>{
+    if(rec){ seen=true; return; }
+    if(seen) onRemoved();
+  });
+}
+
+function showRemovedScreen(){
+  showScreen("screen-removed");
+}
 
 /* ---------- pseudonyms: removed in v3.17 ----------
 
@@ -342,11 +457,31 @@ function termOrderFor(count, pairNo, round){
    is written down rather than after. Read from the database rather than from any local list: the
    student joining has never seen the others. A failed read returns nothing, which means the
    duplicate goes unresolved — better than refusing to let somebody join because a read blipped. */
-async function existingFirstNames(runId){
+async function existingFirstNames(runId, exceptId){
   try{
     const res=await Backend.listParticipants(runId);
-    return ((res&&res.participants)||[]).map(p=>String(p.firstName||"").trim()).filter(Boolean);
+    return ((res&&res.participants)||[])
+      /* NOT counting the student's own record. Without this, a student who reloads her phone
+         and rejoins finds "Marie" already taken — by herself — and is renamed Marie 2. On the
+         next reload "Marie" is free again, so she flips back. Her name oscillated on every
+         rejoin, and the teacher's roster flickered with it. Shipped in v3.17, found in v3.18
+         by probing what actually makes a second record. */
+      .filter(p=>!exceptId || p.studentId !== exceptId)
+      .map(p=>String(p.firstName||"").trim()).filter(Boolean);
   }catch(e){ console.warn("could not read the room's names", e); return []; }
+}
+
+/* Is this name already in the room, held by somebody else?
+
+   Asked before the duplicate is resolved, because a duplicate has two quite different causes
+   and only the student knows which: a second Marie, or the same Marie on a second phone. The
+   app cannot tell. It could try to recognise the device — user agent, screen size, timezone —
+   but in a room of twenty-five similar handsets that misfires, and covertly fingerprinting
+   students to catch a double join is the wrong trade in a classroom tool. So it asks. */
+function nameIsTaken(wanted, taken){
+  const want=String(wanted||"").trim().toLowerCase();
+  if(!want) return false;
+  return (taken||[]).some(n=>String(n).trim().toLowerCase()===want);
 }
 
 /* "Marie" among two Maries becomes "Marie 2", then "Marie 3". Case-insensitive, because Marie

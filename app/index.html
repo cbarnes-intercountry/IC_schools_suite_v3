@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.17">
+<link rel="stylesheet" href="styles/app.css?v=3.20b">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -200,7 +200,7 @@
           <option data-i18n="admin_builder.opt.true_false" value="tf" data-kind="quiz">True / False</option>
           <option data-i18n="admin_builder.opt.short_text_answer" value="text" data-kind="quiz">Short Text Answer</option>
           <option data-i18n="admin_builder.opt.puzzle_drag_order" value="order" data-kind="quiz">Puzzle — drag to order</option>
-          <option data-i18n="admin_builder.opt.poll_live_vote_no_right_answer" value="poll" data-kind="poll">Poll — live vote (no right answer)</option>
+          <option data-i18n="admin_builder.opt.poll_live_vote" value="poll" data-kind="poll">Poll — live vote</option>
           <option data-i18n="admin_builder.opt.word_cloud_live_words" value="cloud" data-kind="poll">Word Cloud — live words</option>
         </select>
         <div class="qe-meta" style="margin-top:4px;">
@@ -697,6 +697,19 @@
 </div>
 
 <!-- STUDENT JOIN -->
+<!-- REMOVED FROM THE ROOM -->
+<!-- A teacher can remove a student from a lobby. Their phone says so rather than freezing on a
+     waiting screen, and the code still works, so rejoining is one tap and no conversation. -->
+<div class="screen" id="screen-removed">
+  <div class="card center">
+    <h1 data-i18n="removed.title">You have been removed from the room</h1>
+    <p class="sub" data-i18n="removed.what_now">Ask your teacher for the code again.</p>
+    <div class="row" style="margin-top:18px;">
+      <button data-i18n="removed.join_again" class="btn-primary" onclick="showScreen('screen-student-join')">Join again</button>
+    </div>
+  </div>
+</div>
+
 <div class="screen" id="screen-student-join">
   <div class="card">
     <h1 data-i18n="student_join.join">Join</h1>
@@ -770,15 +783,22 @@
 
 <!-- STUDENT FEEDBACK -->
 <div class="screen" id="screen-student-feedback">
-  <div class="fb-panel">
-    <span data-i18n="student_feedback.test_complete" class="fb-pill">Test Complete</span>
-    <div class="fb-dial">
+  <!-- Two states (v3.20a). A saved paper looks exactly as it always has and says nothing
+       about saving: the test marks itself and the result IS the confirmation.
+
+       When the answers do not save there is no result to show, so the panel does not show
+       one. A score beside "your answers did not save" contradicts itself, and the test is
+       not complete — so the pill, the dial and the stats all go, and what is left is what
+       happened and what to do about it. `fb-failed` on the panel is what hides them. -->
+  <div class="fb-panel" id="fb-panel">
+    <span data-i18n="student_feedback.test_complete" class="fb-pill" id="fb-pill">Test Complete</span>
+    <div class="fb-dial" id="fb-dial">
       <div class="fb-pct" id="fb-percentage">--%</div>
       <div class="fb-pts" id="fb-score"></div>
     </div>
-    <h1 class="fb-title">Nicely done, <span id="fb-name"></span>.</h1>
-    <p data-i18n="student_feedback.answers_close_window_teacher_results" class="fb-sub">Your answers are in. You can close this window — your teacher has the results.</p>
-    <div class="fb-stats">
+    <h1 class="fb-title"><span id="fb-lead">Nicely done,</span> <span id="fb-name"></span><span id="fb-dot">.</span></h1>
+    <p class="fb-sent" id="fb-sent"></p>
+    <div class="fb-stats" id="fb-stats">
       <span class="fb-stat"><b id="fb-correct">0</b><i data-i18n="student_feedback.correct">correct</i></span>
       <span class="fb-stat"><b id="fb-missed">0</b><i data-i18n="student_feedback.missed">missed</i></span>
       <span class="fb-stat"><b id="fb-time">0:00</b><i data-i18n="student_feedback.min_taken">min taken</i></span>
@@ -842,35 +862,35 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.17"></script>
-<script src="lang/fr.js?v=3.17"></script>
-<script src="core/i18n.js?v=3.17"></script>
-<script src="core/registry.js?v=3.17"></script>
-<script src="core/backend.js?v=3.17"></script>
-<script src="core/auth.js?v=3.17"></script>
-<script src="core/ui.js?v=3.17"></script>
-<script src="core/session.js?v=3.17"></script>
-<script src="core/groups.js?v=3.17"></script>
-<script src="core/rounds.js?v=3.17"></script>
-<script src="core/bank.js?v=3.17"></script>
-<script src="core/media.js?v=3.17"></script>
-<script src="core/security.js?v=3.17"></script>
-<script src="core/answers.js?v=3.17"></script>
-<script src="modules/test.js?v=3.17"></script>
-<script src="modules/poll.js?v=3.17"></script>
-<script src="modules/roleplay.js?v=3.17"></script>
-<script src="modules/describeit.js?v=3.17"></script>
-<script src="modules/twentyq.js?v=3.17"></script>
-<script src="modules/partners.js?v=3.17"></script>
-<script src="admin/editor.js?v=3.17"></script>
-<script src="admin/import.js?v=3.17"></script>
-<script src="admin/reports.js?v=3.17"></script>
-<script src="admin/scenarios.js?v=3.17"></script>
-<script src="admin/terms.js?v=3.17"></script>
-<script src="admin/subjects.js?v=3.17"></script>
-<script src="admin/collocations.js?v=3.17"></script>
-<script src="admin/accounts.js?v=3.17"></script>
-<script src="boot.js?v=3.17"></script>
+<script src="lang/en.js?v=3.20b"></script>
+<script src="lang/fr.js?v=3.20b"></script>
+<script src="core/i18n.js?v=3.20b"></script>
+<script src="core/registry.js?v=3.20b"></script>
+<script src="core/backend.js?v=3.20b"></script>
+<script src="core/auth.js?v=3.20b"></script>
+<script src="core/ui.js?v=3.20b"></script>
+<script src="core/session.js?v=3.20b"></script>
+<script src="core/groups.js?v=3.20b"></script>
+<script src="core/rounds.js?v=3.20b"></script>
+<script src="core/bank.js?v=3.20b"></script>
+<script src="core/media.js?v=3.20b"></script>
+<script src="core/security.js?v=3.20b"></script>
+<script src="core/answers.js?v=3.20b"></script>
+<script src="modules/test.js?v=3.20b"></script>
+<script src="modules/poll.js?v=3.20b"></script>
+<script src="modules/roleplay.js?v=3.20b"></script>
+<script src="modules/describeit.js?v=3.20b"></script>
+<script src="modules/twentyq.js?v=3.20b"></script>
+<script src="modules/partners.js?v=3.20b"></script>
+<script src="admin/editor.js?v=3.20b"></script>
+<script src="admin/import.js?v=3.20b"></script>
+<script src="admin/reports.js?v=3.20b"></script>
+<script src="admin/scenarios.js?v=3.20b"></script>
+<script src="admin/terms.js?v=3.20b"></script>
+<script src="admin/subjects.js?v=3.20b"></script>
+<script src="admin/collocations.js?v=3.20b"></script>
+<script src="admin/accounts.js?v=3.20b"></script>
+<script src="boot.js?v=3.20b"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -1851,16 +1871,16 @@
 
       <div class="rp-role" id="rp-role-0">
         <div data-i18n="rp_editor.role_1" class="rp-role-head">Role 1</div>
-        <input data-i18n-ph="rp_editor.ph.name_role_e_g_customer" type="text" id="rp-f-label-0" placeholder="Name of the role, e.g. Customer">
-        <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows_about_their" id="rp-f-brief-0" rows="3" placeholder="What only this person knows about their side." oninput="countBrief(0)"></textarea>
+        <input data-i18n-ph="rp_editor.ph.role_name_0" type="text" id="rp-f-label-0" placeholder="Name of the role">
+        <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows" id="rp-f-brief-0" rows="3" placeholder="What only this person knows." oninput="countBrief(0)"></textarea>
         <span class="rp-count" id="rp-count-0"></span>
-        <input data-i18n-ph="rp_editor.ph.secret_constraint_optional_budget_walk_away" type="text" id="rp-f-secret-0" placeholder="Secret constraint (optional) — budget, walk-away point">
+        <input data-i18n-ph="rp_editor.ph.secret_constraint_optional" type="text" id="rp-f-secret-0" placeholder="Secret constraint (optional)">
         <input data-i18n-ph="rp_editor.ph.useful_language_optional" type="text" id="rp-f-useful-0" placeholder="Useful language (optional)">
       </div>
 
       <div class="rp-role" id="rp-role-1">
         <div data-i18n="rp_editor.role_2" class="rp-role-head">Role 2</div>
-        <input data-i18n-ph="rp_editor.ph.e_g_claims_advisor" type="text" id="rp-f-label-1" placeholder="e.g. Claims advisor">
+        <input data-i18n-ph="rp_editor.ph.role_name_1" type="text" id="rp-f-label-1" placeholder="Name of the role">
         <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows" id="rp-f-brief-1" rows="3" placeholder="What only this person knows." oninput="countBrief(1)"></textarea>
         <span class="rp-count" id="rp-count-1"></span>
         <input data-i18n-ph="rp_editor.ph.secret_constraint_optional" type="text" id="rp-f-secret-1" placeholder="Secret constraint (optional)">
@@ -1869,21 +1889,53 @@
 
       <div class="rp-role" id="rp-role-2" style="display:none;">
         <div data-i18n="rp_editor.role_3" class="rp-role-head">Role 3</div>
-        <input data-i18n-ph="rp_editor.ph.e_g_supervisor" type="text" id="rp-f-label-2" placeholder="e.g. Supervisor">
+        <input data-i18n-ph="rp_editor.ph.role_name_2" type="text" id="rp-f-label-2" placeholder="Name of the role">
         <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows" id="rp-f-brief-2" rows="3" placeholder="What only this person knows." oninput="countBrief(2)"></textarea>
         <span class="rp-count" id="rp-count-2"></span>
         <input data-i18n-ph="rp_editor.ph.secret_constraint_optional" type="text" id="rp-f-secret-2" placeholder="Secret constraint (optional)">
         <input data-i18n-ph="rp_editor.ph.useful_language_optional" type="text" id="rp-f-useful-2" placeholder="Useful language (optional)">
-        <label class="chk" style="margin-top:8px;"><input type="checkbox" id="rp-f-optional" checked> Optional &mdash; used only to absorb a spare student</label>
+        <label class="chk" style="margin-top:8px;"><input type="checkbox" id="rp-f-optional-2" checked> Optional &mdash; a spare student fills this seat</label>
+      </div>
+
+      <div class="rp-role" id="rp-role-3" style="display:none;">
+        <div data-i18n="rp_editor.role_4" class="rp-role-head">Role 4</div>
+        <input data-i18n-ph="rp_editor.ph.role_name_3" type="text" id="rp-f-label-3" placeholder="Name of the role">
+        <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows" id="rp-f-brief-3" rows="3" placeholder="What only this person knows." oninput="countBrief(3)"></textarea>
+        <span class="rp-count" id="rp-count-3"></span>
+        <input data-i18n-ph="rp_editor.ph.secret_constraint_optional" type="text" id="rp-f-secret-3" placeholder="Secret constraint (optional)">
+        <input data-i18n-ph="rp_editor.ph.useful_language_optional" type="text" id="rp-f-useful-3" placeholder="Useful language (optional)">
+        <label class="chk" style="margin-top:8px;"><input type="checkbox" id="rp-f-optional-3" checked> Optional &mdash; a spare student fills this seat</label>
+      </div>
+
+      <div class="rp-role" id="rp-role-4" style="display:none;">
+        <div data-i18n="rp_editor.role_5" class="rp-role-head">Role 5</div>
+        <input data-i18n-ph="rp_editor.ph.role_name_4" type="text" id="rp-f-label-4" placeholder="Name of the role">
+        <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows" id="rp-f-brief-4" rows="3" placeholder="What only this person knows." oninput="countBrief(4)"></textarea>
+        <span class="rp-count" id="rp-count-4"></span>
+        <input data-i18n-ph="rp_editor.ph.secret_constraint_optional" type="text" id="rp-f-secret-4" placeholder="Secret constraint (optional)">
+        <input data-i18n-ph="rp_editor.ph.useful_language_optional" type="text" id="rp-f-useful-4" placeholder="Useful language (optional)">
+        <label class="chk" style="margin-top:8px;"><input type="checkbox" id="rp-f-optional-4" checked> Optional &mdash; a spare student fills this seat</label>
+      </div>
+
+      <div class="rp-role" id="rp-role-5" style="display:none;">
+        <div data-i18n="rp_editor.role_6" class="rp-role-head">Role 6</div>
+        <input data-i18n-ph="rp_editor.ph.role_name_5" type="text" id="rp-f-label-5" placeholder="Name of the role">
+        <textarea data-i18n-ph="rp_editor.ph.what_only_person_knows" id="rp-f-brief-5" rows="3" placeholder="What only this person knows." oninput="countBrief(5)"></textarea>
+        <span class="rp-count" id="rp-count-5"></span>
+        <input data-i18n-ph="rp_editor.ph.secret_constraint_optional" type="text" id="rp-f-secret-5" placeholder="Secret constraint (optional)">
+        <input data-i18n-ph="rp_editor.ph.useful_language_optional" type="text" id="rp-f-useful-5" placeholder="Useful language (optional)">
+        <label class="chk" style="margin-top:8px;"><input type="checkbox" id="rp-f-optional-5" checked> Optional &mdash; a spare student fills this seat</label>
       </div>
 
       <div class="btn-row" style="margin-top:12px;">
-        <button data-i18n="rp_editor.third_role" class="btn-outline" id="rp-add-role" onclick="addThirdRole()">+ Third role</button>
-        <button data-i18n="rp_editor.remove_third_role" class="btn-outline" id="rp-drop-role" style="display:none;" onclick="dropThirdRole()">Remove third role</button>
+        <button data-i18n="rp_editor.add_role" class="btn-outline" id="rp-add-role" onclick="addRole()">+ Add a role</button>
+        <button data-i18n="rp_editor.remove_role" class="btn-outline" id="rp-drop-role" style="display:none;" onclick="dropRole()">Remove last role</button>
       </div>
-      <p data-i18n="rp_editor.third_role_marked_optional_how_23" class="sub" style="font-size:.78rem;margin-top:10px;">
-        A third role marked optional is how 23 students become eleven pairs and one trio.
-        Without one, the spare student gets a listening task instead.</p>
+      <p data-i18n="rp_editor.roles_note" class="sub" style="font-size:.78rem;margin-top:10px;">
+        Two roles minimum, six maximum. A role marked optional is a seat a spare student fills,
+        which is how 23 students become eleven pairs and one trio. Without one, the spare gets a
+        listening task instead. In a group of six each student speaks about a fifth of the time,
+        so give every role something only they know.</p>
     </div>
   </div>
 </div>

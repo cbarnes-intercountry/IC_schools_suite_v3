@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.15
+# Classroom Exam App — v3.20b
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -538,3 +538,168 @@ role **optional** and a class of 23 becomes eleven pairs and one trio; without o
 student gets a listening task instead. **Swap roles** keeps the pairs and changes who plays
 what — that second run is where the fluency comes from. **New partners** reshuffles the room.
 Nothing is marked and nothing is kept: the run is deleted when you end it.
+
+
+---
+
+**Versions 3.16 to 3.19 are not written up here.** Their entries live in the project log, which
+is where the history has been kept since the README stopped being the only place to put it.
+In short: v3.16 and v3.17 settled how students are named (first names, resolved at join so the
+phone, the roster and the leaderboard all quote one string), v3.18 added removing a student from
+the lobby and stopped Twenty Questions dealing the same pair twice in a row, and v3.19 took role
+play from three roles to six.
+
+## A poll question with a right answer (v3.20)
+
+A poll question may now carry a **correct answer**, which turns it from an opinion vote into a
+comprehension check the whole room answers at once. Mark one choice in the editor (the type
+selector above the choices decides which kind of question it is), or put a letter in the
+**Correct** column of a poll row in the import sheet. Leave it blank and nothing changes.
+
+**It is still a poll.** It scores nothing, it is never marked, it writes no report, and the run
+is deleted when you close it. The only thing the answer does is let the room be told what it was.
+
+**When the room is told is the teacher's decision, and nobody's else's.** The answer appears at
+the moment you reveal the results — the correct bar is ticked on the projector, and every phone
+is told whether it was right, including the phones of students who never voted. Before that, a
+phone that has voted says only "Vote recorded". Which means a question set to show results live
+announces its own answer as soon as the first student votes: the editor says so in amber when
+you mark an answer without turning "hide results" on, and the import sheet says so too. For a
+real check, hide the results.
+
+One thing worth knowing and not fixed here: the answers to **any** activity, this one and the
+marked test alike, are written into the session every joined student reads. A student who opens
+a developer console on their phone can read them. That has been true since v2 and is wider than
+polls; it wants a version of its own, where the student's copy of a question has the answer
+stripped out and the answer is relayed at reveal.
+
+
+## The teacher marks the paper (v3.20a)
+
+**What was wrong.** A submitted result was taken at face value. The student's own device wrote
+`score`, `totalPossible` and `percentage` into their own participant record — which the security
+rules correctly let them do — and the dashboard, the recap and the exported CSV all reported it.
+Only students who did NOT submit were ever marked by the teacher's device. A student who knew
+this could have put 100% in a CSV without answering a question.
+
+**What changed.**
+
+1. **Every mark is computed on the teacher's device, from the student's answers**, against the
+   teacher's own copy of the questions. The live dashboard squares already worked this way
+   mid-test; it was the moment of submission that handed authority to the phone. There is now
+   one marker in the room.
+2. **The student submits work, not a mark.** The result carries `order`, `answers`, `timeSpent`,
+   `cheatAlerts`, `finishedAt` and `raw:true` — and no score of any kind.
+3. **Submitting no longer deletes `progress`.** It held the only copy of the answers the mark
+   can honestly be rebuilt from.
+4. **The answers are flushed before submitting, and waited for.** The checkpoint runs every 20
+   seconds, so without this a student's last answers could simply not be there at marking time.
+5. **A failed submission is now visible.** It used to be a `console.warn` behind a feedback
+   screen reading "Your answers are in" — a student could walk out believing they had submitted.
+   The screen now says which happened, and the heading follows: no "Nicely done" over a warning
+   that the work never arrived.
+6. **The write window closes (rules change — must be deployed).** A student may write their own
+   participant record only while the run is **both** not `ended` **and** less than 12 hours old.
+   Without it, recomputation is only as good as the last moment anyone could edit: a student
+   could sit the test, learn the answers afterwards and quietly rewrite their own
+   `progress.answers`. Teachers are unaffected.
+
+   The clock half is not belt and braces. A run is marked ended when the teacher presses End —
+   or when they next open Home and the app tidies away anything past its 12-hour life. A
+   session a teacher simply forgot therefore stays `active` in the database for as long as
+   nobody looks at it, overnight and over a weekend, and the status test alone would leave it
+   open to its students the whole time. The rules close it on the clock, with no app running.
+
+   The 12 hours is written in two places — `SESSION_TTL_MS` decides what the app OFFERS the
+   teacher, the rule decides what the database PERMITS — and the suite fails if they disagree.
+   A session with no `runAt` refuses students rather than trusting them: `createSession` has
+   always written one, so its absence means a hand-edited record, and a refused write is now
+   visible on the student's screen within a minute rather than silently costing the protection.
+
+**Deployment order: the app first, then the rules.** An old build against the new rules would
+have a late submission silently refused; the new build says so on screen.
+
+**A record from a run sat before v3.20a** has no answers kept, so there is nothing to recompute.
+Its figure is shown as it stands and labelled *Submitted (self-marked — pre-3.20a run)* rather
+than passing as marked work.
+
+**What this does NOT do.** The answers are still written into the session every joined student
+reads, so a student who opens a developer console can still read them — and with the write
+window closed they would have to use them during the test rather than after it. That is the
+separate change (a student copy with answers stripped, relayed at reveal), and it is worth
+doing before anything that scores a live competition.
+
+**Cheat alerts are written by the student and can be edited by the student.** The write window
+closes that after the test; during it, the log is theirs. It is a deterrent and a record, never
+evidence, and nothing in the reports pretends otherwise.
+
+
+## The end of a test, and how fast an answer travels (v3.20b)
+
+### A regression in v3.20a, fixed
+
+The student's device auto-submits when it sees the teacher end the test. Under v3.20a's write
+window that submit was refused — so **pressing End Test would have shown "Something went wrong"
+to every student still working**, which on a manually timed test is most of the class.
+
+A run that has already closed is now finished **on the device**, writing nothing. The answers
+are already in the database; the phone shows the ordinary Test Complete screen with marks; the
+unanswered last question scores zero, which is what it is. A Finish pressed a second after the
+bell takes the same path. A refusal while the run is still OPEN is still reported — that one is
+a real fault.
+
+Whether the run has closed is asked of `STUDENT.meta` and nowhere else. An earlier draft also
+passed a flag from the subscription, which was the same fact arriving twice.
+
+### Who was still working when the bell went
+
+Ending a test records `endedAt`. A student with answers and no submission now reads as
+**Working at the bell** when their last activity was within a minute of it, and stays
+**Incomplete (disconnected)** when their phone went quiet twenty minutes earlier. One is a
+normal ending, the other wants looking into, and they were indistinguishable before. A run with
+no `endedAt` — anything from before v3.20b — is not guessed at.
+
+### Latency: about 4 seconds, now about 300ms for a tap
+
+Three write paths, because the three things that change have nothing in common.
+
+- **A tap** — an option chosen, a puzzle row moved — writes immediately. The dashboard square
+  turns over in a round trip. **No extra writes:** one tap made one write before too; the four
+  seconds it waited first were pure delay.
+- **Typing** keeps a batch, cut from 4s to **1.2s**. A short-answer field fires on every
+  keystroke, and that is the only reason the delay existed.
+- **A cheat alert** writes immediately, on its own path. It is what a teacher most wants to see
+  while it is still happening, and it must never wait behind batching meant for a text box.
+
+Answer writes now carry **only the field that changed** rather than rewriting the whole of
+progress each time, so the shorter typing window costs almost nothing in bandwidth.
+
+Two things that had to come with that, both caught by their own checks:
+
+- A delta write carries `lastSeen` in the **same** update. The dashboard calls a student
+  Dropped after 30 seconds without one, so a delta that skipped it would show the class
+  disconnecting as they answered.
+- The question **order** is written once as the test opens. It is not a field that changes, so
+  no delta carries it — and until v3.20b it first reached the database at the 20-second
+  checkpoint, meaning a paper ended inside the first twenty seconds had answers and nothing to
+  read them against. The teacher would have marked it 0 of 0.
+
+
+## Which rules file to upload
+
+**`firebase-rules-combined.json` — not `firebase-rules.json`.**
+
+The hub and the app share one Firebase project, and a project has exactly one rules document.
+Whichever file you upload becomes the whole ruleset:
+
+- `firebase-rules.json` is the APP's half. It has no `hub` node, so uploading it leaves the
+  Teacher Hub's data with no rules at all.
+- The hub's own file is the other half. It has no `sessions`, `participants` or `quizzes`, so
+  uploading that one does the same to the exams.
+- `firebase-rules-combined.json` is both, and is the only one that should ever go up.
+
+The combined file is now GENERATED — `make_rules_combined.py <app folder> <hub folder>` — and
+the suite fails if it has drifted from either source. It is not maintained by hand because
+the hand-maintained version rotted: by v3.20b both copies on disk still carried the
+participants rule from before the write window, so uploading either would have quietly undone
+v3.20a's protection with nothing on screen to say so.
