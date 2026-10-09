@@ -317,8 +317,44 @@ async function lqBegin(){
 
 /* Put question `pos` on the board and start its clock — unless it has audio, in which case the
    clock waits for the clip to finish. */
+/* ---------------------------------------------------------------------------
+   THE THREE PHASES OF A QUESTION (v3.31)
+
+       question  ->  answer  ->  board  ->  (next question)
+
+   AUTOPLAY AND THE CLOCK ARE DIFFERENT THINGS, and conflating them was the fault in v3.30.
+   The clock belongs to the QUESTION: it counts down and the question ends when it reaches
+   zero, whether or not anybody is driving. Autoplay only decides who presses Next — the
+   teacher, or nobody. A teacher pacing the room by hand still wants the countdown the class
+   can see; a teacher running it hands-free still wants to be able to hold a slide.
+
+   The question ends on whichever comes first: the clock running out, or EVERY student having
+   answered. The second is not a nicety — a room that has all answered in nine seconds of a
+   twenty-second question spends eleven seconds watching a timer, which is where a class
+   starts talking.
+
+   ANSWER then BOARD, in that order and never merged. The answer is the teaching moment and it
+   wants the whole screen; the standings are the game and they pull every eye to the top of the
+   list. Shown together, nobody reads the answer.
+   --------------------------------------------------------------------------- */
+const LQ_PHASES = ["question", "answer", "board"];
+
+/* How long autoplay holds each one. Long enough to read, short enough that a class of
+   twenty-five does not start a side conversation. Only autoplay uses these; by hand, a phase
+   lasts exactly as long as the teacher leaves it. */
+const LQ_ANSWER_MS = 5000;
+const LQ_BOARD_MS  = 6000;
+
+function lqPhase(meta){
+  const p = (meta||{}).phase;
+  return LQ_PHASES.indexOf(p) >= 0 ? p : "question";
+}
+
+/* Put question `pos` on the board and start its clock — unless it has audio, in which case the
+   clock waits for the clip to finish. */
 async function lqShow(pos){
   LQ.settings.pos=pos;
+  LQ.settings.phase="question";
   const q=LQ.questions[pos];
   LQ.settings.startedAt=LQ.settings.startedAt||{};
   LQ.settings.locked=LQ.settings.locked||{};
@@ -347,12 +383,41 @@ async function lqAdvance(dir){
   await lqShow(pos);
 }
 
+/* Close the question and show the answer. Locks and reveals at the same moment, because on a
+   projector those were never two decisions: the thing that stops answers coming in is the
+   thing that puts the answer on the wall. */
 async function lqLock(){
+  if(lqPhase(LQ.settings) !== "question") return;      // already past it
   const k=String(LQ.settings.pos||0);
   LQ.settings.locked[k]=true;
   LQ.settings.revealed[k]=true;
+  LQ.settings.phase="answer";
+  LQ.settings.phaseAt=Backend.serverNow();
   try{ await Backend.updateMeta(LQ.runId, LQ.settings); }catch(e){ console.warn(e); }
   lqRenderStage();
+}
+
+async function lqShowBoard(){
+  if(lqPhase(LQ.settings) === "board") return;
+  /* Reachable from "question" too — a teacher who wants the standings mid-question gets the
+     answer locked on the way past rather than a board computed from a live question. */
+  const k=String(LQ.settings.pos||0);
+  LQ.settings.locked[k]=true;
+  LQ.settings.revealed[k]=true;
+  LQ.settings.phase="board";
+  LQ.settings.phaseAt=Backend.serverNow();
+  try{ await Backend.updateMeta(LQ.runId, LQ.settings); }catch(e){ console.warn(e); }
+  lqRenderStage();
+}
+
+/* The one button a teacher needs. Whatever is on the screen, this moves to the next thing —
+   so pacing by hand is one key, pressed three times a question, and never a decision about
+   which control applies right now. */
+async function lqNext(){
+  const phase = lqPhase(LQ.settings);
+  if(phase === "question") return lqLock();
+  if(phase === "answer")   return lqShowBoard();
+  return lqNextOrEnd();
 }
 
 function lqStartTick(){ lqStopTick(); LQ.tick=setInterval(lqTick, 250); lqTick(); }
@@ -360,30 +425,48 @@ function lqStopTick(){ if(LQ.tick){ clearInterval(LQ.tick); LQ.tick=null; } }
 
 async function lqTick(){
   if(!LQ.runId || LQ.settings.status!=="active") return;
-  const pos=LQ.settings.pos||0, k=String(pos);
-  const q=LQ.questions[pos];
-  const started=lqStartedAt(LQ.settings, pos);
-  const pill=document.getElementById("lq-timer");
-  if(!started){
-    if(pill){ pill.style.display="inline-block"; pill.textContent=t("lq.listen", "🔊 Listening"); pill.className="badge"; }
+  const pos=LQ.settings.pos||0;
+  const phase=lqPhase(LQ.settings);
+
+  /* The answer and the board are held by a clock of their own, and ONLY under autoplay.
+     By hand they sit there until the teacher moves on — which is the whole difference the
+     two settings are supposed to express. */
+  if(phase!=="question"){
+    lqPaintTimer(null);
+    if(!LQ.settings.autoplay) return;
+    const held = Backend.serverNow() - (Number(LQ.settings.phaseAt)||0);
+    if(phase==="answer" && held >= LQ_ANSWER_MS) await lqShowBoard();
+    else if(phase==="board" && held >= LQ_BOARD_MS) await lqNextOrEnd();
     return;
   }
+
+  const q=LQ.questions[pos];
+  const started=lqStartedAt(LQ.settings, pos);
+  if(!started){ lqPaintTimer("audio"); return; }        // the clip is still playing
+
   const left=Math.max(0, Math.round((lqLimitMs(q, LQ.settings) - (Backend.serverNow()-started))/1000));
-  if(pill){
-    pill.style.display="inline-block";
-    pill.textContent="⏱ "+fmtTime(left);
-    pill.className="badge"+(left<=5?" demo":"");
-  }
-  if(left<=0 && !LQ.settings.locked[k]){
-    await lqLock();
-    /* Autoplay moves on after a pause long enough to read the answer and see who got it. */
-    if(LQ.settings.autoplay) setTimeout(()=>{ if(LQ.settings.autoplay && LQ.settings.status==="active") lqNextOrEnd(); }, 4000);
-  }
+  lqPaintTimer(left);
+
+  /* WHICHEVER COMES FIRST. The clock, or the last student answering — and the second only
+     counts once somebody is actually in the room, or an empty lobby would end question one
+     the instant it appeared. */
+  if(left<=0 || lqAllAnswered(pos)) await lqLock();
+}
+
+function lqPaintTimer(left){
+  const pill=document.getElementById("lq-timer");
+  if(!pill) return;
+  if(left===null){ pill.style.display="none"; return; }
+  pill.style.display="inline-block";
+  if(left==="audio"){ pill.textContent=t("lq.listen", "\ud83d\udd0a Listening"); pill.className="badge"; return; }
+  pill.textContent="\u23f1 "+fmtTime(left);
+  pill.className="badge"+(left<=5?" demo":"");
 }
 
 function lqNextOrEnd(){
   const pos=LQ.settings.pos||0;
-  if(pos >= LQ.questions.length-1) lqEnd(); else lqAdvance(1);
+  if(pos >= LQ.questions.length-1) return lqEnd();
+  return lqAdvance(1);
 }
 
 /* Everyone in, early. A question nobody is still thinking about is dead air, and the teacher
@@ -407,6 +490,20 @@ function lqRenderStage(){
   if(!q) return;
   const locked=!!(LQ.settings.locked||{})[k];
   const revealed=!!(LQ.settings.revealed||{})[k];
+  const phase=lqPhase(LQ.settings);
+
+  /* One panel at a time. The question, then the answer, then the standings — the board is not
+     a sidebar during the question any more, because a running scoreboard beside a question
+     the room is still answering is a scoreboard nobody can do anything about and a question
+     nobody is reading. */
+  const panel = id => { const el=document.getElementById(id); if(el) el.classList.toggle("on", id==="lq-panel-"+phase); };
+  ["lq-panel-question","lq-panel-answer","lq-panel-board"].forEach(panel);
+  /* The stage carries the phase as an attribute so the stylesheet can take the question
+     header down with the question. Leaving it up put the stem on the answer screen twice —
+     once in the header and once above the answer — beside a live "2 of 3 answered" tally
+     that stopped being true the moment the question closed. */
+  const stage=document.getElementById("lq-stage");
+  if(stage) stage.dataset.phase=phase;
 
   const where=t("poll.q_x_of_y", "Q {n} / {total}", {n:pos+1, total:LQ.questions.length});
   const qpos=document.getElementById("lq-qpos"); if(qpos) qpos.textContent=where;
@@ -439,16 +536,34 @@ function lqRenderStage(){
     }
   }
 
-  const ans=document.getElementById("lq-answer");
-  if(ans){
-    ans.style.display = (revealed && lqIsScored(q)) ? "block" : "none";
-    if(revealed && lqIsScored(q)) ans.textContent=t("lq.answer_is", "Answer: {answer}", {answer:lqAnswerText(q)});
-  }
   const note=document.getElementById("lq-unscored");
   if(note) note.style.display = lqIsScored(q) ? "none" : "block";
 
-  const lockBtn=document.getElementById("lq-lock-btn");
-  if(lockBtn) lockBtn.textContent = locked ? t("lq.locked", "Locked") : t("lq.lock_now", "Lock & reveal");
+  /* The answer screen: the correct answer, large, and how the room did on it — which is the
+     number that makes the next question worth answering. */
+  const big=document.getElementById("lq-answer-big");
+  if(big) big.textContent = lqIsScored(q) ? lqAnswerText(q) : t("lq.no_right_answer", "No right answer \u2014 talk about it");
+  const stem=document.getElementById("lq-answer-stem");
+  if(stem) stem.textContent = q.text||"";
+  const got=document.getElementById("lq-answer-got");
+  if(got){
+    if(lqIsScored(q)){
+      const right=LQ.participants.filter(p=>{
+        const a=((p.progress&&p.progress.qz)||{})[k];
+        return a && lqMark(q, a.v);
+      }).length;
+      got.style.display="block";
+      got.textContent=t("lq.n_of_m_got_it", "{right} of {total} got it",
+        { right:right, total:LQ.participants.length });
+    } else { got.style.display="none"; }
+  }
+
+  const nextBtn=document.getElementById("lq-next-btn");
+  if(nextBtn){
+    nextBtn.textContent = phase==="question" ? t("lq.end_question", "End question")
+                        : phase==="answer"   ? t("lq.show_scores", "Show scores")
+                        : t("lq.next_question", "Next question");
+  }
 
   lqRenderBoard();
 }
@@ -460,9 +575,12 @@ function lqAnswerText(q){
   return String(q.correct===undefined||q.correct===null ? "" : q.correct);
 }
 
-/* The running board, beside the question. Teams when there are teams, otherwise the top few
-   players — the whole class on a projector ranks twenty-five people by name in front of each
-   other, which is the thing v3.15 decided against. */
+/* The standings, on their own screen between questions.
+
+   TOP FIVE ONLY when it is individuals, which is v3.15's ruling and not a layout decision: a
+   class of twenty-four seeing exactly where each of them came teaches the bottom third where
+   they came, and they stop trying. Celebratory at the front. Every team shows, because a team
+   is not a person. */
 function lqRenderBoard(){
   const box=document.getElementById("lq-board");
   if(!box) return;
@@ -732,6 +850,17 @@ function lqRenderStudent(){
     else { img.removeAttribute("src"); img.style.display="none"; }
   }
 
+  /* The phone follows the room's phase, not its own. While the board is up at the front,
+     twenty-five students staring at their own screens is the thing it is there to stop — so
+     the phone shows the one line the board cannot: where THIS student came, which is the only
+     row of it they are looking for anyway. Top five on the wall, your own place in your hand. */
+  if(lqPhase(LQSTU.meta)==="board"){
+    body.innerHTML=lqMyStandingLine();
+    if(qt) qt.textContent=t("lq.scores_so_far", "Scores so far");
+    if(status) status.textContent=t("lq.look_up", "Look up \u2014 the board is on the screen.");
+    return;
+  }
+
   const closed=lqStudentClosed(pos);
   body.innerHTML="";
 
@@ -800,6 +929,25 @@ function lqRenderStudent(){
   if(status) status.textContent = lqIsScored(q)
     ? t("lq.faster_more_points", "The sooner you answer, the more it is worth.")
     : t("lq.not_scored", "This one is not scored — it is for the discussion.");
+}
+
+/* This student's own line of the standings, computed on their phone from the one record they
+   are allowed to read: their own answers. Not read off the teacher's board — a phone cannot
+   see the participants list, which is the whole lesson of v3.30.1. */
+function lqMyStandingLine(){
+  let score=0;
+  (LQSTU.questions||[]).forEach((q,pos)=>{
+    if(!lqIsScored(q)) return;
+    const a=LQSTU.answers[String(pos)];
+    if(!a) return;
+    score += qzPoints(lqMark(q, a.v), a.ms, lqLimitMs(q, LQSTU.meta));
+  });
+  const team=(LQSTU.meta.teamMap||{})[STUDENT.id];
+  return '<div class="lqs-mine">'+
+    '<div class="lqs-pts mono">'+score+'</div>'+
+    '<div class="sub">'+escapeHtml(t("lq.your_points", "your points"))+'</div>'+
+    (team ? '<div class="lqs-team">'+escapeHtml(t("lq.you_are_on", "You are on {team}", {team:team}))+'</div>' : "")+
+    '</div>';
 }
 
 function lqTeamLine(){

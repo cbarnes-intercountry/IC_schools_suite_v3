@@ -839,8 +839,6 @@
    The stage is read from the back of a room and from a phone held at arm's length, so the
    question and its options are sized off the viewport rather than in points, and the board
    sits beside the question on a projector and underneath it on a laptop. */
-.lq-stage-grid{ display:grid; grid-template-columns:1fr; gap:18px; }
-@media (min-width:900px){ .lq-stage-grid{ grid-template-columns:minmax(0,2fr) minmax(220px,1fr); } }
 .lq-options{ display:grid; grid-template-columns:1fr; gap:10px; }
 @media (min-width:640px){ .lq-options{ grid-template-columns:1fr 1fr; } }
 .lq-opt{ border:2px solid var(--ink); border-radius:12px; padding:14px 16px; font-weight:700;
@@ -856,16 +854,16 @@ body.projecting .lq-answer{ font-size:clamp(1.2rem, 2.3vw, 2.2rem); }
 .lq-video{ width:100%; max-width:960px; aspect-ratio:16/9; border:2px solid var(--ink);
   border-radius:12px; box-shadow:4px 4px 0 var(--ink); }
 
-.lq-board-wrap{ border-inline-start:2px dashed var(--ink); padding-inline-start:16px; }
-@media (max-width:899px){ .lq-board-wrap{ border-inline-start:none; padding-inline-start:0;
-  border-top:2px dashed var(--ink); padding-top:14px; } }
 .lq-board-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0;
   border-bottom:1px solid var(--line, #D0D5E2); }
 .lq-board-row.top{ font-weight:800; }
 .lq-board-place{ min-width:2ch; font-weight:800; opacity:.65; }
 .lq-board-who{ flex:1; overflow-wrap:anywhere; }
 .lq-board-pts{ font-weight:700; }
-body.projecting .lq-board-row{ font-size:clamp(1rem, 1.7vw, 1.6rem); }
+/* The standings ARE the moment, so they are sized like it: this is the screen a class leans
+   forward for, and a 26px row on a 1080px board is a spreadsheet. */
+body.projecting .lq-board-row{ font-size:clamp(1.6rem, 3vw, 3.2rem); padding:14px 0; gap:24px; }
+body.projecting .lq-board{ max-width:1200px; }
 
 .lq-team-head{ margin:14px 0 6px; font-size:.95rem; letter-spacing:.04em; text-transform:uppercase; }
 .lqs-team{ margin-top:10px; font-weight:700; }
@@ -881,7 +879,37 @@ body.projecting .lq-board-row{ font-size:clamp(1rem, 1.7vw, 1.6rem); }
 #lq-lobby.on{ display:block; }
 #lq-stage.on{ display:block; }
 body.projecting #lq-stage.on{ display:flex; }
-body.projecting .lq-stage-grid{ width:100%; flex:1; align-content:center; align-items:center; }
 body.projecting .lq-options{ gap:18px; }
 body.projecting .lq-opt{ min-height:clamp(72px, 15vh, 170px); display:flex; align-items:center; }
-body.projecting .lq-board-wrap{ align-self:stretch; display:flex; flex-direction:column; justify-content:center; }
+
+/* ---------- the three phases of a question (v3.31) ----------
+
+   One panel at a time, so the answer gets the whole screen and the standings get the whole
+   screen. A running scoreboard beside a live question is a scoreboard nobody can act on and
+   a question nobody is reading. */
+.lq-panel{ display:none; }
+.lq-panel.on{ display:block; }
+body.projecting .lq-panel.on{ width:100%; flex:1; display:flex; flex-direction:column; justify-content:center; }
+
+.lq-answer-stem{ font-size:1rem; opacity:.7; margin:0 0 10px; }
+.lq-answer-label{ font-size:.85rem; letter-spacing:.08em; text-transform:uppercase; opacity:.6; margin:0 0 6px; }
+.lq-answer-big{ font-size:clamp(1.6rem, 5vw, 3rem); font-weight:800; color:var(--success-ink); margin:0; }
+.lq-answer-got{ margin-top:14px; font-weight:700; opacity:.75; }
+body.projecting .lq-answer-stem{ font-size:clamp(1rem, 2vw, 1.8rem); }
+body.projecting .lq-answer-big{ font-size:clamp(2.4rem, 7vw, 6rem); }
+body.projecting .lq-answer-got{ font-size:clamp(1.1rem, 2.2vw, 2rem); }
+
+.lq-board{ max-width:900px; }
+body.projecting .lq-board{ margin:0 auto; width:100%; }
+
+.lqs-mine{ text-align:center; padding:18px 0; }
+.lqs-mine .lqs-pts{ font-size:3rem; font-weight:800; opacity:1; }
+
+/* The question header belongs to the question. On the answer and the board it is a stale
+   tally beside a stem the panel already shows, so it goes with the question it describes. */
+#lq-stage[data-phase="answer"] .poll-head,
+#lq-stage[data-phase="board"]  .poll-head,
+#lq-stage[data-phase="answer"] .poll-media-wrap,
+#lq-stage[data-phase="board"]  .poll-media-wrap{ display:none; }
+body.projecting #lq-panel-answer.on,
+body.projecting #lq-panel-board.on{ align-items:center; text-align:center; }

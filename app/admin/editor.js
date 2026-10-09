@@ -137,6 +137,21 @@ function applyBuilderMode(){
      the Points box is hidden there too — see core/quizscore.js. The poll types inside one are
      unscored discussion beats, which is the same thing the box would have said. */
   document.getElementById("qe-points-wrap").style.display = (poll || live) ? "none" : "";
+  /* The time box means two different things, so it says two different things (v3.31).
+
+     On a TEST it is a cap: zero means no limit, and most questions have none. In a QUIZ GAME
+     every question is timed — that is what the score is made of — so zero cannot mean "no
+     clock"; it means "use the quiz's default", and the author sets a number here only when
+     this particular question needs longer. Labelling both "Time limit (s)" was how a teacher
+     ended up with a question nobody could score. */
+  const qtl = document.getElementById("qe-qtime-label");
+  if(qtl) qtl.textContent = live
+    ? t("editor.seconds_this_question", "Seconds for this question")
+    : t("admin_builder.time_limit_s", "Time limit (s)");
+  const qth = document.getElementById("qe-qtime-hint");
+  if(qth) qth.textContent = live
+    ? t("editor.qtime_hint_live", "0 = use the quiz default. 5\u2013120.")
+    : t("editor.qtime_hint_quiz", "0 = no limit.");
   renderTypeChips();   // the chip row follows the bank we just switched to
   document.getElementById("builder-badge").textContent = poll
     ? t("editor.badge_poll_builder", "Admin \u00b7 Poll Builder")

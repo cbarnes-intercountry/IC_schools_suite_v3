@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.30.1
+# Classroom Exam App — v3.31
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -838,3 +838,47 @@ same function.
 
 > **The rules change.** Deploy `firebase-rules-combined.json` as always — it now carries the
 > `roster` node. The app's own rules file must never be deployed.
+
+---
+
+## v3.31 — a clock that is not autoplay, and three phases
+
+**Autoplay and the question timer are different things**, and v3.30 ran them together. The
+countdown was wired into the autoplay branch, so a teacher pacing the room by hand had a timer
+the class could see run out and do nothing.
+
+They are now separate, as they should always have been:
+
+- **The clock belongs to the question.** Every question is timed, it counts down on the board,
+  and it ends the question when it reaches zero — whether or not anybody is driving.
+- **Autoplay only decides who presses Next** — the teacher, or nobody.
+
+**Per-question time limits are set in the builder.** The box was already there; it now says
+what it means, which differs by bank. On a test it is a cap and `0` means no limit. In a quiz
+game every question is timed, so `0` means *use the quiz's default* (5–120 s otherwise).
+Labelling both "Time limit (s)" is how an author ends up with a question nobody can score.
+
+**A question now ends on whichever comes first:** the clock running out, or **every student
+having answered**. A room that has all answered in nine seconds of a twenty-second question
+spends eleven seconds watching a timer, and that is where a class starts talking. An empty
+lobby does not count as everybody.
+
+**Then two screens, never merged:**
+
+1. **The answer** — the correct answer alone and very large, with the question above it and
+   *"1 of 3 got it"* below. The question header comes down with the question, so the stem is
+   not on screen twice beside a tally that stopped being true.
+2. **The standings** — **top five only** for individuals (v3.15's ruling: a class of
+   twenty-four seeing exactly where each of them came teaches the bottom third where they
+   came, and they stop trying). Every team shows, because a team is not a person.
+
+Shown together nobody reads the answer, which is why they are two screens.
+
+Under autoplay the answer holds 5 seconds and the board 6. By hand they stay until the teacher
+moves on — which is the whole difference the two settings are supposed to express. **One
+button** drives it, and it says which of the three things it will do: *End question → Show
+scores → Next question*.
+
+On a student's phone the board phase shows **their own points and team**, not the leaderboard:
+top five on the wall, your own place in your hand, so the room looks up instead of
+twenty-five people reading the same list off twenty-five screens.

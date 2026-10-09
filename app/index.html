@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.30.1">
+<link rel="stylesheet" href="styles/app.css?v=3.31">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -221,7 +221,7 @@
         </select>
         <div class="qe-meta" style="margin-top:4px;">
           <span id="qe-points-wrap"><label data-i18n="admin_builder.points" for="qe-points">Points</label> <input type="number" id="qe-points" value="1" min="0"></span>
-          <span><label data-i18n="admin_builder.time_limit_s" for="qe-qtime">Time limit (s)</label> <input type="number" id="qe-qtime" value="0" min="0"></span>
+          <span><label id="qe-qtime-label" for="qe-qtime">Time limit (s)</label> <input type="number" id="qe-qtime" value="0" min="0"> <small class="hint" id="qe-qtime-hint" style="display:inline;">0 = no limit.</small></span>
         </div>
         <label>Media <small data-i18n="admin_builder.optional_drag_file_onto_tile_click" class="hint" style="display:inline;">&middot; optional &mdash; drag a file onto a tile, click to browse, or paste an image</small></label>
         <div class="mtiles">
@@ -788,8 +788,7 @@
   <div class="proj-bar" id="lq-proj-bar">
     <button data-i18n-title="lq_live.ti.previous_question" class="btn-outline" title="Previous question" onclick="lqAdvance(-1)">&larr;</button>
     <span class="proj-qpos" id="lq-proj-qpos">Q 1</span>
-    <button data-i18n-title="lq_live.ti.next_question" class="btn-primary" title="Next question" onclick="lqAdvance(1)">&rarr;</button>
-    <button class="btn-warn" id="lq-proj-lock" onclick="lqLock()">Lock &amp; reveal</button>
+    <button class="btn-primary" id="lq-proj-next" onclick="lqNext()">&rarr;</button>
     <button data-i18n="lq_live.join_code" class="btn-outline" onclick="openQRFullscreen('lq')">&#9783; Join code</button>
   </div>
   <div class="top-nav wide proj-hide" style="max-width:1140px;">
@@ -845,16 +844,24 @@
              to play, and autoplay has no tap to give it. Projector only. -->
         <audio id="lq-audio" preload="auto"></audio>
       </div>
-      <div class="lq-stage-grid">
-        <div>
-          <div id="lq-options" class="lq-options"></div>
-          <p class="lq-answer" id="lq-answer" style="display:none;"></p>
-          <p data-i18n="lq_live.not_scored" class="sub" id="lq-unscored" style="display:none;">Not scored — this one is for the discussion.</p>
-        </div>
-        <div class="lq-board-wrap">
-          <div data-i18n="lq_live.scores" class="step-label">Scores</div>
-          <div id="lq-board"></div>
-        </div>
+      <!-- THE THREE PHASES. One is shown at a time: the question, then its answer, then the
+           standings. Shown as classes rather than inline styles so the projection rules can
+           still turn a panel into a centred flex column. -->
+      <div class="lq-panel" id="lq-panel-question">
+        <div id="lq-options" class="lq-options"></div>
+        <p data-i18n="lq_live.not_scored" class="sub" id="lq-unscored" style="display:none;">Not scored — this one is for the discussion.</p>
+      </div>
+
+      <div class="lq-panel" id="lq-panel-answer">
+        <p class="lq-answer-stem" id="lq-answer-stem">—</p>
+        <p data-i18n="lq_live.the_answer" class="lq-answer-label">The answer</p>
+        <p class="lq-answer-big" id="lq-answer-big">—</p>
+        <p class="lq-answer-got" id="lq-answer-got"></p>
+      </div>
+
+      <div class="lq-panel" id="lq-panel-board">
+        <p data-i18n="lq_live.scores_so_far" class="lq-answer-label">Scores so far</p>
+        <div id="lq-board" class="lq-board"></div>
       </div>
     </div>
 
@@ -862,8 +869,7 @@
     <div class="card proj-hide" id="lq-controls" style="margin-top:16px;max-width:1140px;">
       <div class="btn-row">
         <button data-i18n-title="lq_live.ti.previous_question" class="btn-outline nav-sq" title="Previous question" onclick="lqAdvance(-1)">&larr;</button>
-        <button class="btn-warn" id="lq-lock-btn" onclick="lqLock()">Lock &amp; reveal</button>
-        <button data-i18n-title="lq_live.ti.next_question" class="btn-primary nav-sq" title="Next question" onclick="lqAdvance(1)">&rarr;</button>
+        <button class="btn-primary" id="lq-next-btn" onclick="lqNext()">End question</button>
         <button data-i18n="lq_live.project" class="btn-outline" onclick="lqToggleProject(true)">Project</button>
         <button data-i18n="lq_live.end_quiz" class="btn-secondary" onclick="lqEnd()">End quiz</button>
       </div>
@@ -1084,40 +1090,40 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.30.1"></script>
-<script src="lang/fr.js?v=3.30.1"></script>
-<script src="core/i18n.js?v=3.30.1"></script>
-<script src="core/registry.js?v=3.30.1"></script>
-<script src="core/backend.js?v=3.30.1"></script>
-<script src="core/auth.js?v=3.30.1"></script>
-<script src="core/ui.js?v=3.30.1"></script>
-<script src="core/session.js?v=3.30.1"></script>
-<script src="core/groups.js?v=3.30.1"></script>
+<script src="lang/en.js?v=3.31"></script>
+<script src="lang/fr.js?v=3.31"></script>
+<script src="core/i18n.js?v=3.31"></script>
+<script src="core/registry.js?v=3.31"></script>
+<script src="core/backend.js?v=3.31"></script>
+<script src="core/auth.js?v=3.31"></script>
+<script src="core/ui.js?v=3.31"></script>
+<script src="core/session.js?v=3.31"></script>
+<script src="core/groups.js?v=3.31"></script>
 <!-- after groups.js: the allocator uses nameIsTaken and uniqueFirstName from it -->
-<script src="core/pseudonyms.js?v=3.30.1"></script>
-<script src="core/rounds.js?v=3.30.1"></script>
-<script src="core/bank.js?v=3.30.1"></script>
+<script src="core/pseudonyms.js?v=3.31"></script>
+<script src="core/rounds.js?v=3.31"></script>
+<script src="core/bank.js?v=3.31"></script>
 <!-- after bank.js: qzScored asks isPollType which questions are worth points -->
-<script src="core/quizscore.js?v=3.30.1"></script>
-<script src="core/media.js?v=3.30.1"></script>
-<script src="core/security.js?v=3.30.1"></script>
-<script src="core/answers.js?v=3.30.1"></script>
-<script src="modules/test.js?v=3.30.1"></script>
-<script src="modules/poll.js?v=3.30.1"></script>
-<script src="modules/quizlive.js?v=3.30.1"></script>
-<script src="modules/roleplay.js?v=3.30.1"></script>
-<script src="modules/describeit.js?v=3.30.1"></script>
-<script src="modules/twentyq.js?v=3.30.1"></script>
-<script src="modules/partners.js?v=3.30.1"></script>
-<script src="admin/editor.js?v=3.30.1"></script>
-<script src="admin/import.js?v=3.30.1"></script>
-<script src="admin/reports.js?v=3.30.1"></script>
-<script src="admin/scenarios.js?v=3.30.1"></script>
-<script src="admin/terms.js?v=3.30.1"></script>
-<script src="admin/subjects.js?v=3.30.1"></script>
-<script src="admin/collocations.js?v=3.30.1"></script>
-<script src="admin/accounts.js?v=3.30.1"></script>
-<script src="boot.js?v=3.30.1"></script>
+<script src="core/quizscore.js?v=3.31"></script>
+<script src="core/media.js?v=3.31"></script>
+<script src="core/security.js?v=3.31"></script>
+<script src="core/answers.js?v=3.31"></script>
+<script src="modules/test.js?v=3.31"></script>
+<script src="modules/poll.js?v=3.31"></script>
+<script src="modules/quizlive.js?v=3.31"></script>
+<script src="modules/roleplay.js?v=3.31"></script>
+<script src="modules/describeit.js?v=3.31"></script>
+<script src="modules/twentyq.js?v=3.31"></script>
+<script src="modules/partners.js?v=3.31"></script>
+<script src="admin/editor.js?v=3.31"></script>
+<script src="admin/import.js?v=3.31"></script>
+<script src="admin/reports.js?v=3.31"></script>
+<script src="admin/scenarios.js?v=3.31"></script>
+<script src="admin/terms.js?v=3.31"></script>
+<script src="admin/subjects.js?v=3.31"></script>
+<script src="admin/collocations.js?v=3.31"></script>
+<script src="admin/accounts.js?v=3.31"></script>
+<script src="boot.js?v=3.31"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
