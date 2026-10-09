@@ -29,6 +29,11 @@ function registerActivity(id, def){
     throw new Error("activity already registered: " + id);
   const missing = ["join","teacher","score","finish"].filter(k => typeof def[k] !== "function" && def[k] !== null);
   if (missing.length) throw new Error(id + " is missing: " + missing.join(", "));
+  /* Since v3.21 an activity must also say what a student is called in it. Required rather
+     than defaulted: a new module that forgets would otherwise quietly ask a class for their
+     surnames in a game that keeps nothing. */
+  // Developer-facing, like the throws above: this never reaches a screen.
+  if (typeof def.nameMode !== "function") throw new Error(id + " is missing: " + "nameMode");
   ACTIVITIES[id] = Object.assign({ id: id }, def);
   return ACTIVITIES[id];
 }
@@ -60,6 +65,38 @@ function activityLabel(id){
   return t("activity." + id, a.label);
 }
 function activityIds(){ return Object.keys(ACTIVITIES); }
+
+/* ---------- what a student is called (v3.21) ----------
+
+   Four ways, and WHICH ONE IS A PROPERTY OF THE ACTIVITY, not a setting a teacher picks each
+   time. The activity knows what it needs:
+
+     "full"       surname and first name  — a test: it is an exam and it leaves a CSV
+     "first"      first name only         — role play, Describe It, Twenty Questions, Word
+                                            Partners: you pair people by reading a name aloud,
+                                            and a pseudonym cannot be paired across a room
+     "pseudonym"  a name the app gives    — quiz, bingo: nothing is kept and nobody needs to
+                                            be identified afterwards
+     "anonymous"  nothing at all          — an opinion poll, where being identifiable is the
+                                            thing that stops an honest answer
+
+   A poll is the one activity where the teacher chooses, because all three of the last modes
+   are defensible for it; everything else returns a constant. That is why this takes meta.
+
+   Replaces three separate hooks — `anonymous`, `firstNameOnly`, and an unstated default —
+   which between them encoded the same decision in three places and had no room for a fourth
+   answer. One question, one answer. */
+const NAME_MODES = ["full", "first", "pseudonym", "anonymous"];
+
+function activityNameMode(kind, meta){
+  const a = activity(kind);
+  if(!a || typeof a.nameMode !== "function") return "full";
+  const m = a.nameMode(meta);
+  /* An unrecognised mode falls back to asking for a full name rather than to asking for
+     nothing. Getting this wrong in the safe direction means a student types a name they did
+     not need to; in the other direction it means an exam with no names on it. */
+  return NAME_MODES.indexOf(m) >= 0 ? m : "full";
+}
 
 /* Does a finished run leave anything behind? A test is archived; a poll and a role play are
    removed, because their records name students and there is nothing worth keeping. Declared

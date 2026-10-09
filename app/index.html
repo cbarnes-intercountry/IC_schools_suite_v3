@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.20b">
+<link rel="stylesheet" href="styles/app.css?v=3.30">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -84,6 +84,22 @@
           <button data-i18n="admin.delete" class="btn-outline" onclick="deleteSetFromLibrary('poll')" data-owner-only>Delete</button>
         </div>
         <button data-i18n="admin.create_new_poll" class="btn-secondary" style="width:100%;margin-top:12px;" onclick="newSet('poll')">+ Create a New Poll</button>
+      </div>
+      <!-- v3.30. A third bank, because a live quiz is the one set that may hold EVERY kind of
+           item at once: marked questions for points, and a poll or a word cloud dropped in as a
+           discussion beat. The other two banks refuse to mix, deliberately — a test cannot hold
+           an unmarkable question and a poll cannot hold a marked one — and this is the sequence
+           where mixing is the point. -->
+      <div class="card" style="margin-top:16px;">
+        <h2 data-i18n="admin.quiz_creator">Live Quiz Creator</h2>
+        <p data-i18n="admin.live_quiz_sub" class="sub">Projected, played for points, nothing kept. Any mix of question types, plus polls and word clouds for a pause in the middle.</p>
+        <select id="lq-library-select"><option data-i18n="admin.opt.select_saved_livequiz" value="">— select a saved quiz game —</option></select>
+        <div class="btn-row">
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadSetFromLibrary('livequiz')">Load / Edit</button>
+          <button data-i18n="admin.export" class="btn-outline" onclick="exportSavedSet('livequiz')">Export</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteSetFromLibrary('livequiz')" data-owner-only>Delete</button>
+        </div>
+        <button data-i18n="admin.create_new_livequiz" class="btn-secondary" style="width:100%;margin-top:12px;" onclick="newSet('livequiz')">+ Create a New Quiz Game</button>
       </div>
       <div class="card" style="margin-top:16px;">
         <h2 data-i18n="admin.role_play_creator">Role Play Creator</h2>
@@ -300,6 +316,7 @@
       <div class="stack" style="margin-top:16px;">
         <button data-i18n="teacher_login.launch_test" class="btn-primary" onclick="teacherCreateSession()">Launch Test</button>
         <button data-i18n="teacher_login.new_poll" class="btn-secondary" onclick="pollCreateSession()">New Poll</button>
+        <button data-i18n="teacher_login.start_quiz_game" class="btn-secondary" onclick="lqCreateSession()">Start a Quiz Game</button>
         <button data-i18n="teacher_login.start_role_play" class="btn-secondary" onclick="rpCreateSession()">Start a Role Play</button>
         <button data-i18n="teacher_login.start_describe_it" class="btn-secondary" onclick="diCreateSession()">Start Describe It</button>
         <button data-i18n="teacher_login.start_twenty_questions" class="btn-secondary" onclick="tqCreateSession()">Start Twenty Questions</button>
@@ -551,10 +568,15 @@
   </div>
   <div class="card" id="poll-step2" style="display:none;">
     <div data-i18n="poll_setup.step_2_settings" class="step-label">Step 2 &middot; Settings</div>
-    <div class="toggle-row">
-      <span>Anonymous responses<br><small data-i18n="poll_setup.students_join_code_only_no_name" class="hint">On = students join with the code only, no name. Off = they give their name, so you can see who has voted.</small></span>
-      <label class="switch"><input type="checkbox" id="poll-anon" checked><span class="slider"></span></label>
-    </div>
+    <!-- Three ways since v3.21, not a yes/no. A pseudonym sits between the other two: the
+         room is identifiable without a single real name being stored. -->
+    <label data-i18n="poll_setup.what_students_are_called" for="poll-naming">What students are called</label>
+    <select id="poll-naming">
+      <option data-i18n="poll_setup.naming_anonymous" value="anonymous" selected>Anonymous — no name at all</option>
+      <option data-i18n="poll_setup.naming_pseudonym" value="pseudonym">Pseudonyms — the app names them</option>
+      <option data-i18n="poll_setup.naming_first" value="first">First names — they type their own</option>
+    </select>
+    <small data-i18n="poll_setup.naming_hint" class="hint">Anonymous is the one that makes an awkward question safe to answer honestly. Pseudonyms still let you see who has not voted yet.</small>
     <small data-i18n="poll_setup.either_way_nothing_stored_once_close" class="hint" style="margin-bottom:16px;">Either way, nothing is stored once you close the poll &mdash; there is no results export.</small>
     <button data-i18n="poll_setup.open_poll_launch" class="btn-primary" style="width:100%;" onclick="pollStartSession()">Open Poll &amp; Launch &rarr;</button>
   </div>
@@ -693,6 +715,206 @@
     <h1 data-i18n="poll_done.s_poll_done" class="wait-pop wait-d1">That's the poll done</h1>
     <p class="wait-pop wait-d1" style="font-weight:700;font-size:1.05rem;margin:2px 0 0;"><b id="pd-count">0 of 0</b> questions answered</p>
     <p data-i18n="poll_done.put_phone_away" class="sub wait-pop wait-d2" style="margin-top:14px;font-weight:700;">You can put your phone away.</p>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     QUIZ GAME (v3.30) — projected, teacher-paced, played for points.
+     Not a test: nothing is kept. Not a poll: it is marked.
+     ========================================================================== -->
+<div class="screen" id="screen-lq-setup">
+  <div class="top-nav wide">
+    <span class="nav-l">
+      <span data-i18n="lq_setup.new_quiz_game" class="badge">New Quiz Game</span>
+      <span class="badge" id="lq-setup-code" style="display:none;"></span>
+    </span>
+    <span class="nav-r">
+      <a data-i18n="lq_setup.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
+      <a data-i18n="lq_setup.admin" class="linklike" onclick="openAdmin()">Admin</a>
+      <a data-i18n="lq_setup.log_out" class="linklike" onclick="teacherSignOut()">Log out</a>
+    </span>
+  </div>
+  <div class="duo">
+  <div class="card">
+    <h1 data-i18n="lq_setup.new_quiz_game">New Quiz Game</h1>
+    <p data-i18n="lq_setup.blurb" class="sub">A projected quiz the class plays for points. Faster correct answers are worth more. Nothing is kept: the board disappears when you close it.</p>
+  </div>
+  <div class="duo-col">
+  <div class="card">
+    <div data-i18n="lq_setup.step_1_choose" class="step-label">Step 1 &middot; Choose a quiz game</div>
+    <div class="sel-row">
+      <select id="lq-school-select" onchange="filterLqSets()"><option data-i18n="lq.select_school" value="">— select a school —</option></select>
+      <select id="lq-set-select" onchange="lqSetPicked()"><option data-i18n="lq.select_quiz" value="">— select a quiz game —</option></select>
+    </div>
+    <button data-i18n="lq_setup.select_quiz" class="btn-primary" id="lq-select-btn" style="width:100%;" onclick="loadLqSet()">Select this quiz game</button>
+    <p class="picked" id="lq-set-status" style="display:none;"></p>
+    <small data-i18n="lq_setup.none_hint" class="hint" id="lq-none-hint" style="display:none;">No quiz games for this school yet. Build one in Admin with the Live Quiz Creator — it takes every question type, polls and word clouds included.</small>
+  </div>
+  <div class="card" id="lq-step2" style="display:none;">
+    <div data-i18n="lq_setup.step_2_settings" class="step-label">Step 2 &middot; Settings</div>
+
+    <label data-i18n="lq_setup.what_students_are_called" for="lq-naming">What students are called</label>
+    <select id="lq-naming">
+      <option data-i18n="lq_setup.naming_pseudonym" value="pseudonym" selected>Pseudonyms — the app names them</option>
+      <option data-i18n="lq_setup.naming_first" value="first">First names — they type their own</option>
+    </select>
+    <small data-i18n="lq_setup.naming_hint" class="hint">Pseudonyms keep a projected scoreboard from ranking the class by name in front of itself. No surnames either way.</small>
+
+    <label class="check" style="margin-top:14px;">
+      <input type="checkbox" id="lq-teams" checked>
+      <span data-i18n="lq_setup.play_in_teams">Play in teams</span>
+    </label>
+    <small data-i18n="lq_setup.teams_hint" class="hint">Teams form by themselves as students arrive, and everyone answers on their own phone. A team's score for each question is its members' average, so an uneven team is not penalised.</small>
+
+    <label class="check" style="margin-top:14px;">
+      <input type="checkbox" id="lq-autoplay" checked>
+      <span data-i18n="lq_setup.autoplay">Advance by itself</span>
+    </label>
+    <small data-i18n="lq_setup.autoplay_hint" class="hint">Moves on a few seconds after the answer is shown. You can still drive it by hand at any point.</small>
+
+    <label data-i18n="lq_setup.seconds_per_question" for="lq-default-sec" style="margin-top:14px;">Seconds per question</label>
+    <input type="number" id="lq-default-sec" value="20" min="5" max="120" step="5">
+    <small data-i18n="lq_setup.seconds_hint" class="hint" style="margin-bottom:16px;">The default. A question with its own time limit keeps it. The first quarter of the clock scores full marks, so slower readers are not punished for reading.</small>
+
+    <button data-i18n="lq_setup.open_launch" class="btn-primary" style="width:100%;" onclick="lqStartSession()">Open the Quiz &amp; Launch &rarr;</button>
+  </div>
+  </div>
+  </div>
+</div>
+
+<!-- QUIZ GAME LIVE (doubles as the projection view) -->
+<div class="screen" id="screen-lq-live">
+  <button data-i18n="lq_live.exit_projection_esc" class="btn-outline proj-exit" onclick="lqToggleProject(false)">Exit projection (Esc)</button>
+  <div class="proj-bar" id="lq-proj-bar">
+    <button data-i18n-title="lq_live.ti.previous_question" class="btn-outline" title="Previous question" onclick="lqAdvance(-1)">&larr;</button>
+    <span class="proj-qpos" id="lq-proj-qpos">Q 1</span>
+    <button data-i18n-title="lq_live.ti.next_question" class="btn-primary" title="Next question" onclick="lqAdvance(1)">&rarr;</button>
+    <button class="btn-warn" id="lq-proj-lock" onclick="lqLock()">Lock &amp; reveal</button>
+    <button data-i18n="lq_live.join_code" class="btn-outline" onclick="openQRFullscreen('lq')">&#9783; Join code</button>
+  </div>
+  <div class="top-nav wide proj-hide" style="max-width:1140px;">
+    <span class="nav-l">
+      <span class="badge live live-dot"><i></i>QUIZ &middot; <b id="lq-live-code"></b></span>
+    </span>
+    <span class="nav-r">
+      <a data-i18n="lq_live.project" class="linklike" onclick="lqToggleProject(true)">Project</a>
+      <a data-i18n="lq_live.end_quiz" class="linklike" onclick="lqEnd()">End quiz</a>
+    </span>
+  </div>
+  <div class="poll-wrap">
+    <div class="poll-banner">
+      <span data-i18n="lq_live.quiz_game" class="lbl">Quiz game</span>
+      <h2 id="lq-title">&mdash;</h2>
+    </div>
+
+    <!-- the waiting room: projectable, so the class watches itself arrive and sees its team -->
+    <div class="card center proj-hide on" id="lq-lobby">
+      <div data-i18n="lq_live.scan_join" class="step-label" style="margin-bottom:14px;">Scan to join</div>
+      <div id="lq-qr" style="display:flex;justify-content:center;cursor:zoom-in;" onclick="openQRFullscreen('lq')"></div>
+      <p class="join-code" id="lq-join-code"></p>
+      <div class="lobby-count"><b id="lq-lobby-count">0</b><span id="lq-lobby-count-label">students connected</span></div>
+      <div class="row">
+        <button data-i18n="lq_live.copy_join_link" class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyLqJoinLink()">Copy join link</button>
+        <button data-i18n="lq_live.reshuffle_teams" class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="lqReshuffleTeams()">Reshuffle teams</button>
+        <button data-i18n-title="lq_live.ti.fewer_teams" class="btn-outline btn-mini" title="Fewer teams" onclick="lqNudgeTeams(-1)">&minus;</button>
+        <button data-i18n-title="lq_live.ti.more_teams" class="btn-outline btn-mini" title="More teams" onclick="lqNudgeTeams(1)">+</button>
+      </div>
+      <div id="lq-lobby-roster" style="margin-top:12px;text-align:left;"></div>
+      <button data-i18n="lq_live.start_quiz" class="btn-primary" style="width:100%;margin-top:14px;" onclick="lqBegin()">&#9654; Start the Quiz</button>
+    </div>
+
+    <!-- the stage: this is what goes on the projector -->
+    <div class="poll-stage" id="lq-stage">
+      <div class="poll-head">
+        <div class="poll-head-l">
+          <div class="poll-meta">
+            <span class="badge" id="lq-qpos">Q 1</span>
+            <span class="badge" id="lq-timer" style="display:none;"></span>
+          </div>
+          <h2 class="poll-q" id="lq-question">—</h2>
+        </div>
+        <div class="poll-tally">
+          <b><span id="lq-in-count">0</span>/<span id="lq-in-total">0</span></b>
+          <span data-i18n="lq_live.answered" class="poll-count">answered</span>
+        </div>
+      </div>
+      <div class="poll-media-wrap">
+        <img id="lq-img" class="poll-media" style="display:none;" alt="">
+        <iframe id="lq-video" class="lq-video" style="display:none;" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
+        <!-- One element for the whole quiz: a new one would need a fresh tap to be allowed
+             to play, and autoplay has no tap to give it. Projector only. -->
+        <audio id="lq-audio" preload="auto"></audio>
+      </div>
+      <div class="lq-stage-grid">
+        <div>
+          <div id="lq-options" class="lq-options"></div>
+          <p class="lq-answer" id="lq-answer" style="display:none;"></p>
+          <p data-i18n="lq_live.not_scored" class="sub" id="lq-unscored" style="display:none;">Not scored — this one is for the discussion.</p>
+        </div>
+        <div class="lq-board-wrap">
+          <div data-i18n="lq_live.scores" class="step-label">Scores</div>
+          <div id="lq-board"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- teacher controls: hidden while projecting -->
+    <div class="card proj-hide" id="lq-controls" style="margin-top:16px;max-width:1140px;">
+      <div class="btn-row">
+        <button data-i18n-title="lq_live.ti.previous_question" class="btn-outline nav-sq" title="Previous question" onclick="lqAdvance(-1)">&larr;</button>
+        <button class="btn-warn" id="lq-lock-btn" onclick="lqLock()">Lock &amp; reveal</button>
+        <button data-i18n-title="lq_live.ti.next_question" class="btn-primary nav-sq" title="Next question" onclick="lqAdvance(1)">&rarr;</button>
+        <button data-i18n="lq_live.project" class="btn-outline" onclick="lqToggleProject(true)">Project</button>
+        <button data-i18n="lq_live.end_quiz" class="btn-secondary" onclick="lqEnd()">End quiz</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ GAME — FINAL BOARD (read from memory; the run is deleted behind it) -->
+<div class="screen" id="screen-lq-final">
+  <button data-i18n="lq_final.exit_projection_esc" class="btn-outline proj-exit" onclick="lqToggleProject(false)">Exit projection (Esc)</button>
+  <div class="poll-wrap">
+    <div class="top-nav wide proj-hide" style="max-width:1140px;">
+      <span class="nav-l"><span data-i18n="lq_final.quiz_finished" class="badge">Quiz finished</span></span>
+      <span class="nav-r">
+        <a data-i18n="lq_final.project" class="linklike" onclick="lqToggleProject(true)">Project</a>
+        <a data-i18n="lq_final.done_back_home" class="linklike" onclick="lqDone()">Done &mdash; back Home</a>
+      </span>
+    </div>
+    <div class="poll-stage">
+      <h1 class="poll-q" id="lq-final-title" style="margin-bottom:10px;">—</h1>
+      <div id="lq-final-list"></div>
+      <p data-i18n="lq_final.nothing_kept" class="sub proj-hide" style="margin-top:14px;">Nothing is kept — once you leave this board the game is gone.</p>
+    </div>
+    <div class="card proj-hide" style="margin-top:16px;max-width:1140px;">
+      <button data-i18n="lq_final.done" class="btn-primary" style="width:100%;" onclick="lqDone()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT: PLAYING -->
+<div class="screen" id="screen-lq-play">
+  <div class="card">
+    <div class="poll-meta">
+      <span class="badge" id="lqs-qpos">Q 1</span>
+      <span class="badge" id="lqs-name" style="display:none;"></span>
+      <span class="badge" id="lqs-timer" style="display:none;"></span>
+    </div>
+    <h1 id="lqs-question">—</h1>
+    <img id="lqs-img" class="qimg" style="display:none;" alt="">
+    <div id="lqs-body"></div>
+    <p id="lqs-status" class="sub" style="margin-top:14px;"></p>
+  </div>
+</div>
+
+<!-- STUDENT: QUIZ FINISHED -->
+<div class="screen" id="screen-lq-done">
+  <div class="card center wait-card">
+    <div class="done-tick wait-pop">&#10003;</div>
+    <h1 data-i18n="lq_done.thats_the_quiz" class="wait-pop wait-d1">That's the quiz</h1>
+    <div id="lqs-final" class="wait-pop wait-d1"></div>
+    <p data-i18n="lq_done.put_phone_away" class="sub wait-pop wait-d2" style="margin-top:14px;font-weight:700;">You can put your phone away.</p>
   </div>
 </div>
 
@@ -862,35 +1084,40 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.20b"></script>
-<script src="lang/fr.js?v=3.20b"></script>
-<script src="core/i18n.js?v=3.20b"></script>
-<script src="core/registry.js?v=3.20b"></script>
-<script src="core/backend.js?v=3.20b"></script>
-<script src="core/auth.js?v=3.20b"></script>
-<script src="core/ui.js?v=3.20b"></script>
-<script src="core/session.js?v=3.20b"></script>
-<script src="core/groups.js?v=3.20b"></script>
-<script src="core/rounds.js?v=3.20b"></script>
-<script src="core/bank.js?v=3.20b"></script>
-<script src="core/media.js?v=3.20b"></script>
-<script src="core/security.js?v=3.20b"></script>
-<script src="core/answers.js?v=3.20b"></script>
-<script src="modules/test.js?v=3.20b"></script>
-<script src="modules/poll.js?v=3.20b"></script>
-<script src="modules/roleplay.js?v=3.20b"></script>
-<script src="modules/describeit.js?v=3.20b"></script>
-<script src="modules/twentyq.js?v=3.20b"></script>
-<script src="modules/partners.js?v=3.20b"></script>
-<script src="admin/editor.js?v=3.20b"></script>
-<script src="admin/import.js?v=3.20b"></script>
-<script src="admin/reports.js?v=3.20b"></script>
-<script src="admin/scenarios.js?v=3.20b"></script>
-<script src="admin/terms.js?v=3.20b"></script>
-<script src="admin/subjects.js?v=3.20b"></script>
-<script src="admin/collocations.js?v=3.20b"></script>
-<script src="admin/accounts.js?v=3.20b"></script>
-<script src="boot.js?v=3.20b"></script>
+<script src="lang/en.js?v=3.30"></script>
+<script src="lang/fr.js?v=3.30"></script>
+<script src="core/i18n.js?v=3.30"></script>
+<script src="core/registry.js?v=3.30"></script>
+<script src="core/backend.js?v=3.30"></script>
+<script src="core/auth.js?v=3.30"></script>
+<script src="core/ui.js?v=3.30"></script>
+<script src="core/session.js?v=3.30"></script>
+<script src="core/groups.js?v=3.30"></script>
+<!-- after groups.js: the allocator uses nameIsTaken and uniqueFirstName from it -->
+<script src="core/pseudonyms.js?v=3.30"></script>
+<script src="core/rounds.js?v=3.30"></script>
+<script src="core/bank.js?v=3.30"></script>
+<!-- after bank.js: qzScored asks isPollType which questions are worth points -->
+<script src="core/quizscore.js?v=3.30"></script>
+<script src="core/media.js?v=3.30"></script>
+<script src="core/security.js?v=3.30"></script>
+<script src="core/answers.js?v=3.30"></script>
+<script src="modules/test.js?v=3.30"></script>
+<script src="modules/poll.js?v=3.30"></script>
+<script src="modules/quizlive.js?v=3.30"></script>
+<script src="modules/roleplay.js?v=3.30"></script>
+<script src="modules/describeit.js?v=3.30"></script>
+<script src="modules/twentyq.js?v=3.30"></script>
+<script src="modules/partners.js?v=3.30"></script>
+<script src="admin/editor.js?v=3.30"></script>
+<script src="admin/import.js?v=3.30"></script>
+<script src="admin/reports.js?v=3.30"></script>
+<script src="admin/scenarios.js?v=3.30"></script>
+<script src="admin/terms.js?v=3.30"></script>
+<script src="admin/subjects.js?v=3.30"></script>
+<script src="admin/collocations.js?v=3.30"></script>
+<script src="admin/accounts.js?v=3.30"></script>
+<script src="boot.js?v=3.30"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->

@@ -1029,8 +1029,7 @@ registerActivity("describeit", {
   /* A first name, always. The two-word pseudonyms this replaced could collide, and a
      collision showed up differently on the phone and on the projector. A typed name can
      collide too, so the duplicate is resolved once, at join, and the resolved name stored. */
-  firstNameOnly: () => true,
-  requiresName: () => true,
+  nameMode: () => "first",
 
   label: "Describe It",
   keeps: false          // nothing is archived: the records name students and hold no marks

@@ -15,9 +15,20 @@ let BUILDER_MODE = "quiz";
 // Built when asked, not at load: a table of words made once would keep the language the page
 // started in. `sel` is an element id and never changes.
 function setLabel(mode){
-  return (mode==="poll")
-    ? { one: t("editor.a_poll", "poll"), Cap: t("editor.poll_cap", "Poll"), sel: "poll-library-select" }
-    : { one: t("editor.a_quiz", "quiz"), Cap: t("editor.quiz_cap", "Quiz"), sel: "quiz-library-select" };
+  if(mode==="poll")     return { one: t("editor.a_poll", "poll"), Cap: t("editor.poll_cap", "Poll"), sel: "poll-library-select" };
+  if(mode==="livequiz") return { one: t("editor.a_livequiz", "quiz game"), Cap: t("editor.livequiz_cap", "Quiz Game"), sel: "lq-library-select" };
+  return { one: t("editor.a_quiz", "quiz"), Cap: t("editor.quiz_cap", "Quiz"), sel: "quiz-library-select" };
+}
+
+/* Which question types a bank will hold.
+
+   A test refuses poll types because they cannot be marked; a poll refuses the marked types
+   because it marks nothing. A LIVE QUIZ takes everything: that is what it is for — a run of
+   marked questions with a poll or a word cloud dropped in to break it up. So "what belongs
+   here" stops being one boolean and becomes a question each bank answers for itself. */
+function bankAccepts(mode, type){
+  if(mode==="livequiz") return true;
+  return isPollType(type) === (mode==="poll");
 }
 
 
@@ -29,6 +40,7 @@ async function loadQuizList(){
     // else quiz", so any third kind silently joined the quizzes.
     [["quiz","quiz-library-select",t("editor.select_saved_quiz", "\u2014 select a saved quiz \u2014")],
      ["poll","poll-library-select",t("editor.select_saved_poll", "\u2014 select a saved poll \u2014")],
+     ["livequiz","lq-library-select",t("editor.select_saved_livequiz", "\u2014 select a saved quiz game \u2014")],
      ["roleplay","rp-library-select",t("editor.select_saved_role_play", "\u2014 select a saved role play \u2014")],
      ["describeit","di-library-select",t("editor.select_saved_pack", "\u2014 select a saved word pack \u2014")],
      ["twentyq","tq-library-select",t("editor.select_saved_subjects", "\u2014 select a saved subject pack \u2014")],
@@ -96,7 +108,7 @@ function leaveBuilder(target){
 
 
 function newSet(mode){
-  BUILDER_MODE = (mode==="poll") ? "poll" : "quiz";
+  BUILDER_MODE = (mode==="poll" || mode==="livequiz") ? mode : "quiz";
   TEACHER.questions = [];
   document.getElementById("quiz-save-name").value = "";
   setCheckedSchools([]);
@@ -111,28 +123,39 @@ function newQuiz(){ newSet("quiz"); }
 // Restrict the type dropdown to the current mode, and relabel the save card.
 function applyBuilderMode(){
   const poll = BUILDER_MODE==="poll";
+  const live = BUILDER_MODE==="livequiz";
   const sel = document.getElementById("qe-type");
   let firstAllowed = null;
   Array.prototype.forEach.call(sel.options, o=>{
-    const allowed = (o.getAttribute("data-kind")==="poll") === poll;
+    const allowed = bankAccepts(BUILDER_MODE, o.value);
     o.hidden = !allowed; o.disabled = !allowed;
     if(allowed && firstAllowed===null) firstAllowed=o.value;
   });
   // If the open question is the wrong kind for this mode, drop to the first legal type.
   if(sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].disabled && firstAllowed) sel.value=firstAllowed;
-  document.getElementById("qe-points-wrap").style.display = poll ? "none" : "";   // polls are never marked
+  /* A live quiz scores on speed and accuracy, not on an author's per-question weighting, so
+     the Points box is hidden there too — see core/quizscore.js. The poll types inside one are
+     unscored discussion beats, which is the same thing the box would have said. */
+  document.getElementById("qe-points-wrap").style.display = (poll || live) ? "none" : "";
   renderTypeChips();   // the chip row follows the bank we just switched to
   document.getElementById("builder-badge").textContent = poll
     ? t("editor.badge_poll_builder", "Admin \u00b7 Poll Builder")
-    : t("editor.badge_question_builder", "Admin \u00b7 Question Builder");
-  document.getElementById("quiz-save-label").textContent = poll ? t("editor.save_as_poll", "Save as poll") : t("editor.save_as_quiz", "Save as quiz");
-  document.getElementById("quiz-save-btn-text").textContent = poll ? t("editor.save_poll_btn", "Save Poll") : t("editor.save_quiz_btn", "Save Quiz");
+    : live
+      ? t("editor.badge_livequiz_builder", "Admin \u00b7 Quiz Game Builder")
+      : t("editor.badge_question_builder", "Admin \u00b7 Question Builder");
+  const L = setLabel(BUILDER_MODE);
+  document.getElementById("quiz-save-label").textContent = t("editor.save_as_what", "Save as {what}", {what:L.one});
+  document.getElementById("quiz-save-btn-text").textContent = t("editor.save_what_btn", "Save {what}", {what:L.Cap});
   document.getElementById("quiz-save-name").placeholder = poll
     ? t("editor.ph_poll_name", "e.g. Session 3 \u2014 warm-up poll")
-    : t("editor.ph_quiz_name", "e.g. Marketing Midterm 2026");
+    : live
+      ? t("editor.ph_livequiz_name", "e.g. Unit 4 \u2014 end-of-unit quiz game")
+      : t("editor.ph_quiz_name", "e.g. Marketing Midterm 2026");
   document.getElementById("quiz-save-note").textContent = poll
     ? t("editor.note_saved_poll", "Saved to the Poll Creator and launched from Teacher Home with \u201cNew Poll\u201d.")
-    : t("editor.note_saved_quiz", "Saved to the Test Creator and launched with \u201cLaunch Test\u201d.");
+    : live
+      ? t("editor.note_saved_livequiz", "Saved to the Live Quiz Creator and launched from Teacher Home with \u201cQuiz Game\u201d.")
+      : t("editor.note_saved_quiz", "Saved to the Test Creator and launched with \u201cLaunch Test\u201d.");
 }
 
 async function saveQuizToLibrary(){
@@ -148,7 +171,7 @@ async function saveQuizToLibrary(){
   if(TEACHER.questions.length===0){ alert(t("editor.add_import_some_questions_first", "Add or import some questions first.")); return; }
   // Belt and braces: the dropdown already hides the wrong types, but an Excel or JSON
   // import can still bring in questions that don't belong in this bank.
-  const strays = TEACHER.questions.filter(q=> isPollType(q.type) !== (mode==="poll"));
+  const strays = TEACHER.questions.filter(q=> !bankAccepts(mode, q.type));
   if(strays.length){
     const strayCount = { count: strays.length,
       questions: plural(strays.length, t("poll.question", "question"), t("poll.questions", "questions")) };
@@ -178,7 +201,10 @@ async function loadSetFromLibrary(mode){
   try{
     const rec = await Backend.getQuiz(key);
     if(!rec){ alert(t("editor.that_could_not_be_found", "That {what} could not be found.", {what:L.one})); loadQuizList(); return; }
-    BUILDER_MODE = setKind(rec)==="poll" ? "poll" : "quiz";
+    /* The record's own kind, not a two-way guess. Reading it as "poll or else quiz" is what
+       sent role play into the Test Creator in v3.1 and made it look as though nothing saved. */
+    const k = setKind(rec);
+    BUILDER_MODE = (k==="poll" || k==="livequiz") ? k : "quiz";
     TEACHER.questions = (rec.questions||[]).map(q=>Object.assign({},q,{id:q.id||"q_"+uid(6)}));
     document.getElementById("quiz-save-name").value = rec.name || "";
     setCheckedSchools(quizSchools(rec));
@@ -365,9 +391,9 @@ function renderTypeChips(){
   const box=document.getElementById("qe-type-chips");
   const sel=document.getElementById("qe-type");
   if(!box||!sel) return;
-  const kind = (typeof BUILDER_MODE!=="undefined" && BUILDER_MODE==="poll") ? "poll" : "quiz";
   box.innerHTML="";
-  [...sel.options].filter(o=>o.dataset.kind===kind).forEach(o=>{
+  // The same question the dropdown is filtered by, so the chips and the list cannot disagree.
+  [...sel.options].filter(o=>bankAccepts(BUILDER_MODE, o.value)).forEach(o=>{
     const b=document.createElement("button");
     b.type="button";
     b.className="type-chip"+(o.value===sel.value?" on":"");

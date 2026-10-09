@@ -11,6 +11,18 @@
    "hide results until I press Reveal" setting flips that default, and the teacher's
    Reveal/Hide button overrides either of them. Without this, a live question could never be
    hidden again mid-discussion. */
+/* What a poll calls its students (v3.21): "anonymous", "pseudonym" or "first".
+
+   Reads `naming` when the run has one, and falls back to the older `anonymous` flag so a
+   poll opened before v3.21 — or rejoined from a record written by an older build — behaves
+   exactly as it did. There is no third thing to guess at: before v3.21 a poll was anonymous
+   or it was named, and named meant first names. */
+function pollNaming(meta){
+  const m=(meta||{}).naming;
+  if(m==="anonymous"||m==="pseudonym"||m==="first") return m;
+  return (meta && meta.anonymous) ? "anonymous" : "first";
+}
+
 function pollRevealState(meta, idx, q){
   const m=metaMap(meta,"revealed"), k=String(idx);
   if(Object.prototype.hasOwnProperty.call(m,k)) return !!m[k];
@@ -103,9 +115,13 @@ async function loadPollSet(){
 // Open the poll: created in "waiting" so students gather before the first question shows.
 async function pollStartSession(){
   if(POLL.questions.length===0){ alert(t("poll.choose_poll_set_first", "Choose a poll set first.")); return; }
-  const anonymous=document.getElementById("poll-anon").checked;
+  const naming=(document.getElementById("poll-naming")||{}).value || "anonymous";
+  /* `anonymous` is written alongside `naming` so a run opened by this build is still read
+     correctly by anything that asks the old question — and so a teacher looking at a record
+     sees the same answer in both places rather than having to know which one wins. */
+  const anonymous = naming === "anonymous";
   POLL.settings={
-    kind:"poll", anonymous, status:"waiting", currentIndex:0,
+    kind:"poll", naming, anonymous, status:"waiting", currentIndex:0,
     school:POLL.school||"", title:POLL.name||t("poll.live_poll", "Live poll"),
     teacherName:(TEACHER_USER&&TEACHER_USER.name)||"",
     teacherEmail:(TEACHER_USER&&TEACHER_USER.email)||"",
@@ -115,7 +131,7 @@ async function pollStartSession(){
   try{ await Backend.createSession(POLL.runId, POLL.sessionCode, POLL.settings, POLL.questions); }
   catch(e){ alert(t("poll.couldn_t_open_poll", "Couldn't open the poll: ")+e.message); return; }
   document.getElementById("poll-live-code").textContent=POLL.sessionCode;
-  document.getElementById("poll-live-mode").textContent=anonymous?t("poll.anonymous", "Anonymous"):t("poll.named", "Named");
+  document.getElementById("poll-live-mode").textContent=pollNamingLabel(naming);
   document.getElementById("poll-title").textContent=POLL.name||t("poll.live_poll", "Live poll");
   document.getElementById("poll-title-meta").textContent=
     t("poll.n_questions", "{count} {questions}", { count:POLL.questions.length, questions: plural(POLL.questions.length, t("poll.question", "question"), t("poll.questions", "questions")) })
@@ -127,6 +143,12 @@ async function pollStartSession(){
   showScreen("screen-poll-live");
   renderPollQR();
   pollWatchParticipants();
+}
+
+function pollNamingLabel(mode){
+  if(mode==="anonymous") return t("poll.anonymous", "Anonymous");
+  if(mode==="pseudonym") return t("poll.pseudonyms", "Pseudonyms");
+  return t("poll.named", "Named");
 }
 
 function pollJoinUrl(){ return location.origin+location.pathname+"?join="+encodeURIComponent(POLL.sessionCode); }
@@ -376,7 +398,7 @@ function renderPollCloud(counts){
 function renderPollRoster(){
   const hint=document.getElementById("poll-roster-hint");
   const list=document.getElementById("poll-roster");
-  if(POLL.settings.anonymous){
+  if(pollNaming(POLL.settings)==="anonymous"){
     hint.textContent=t("poll.anonymous_poll_see_how_many_voted", "Anonymous poll — you can see how many have voted, not who.");
     list.innerHTML="";
     return;
@@ -595,7 +617,8 @@ async function pollStudentStart(session, surname, firstName){
   }catch(e){ console.warn(e); }
   try{ await Backend.joinSession(PSTU.runId, STUDENT.id, surname, firstName, true); }catch(e){ console.warn(e); }
   const badge=document.getElementById("pv-name");
-  if(session.meta.anonymous){ badge.style.display="none"; }
+  // A pseudonym IS shown: it is the student's name for the game, and they need to see it.
+  if(pollNaming(session.meta)==="anonymous"){ badge.style.display="none"; }
   else { badge.textContent=displayName(surname,firstName); badge.style.display="inline-block"; }
   showScreen("screen-poll-vote");
   pollStudentWatch();
@@ -776,8 +799,13 @@ registerActivity("poll", {
   score: null,
   finish: pollClose,
   rejoin: rejoinPollRun,
-  requiresName: meta => !(meta && meta.anonymous),
-  anonymous: meta => !!(meta && meta.anonymous),
+  /* The only activity where the teacher chooses, because all three are defensible for a
+     poll. Anonymous is what makes an honest answer safe on a question people would not put
+     their name to; pseudonyms let you see that eleven of twenty-two have voted, and who is
+     still missing, without a real name being stored; first names are for a poll you intend
+     to discuss by name. `pollNaming` reads the one older flag, so polls saved before v3.21
+     keep behaving as they did. */
+  nameMode: meta => pollNaming(meta),
   label: "Poll",
   keeps: false   // nothing is archived: the records name students and hold no marks
 });

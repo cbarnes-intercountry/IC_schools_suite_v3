@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.20b
+# Classroom Exam App — v3.30
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -703,3 +703,99 @@ the suite fails if it has drifted from either source. It is not maintained by ha
 the hand-maintained version rotted: by v3.20b both copies on disk still carried the
 participants rule from before the write window, so uploading either would have quietly undone
 v3.20a's protection with nothing on screen to say so.
+
+
+## What a student is called (v3.21)
+
+**A property of the activity, not a setting a teacher picks each time.** Each module now
+declares one `nameMode`, and the registry refuses to register one that does not:
+
+| | |
+|---|---|
+| `full` | Test — it is marked and it leaves a CSV somebody reads weeks later |
+| `first` | Role play, Describe It, Twenty Questions, Word Partners — you pair people by reading a name out, and a pseudonym cannot be paired across a room |
+| `pseudonym` | Quiz and bingo when they arrive — nothing is kept and nobody needs identifying afterwards |
+| `anonymous` | A poll, where being identifiable is the thing that stops an honest answer |
+
+This replaces three hooks — `requiresName`, `firstNameOnly`, and whatever was left over — which
+encoded one decision in three places and had no room for a fourth answer. An unrecognised mode
+falls back to asking for a full name: wrong one way means a student types a name they did not
+need to, wrong the other way means an exam with no names on it.
+
+**Polls now choose between all three**, because all three are defensible for a poll. A record
+written before v3.21 has only the old `anonymous` flag and is read exactly as it was.
+
+### Pseudonyms are back, allocated rather than derived
+
+v3.15 had them; v3.17 removed them for two reasons, and both still stand. The first is why the
+four pairing games keep first names. The second was a defect: the name was DERIVED from the
+student's id by hash over a pool of 2,500, so two students in a class of twenty-five drew the
+same one about **once in nine classes** — and the clash surfaced only on the final leaderboard,
+so a phone read "Daring Ferret" while the board read "Daring Ferret 1".
+
+Expanding the pool does not fix that. Even at 16,506 combinations a hash still collides about
+**one class in fifty**. What fixes it is reading the room and picking something unused, which
+makes a clash **impossible** rather than unlikely — the same read, the same comparison and the
+same resolution a typed first name has gone through since v3.17.
+
+A pseudonym is stored as the student's first name, because that is what it is: a first name the
+app chose. Every screen downstream needed no change to show one.
+
+The word lists live in `core/pseudonyms.js` — 126 adjectives × 131 nouns — and are deliberately
+NOT translated: a student plays under the name, says it aloud and sees it on a board, so
+translating it would rename people mid-game and throw away two English words. The suite skips
+that file by name for exactly that reason.
+
+---
+
+## v3.30 — the quiz game
+
+A projected, teacher-paced game played for points. It is not a test and it is not a poll, and
+the differences are the design: **marked, but kept by nobody.**
+
+**A third bank.** The Live Quiz Creator takes every question type there is — MCQ, true/false,
+short text, numeric, ordering, polls and word clouds in the same set. A poll dropped into the
+sequence scores nothing and is a pause for discussion; it is not counted as a question the
+room got wrong. The Excel importer now asks the bank what it accepts rather than sorting
+sheets into poll-or-not, so a mixed sheet imports whole.
+
+**The score** (`core/quizscore.js`), stated once so the board, the projection and the
+student's card cannot disagree:
+
+    grace  = 0.25 x T                        reading time, no decay
+    points = round(700 + 300 x (1 - t'/(T - grace)))   correct answers only
+    wrong, or no answer                      = 0       no streak bonus
+
+Kahoot's floor is 500, which makes pure speed worth a **doubled** correct count. At 700 it is
+worth 43%, so accuracy stays the dominant term — that is the narrowing. The first quarter of
+the clock scores full marks whatever happens in it, because four seconds of a twenty-second
+question is reading, and charging for reading time scores CEFR level rather than knowledge.
+There is no streak bonus: it compounds, and the student who breaks a streak loses a bonus
+whose size they could not see.
+
+**Teams** form by themselves as the room fills, and everyone answers on their own phone. A
+team's score for a question is the **mean over its members at that moment** — summing would
+hand the larger team a standing lead for being larger, and dividing by who *answered* would
+reward a team for having its weakest member sit out. Individual play is a toggle.
+
+**Ties break on total response time**, and a question nobody answered counts as the **whole
+clock**. Without that, saying nothing would lower your total time and improve your tiebreak.
+
+**Pseudonyms by default**, first names on a toggle, never surnames. Nothing is kept and nobody
+needs identifying afterwards, and a projected board of real first names ranks a class by name
+in front of itself.
+
+**Media.** Images show on the projector and on phones. **Audio is projector-only and the clock
+waits for the clip** — one or two plays, the teacher's choice — or the room is scored on how
+long the recording is. **Video is projector-only and URL-only**, through an allowlist
+(YouTube via the no-cookie host, Vimeo); anything else is not framed at all. Twenty-five
+phones streaming one clip over school wifi is the likeliest way a lesson falls over, and an
+embedded player on a personal phone sets that provider's cookies on a device the school does
+not own. The next question's image is fetched while this one is being answered.
+
+**Known limit, stated plainly:** the questions are in the session every joined student can
+read, exactly as they are for a test — a student with a developer console can read them. That
+is accepted here because nothing is kept and no mark follows anybody, and it is why the
+separate "answers off the phone" work is scoped to the true test mode.
+
+Nothing is archived. The run is deleted behind the final board.

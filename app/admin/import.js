@@ -41,6 +41,22 @@ function importQuestionsPrompt(){
 }
 
 
+/* Which of a sheet's questions this bank will take.
+
+   A FUNCTION rather than a filter written inline, because it is the one decision in the
+   importer that a release can get wrong without anything throwing — and an inline filter can
+   only be checked by a test that writes the same filter out again, which proves nothing.
+
+   Asked of bankAccepts(), not of isPollType() directly: since v3.30 there are THREE banks and
+   the quiz game's takes every type there is, so a sheet of mixed questions is the normal case
+   for it rather than an error. The old rule — `isPollType(type) === (mode === "poll")` — has
+   no third answer, and pointed at the quiz-game bank it threw away every MCQ on the way into
+   the bank built to hold them. Whatever is refused is reported, never silently dropped. */
+function importableInto(questions, mode){
+  const keep=(questions||[]).filter(q=>bankAccepts(mode, q.type));
+  return { keep:keep, dropped:(questions||[]).length - keep.length };
+}
+
 /* ============ EXCEL IMPORT ============ */
 function importFromExcel(){
   if(typeof XLSX==="undefined"){ alert(t("import.excel_library_didn_t_load_needs", "Excel library didn't load (needs internet). Try JSON import.")); return; }
@@ -52,9 +68,7 @@ function importFromExcel(){
       const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{defval:""});
       const {questions,errors}=parseQuizRows(rows);
       if(questions.length===0){ alert(t("import.no_valid_questions_found", "No valid questions found.\n\n")+(errors.join("\n")||t("import.check_template_columns", "Check the template columns."))); return; }
-      // Only the kind this bank holds is taken; the rest are reported rather than silently dropped.
-      const keep=questions.filter(q=>isPollType(q.type)===(BUILDER_MODE==="poll"));
-      const dropped=questions.length-keep.length;
+      const { keep, dropped } = importableInto(questions, BUILDER_MODE);
       if(keep.length===0){
         alert(BUILDER_MODE==="poll"
           ? t("import.sheet_no_poll_questions", "That sheet has no poll questions.\n\nSet Type to \u201cpoll\u201d or \u201ccloud\u201d, or import it into the Test Creator instead.")

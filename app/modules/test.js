@@ -717,14 +717,35 @@ async function studentJoin(){
   if(act && act.join){
     const what = activityLabel(kind).toLowerCase();
     if(session.meta.status==="ended"){ alert(t("test.that_has_finished", "That {what} has finished.", {what:what})); return; }
-    const firstOnly = !!(act.firstNameOnly && act.firstNameOnly(session.meta));
-    if(act.anonymous && act.anonymous(session.meta)){
-      /* Nothing identifying is asked for and nothing is stored. Only the poll takes this path
-         now: the paired games used to, under a two-word pseudonym, and that is gone — see
-         uniqueFirstName below for why. */
+    /* What this activity calls a student. One question to the registry, which the activity
+       answered when it registered — see activityNameMode. Until v3.21 this was three
+       conditions reading three different hooks, with the full-name case as whatever was left
+       over, and there was nowhere to put a fourth answer. */
+    const mode = activityNameMode(kind, session.meta);
+
+    if(mode === "anonymous"){
+      // Nothing identifying is asked for and nothing is stored.
       surname=""; firstName="";
       STUDENT.surname=""; STUDENT.firstName=""; STUDENT.name="";
-    } else if(firstOnly){
+
+    } else if(mode === "pseudonym"){
+      /* The app names them. Nothing is typed, so there is no screen here at all — the student
+         taps the code and is in, which is most of the point in a game that wants to start.
+
+         ALLOCATED, not derived. v3.15 hashed the student's id into a word pair, and two
+         students in a class of twenty-five drew the same name about one time in nine; the
+         clash then surfaced only on the final leaderboard, so a phone said "Daring Ferret"
+         while the board said "Daring Ferret 1". Reading the room first and picking something
+         unused makes that impossible rather than unlikely, and it is the same read, the same
+         comparison and the same resolution that a typed first name has gone through since
+         v3.17. A pseudonym is simply a first name the app chose, stored in the same field —
+         which is why every screen downstream needs no change to show one. */
+      const taken = await existingFirstNames(session.runId, STUDENT.id);
+      firstName = pickPseudonym(taken);
+      surname=""; STUDENT.surname="";
+      STUDENT.firstName=firstName; STUDENT.name=firstName; STUDENT.rejoining=false;
+
+    } else if(mode === "first"){
       if(!firstName){
         askForName(t("test.this_needs_your_first_name",
           "This {what} needs your first name.", {what:what}), true);
@@ -762,7 +783,8 @@ async function studentJoin(){
       STUDENT.firstName=firstName;
       STUDENT.name=firstName;
       STUDENT.rejoining=rejoining;
-    } else if(!act.requiresName || act.requiresName(session.meta)){
+
+    } else {
       if(!surname || !firstName){ askForName(t("test.this_needs_your_name", "This {what} needs your name.", {what:what})); return; }
     }
     await act.join(session, surname, firstName);
@@ -1437,6 +1459,9 @@ registerActivity("quiz", {
   score: scoreAnswers,
   finish: teacherEndTest,
   rejoin: testRejoin,
+  /* Surname and first name. It is an exam, it is marked, and it leaves a CSV that somebody
+     reads weeks later — the one activity where a name has to identify a person on paper. */
+  nameMode: () => "full",
   label: "Test",
   keeps: true
 });

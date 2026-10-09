@@ -520,6 +520,10 @@ registerActivity("roleplay", {
   score: null,          // nothing is marked, and nothing is kept
   finish: rpEnd,
   rejoin: rpRejoin,
+  /* First names. A role play is dealt into groups and the parts are read out; a teacher
+     cannot put "Amber Falcon" and "Silent Otter" at the same table without reading both
+     phones, which is the v3.17 finding that removed pseudonyms from the paired games. */
+  nameMode: () => "first",
   label: "Role play",
   keeps: false   // nothing is archived: the records name students and hold no marks
 });

@@ -73,9 +73,16 @@
   /* projection mode: hide chrome, scale type for the back of the room */
   body.projecting{background:var(--surface);}
   body.projecting .proj-hide{display:none !important;}
-  body.projecting #screen-poll-live{padding:0;}
+  body.projecting #screen-poll-live,
+  body.projecting #screen-lq-live,
+  body.projecting #screen-lq-final{padding:0;}
   body.projecting .poll-wrap{max-width:100%;}
-  body.projecting #screen-poll-live .poll-wrap{min-height:100vh;}
+  /* Scoped per screen rather than to .poll-wrap at large, so a screen that merely borrows
+     the wrap for its width is not forced to fill a projector it never goes on. The quiz
+     DOES go on one: without this its stage sat in the top third of a 1080px board. */
+  body.projecting #screen-poll-live .poll-wrap,
+  body.projecting #screen-lq-live .poll-wrap,
+  body.projecting #screen-lq-final .poll-wrap{min-height:100vh;}
   body.projecting .poll-stage{border:none;box-shadow:none;border-radius:0;min-height:0;flex:1;display:flex;flex-direction:column;justify-content:center;padding:4vh 5vw;}
   body.projecting .poll-q{font-size:min(5.2vw,3.6rem);margin-bottom:14px;}
   body.projecting .poll-count{font-size:1.3rem;}
@@ -826,3 +833,55 @@
   border-inline-start:3px solid currentColor; }
 .rp-with-name{ font-weight:700; }
 .rp-with-role{ font-size:.8rem; opacity:.7; }
+
+/* ---------- the quiz game (v3.30) ----------
+
+   The stage is read from the back of a room and from a phone held at arm's length, so the
+   question and its options are sized off the viewport rather than in points, and the board
+   sits beside the question on a projector and underneath it on a laptop. */
+.lq-stage-grid{ display:grid; grid-template-columns:1fr; gap:18px; }
+@media (min-width:900px){ .lq-stage-grid{ grid-template-columns:minmax(0,2fr) minmax(220px,1fr); } }
+.lq-options{ display:grid; grid-template-columns:1fr; gap:10px; }
+@media (min-width:640px){ .lq-options{ grid-template-columns:1fr 1fr; } }
+.lq-opt{ border:2px solid var(--ink); border-radius:12px; padding:14px 16px; font-weight:700;
+  background:var(--surface); box-shadow:3px 3px 0 var(--ink); }
+.lq-opt[data-typed="1"]{ font-weight:500; opacity:.75; text-align:center; }
+.lq-opt[data-right="1"]{ background:var(--success-soft); border-color:var(--success-ink); color:var(--success-ink); }
+/* The student's own verdict. Right and wrong ride on an attribute, not a class name. */
+.vote-done[data-verdict="0"]{ background:var(--amber-soft); border-color:var(--amber); color:#8A5300; }
+.lq-answer{ margin-top:14px; font-weight:800; color:var(--success-ink); }
+body.projecting .lq-opt{ font-size:clamp(1.1rem, 2.1vw, 2rem); padding:18px 22px; }
+body.projecting .lq-answer{ font-size:clamp(1.2rem, 2.3vw, 2.2rem); }
+
+.lq-video{ width:100%; max-width:960px; aspect-ratio:16/9; border:2px solid var(--ink);
+  border-radius:12px; box-shadow:4px 4px 0 var(--ink); }
+
+.lq-board-wrap{ border-inline-start:2px dashed var(--ink); padding-inline-start:16px; }
+@media (max-width:899px){ .lq-board-wrap{ border-inline-start:none; padding-inline-start:0;
+  border-top:2px dashed var(--ink); padding-top:14px; } }
+.lq-board-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0;
+  border-bottom:1px solid var(--line, #D0D5E2); }
+.lq-board-row.top{ font-weight:800; }
+.lq-board-place{ min-width:2ch; font-weight:800; opacity:.65; }
+.lq-board-who{ flex:1; overflow-wrap:anywhere; }
+.lq-board-pts{ font-weight:700; }
+body.projecting .lq-board-row{ font-size:clamp(1rem, 1.7vw, 1.6rem); }
+
+.lq-team-head{ margin:14px 0 6px; font-size:.95rem; letter-spacing:.04em; text-transform:uppercase; }
+.lqs-team{ margin-top:10px; font-weight:700; }
+.lqs-place{ font-size:2.4rem; font-weight:800; }
+.lqs-pts{ font-size:1.2rem; font-weight:700; opacity:.75; }
+
+/* On a projector the stage is the whole screen, and a quiz that renders its four options as
+   four thin strips across the top of a 1080px board wastes two thirds of the room's attention.
+   The options grow to fill the height instead, and the whole grid centres in it. */
+/* The two panels of the live screen. Shown by class so the projection rules above can still
+   turn the stage into a centred flex column — an inline display would outrank them. */
+#lq-lobby, #lq-stage{ display:none; }
+#lq-lobby.on{ display:block; }
+#lq-stage.on{ display:block; }
+body.projecting #lq-stage.on{ display:flex; }
+body.projecting .lq-stage-grid{ width:100%; flex:1; align-content:center; align-items:center; }
+body.projecting .lq-options{ gap:18px; }
+body.projecting .lq-opt{ min-height:clamp(72px, 15vh, 170px); display:flex; align-items:center; }
+body.projecting .lq-board-wrap{ align-self:stretch; display:flex; flex-direction:column; justify-content:center; }

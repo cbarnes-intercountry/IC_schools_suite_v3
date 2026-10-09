@@ -156,7 +156,9 @@ async function rejoinPollRun(s, run){
   POLL.projecting = false;
   POLL.participants = [];
   document.getElementById("poll-live-code").textContent = POLL.sessionCode;
-  document.getElementById("poll-live-mode").textContent = POLL.settings.anonymous ? t("poll.anonymous", "Anonymous") : t("poll.named", "Named");
+  // Through the same reader as the launch screen, so a rejoined poll cannot describe itself
+  // differently from the way it was opened.
+  document.getElementById("poll-live-mode").textContent = pollNamingLabel(pollNaming(POLL.settings));
   document.getElementById("poll-title").textContent = POLL.name || t("poll.live_poll", "Live poll");
   document.getElementById("poll-title-meta").textContent =
     t("session.n_questions", "{count} {questions}",
@@ -243,8 +245,9 @@ function copyJoinLink(){
 // says which ("poll" from the poll screens); otherwise the live test's code is used.
 function openQRFullscreen(which){
   const isPoll = (which==="poll") || (!which && !!POLL.runId && isScreenActive("screen-poll-live"));
-  const code = isPoll ? POLL.sessionCode : TEACHER.sessionCode;
-  const url  = isPoll ? pollJoinUrl() : getJoinUrl();
+  const isLq   = (which==="lq")   || (!which && !isPoll && !!LQ.runId && isScreenActive("screen-lq-live"));
+  const code = isLq ? LQ.sessionCode : isPoll ? POLL.sessionCode : TEACHER.sessionCode;
+  const url  = isLq ? lqJoinUrl()    : isPoll ? pollJoinUrl()    : getJoinUrl();
   const overlay=document.getElementById("qr-overlay");
   const holder=document.getElementById("qr-overlay-code"); holder.innerHTML="";
   document.getElementById("qr-overlay-text").textContent=code||"";
