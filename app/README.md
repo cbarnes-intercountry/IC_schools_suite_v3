@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.31
+# Classroom Exam App — v3.32
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -882,3 +882,54 @@ scores → Next question*.
 On a student's phone the board phase shows **their own points and team**, not the leaderboard:
 top five on the wall, your own place in your hand, so the room looks up instead of
 twenty-five people reading the same list off twenty-five screens.
+
+---
+
+## v3.32 — vocabulary bingo
+
+Nine words on each phone, drawn from a list of twenty or more. The teacher calls them one at
+a time; a full card wins. Nothing is kept.
+
+**Two versions, the teacher's choice, and the difference is the whole pedagogy:**
+
+- **Definitions** — the teacher reads a definition or a gapped sentence and the student works
+  out which of their nine words it describes. That is the exercise.
+- **The word itself** — recognition. A ninety-second warm-up, and that is all it is.
+
+**No fourth content type.** Bingo reads any quiz or quiz-game set as a word list: the
+**answer** goes on the card, the **question** is what gets read out. So a short-answer set
+written for a test plays as bingo with nothing added to it.
+
+**The card is derived, not dealt** (`core/bingocard.js`). Nine list indexes worked out from
+the student's own id and the run id, so the same student always gets the same card back — a
+reload is not a reroll — while two students never hold the same nine words. Handing out
+twenty-five cards through the database would be the roster problem again with nine times the
+data.
+
+**Tapping is allowed on any cell.** In the strong version, working out which word a definition
+describes *is* the exercise; an app that only accepted taps on words it had already called
+would be doing the comprehension. So a full card is a **claim**, and the claim is verified —
+first on the student's own phone, which names the word they jumped on privately rather than a
+teacher saying it in front of the room, and then on the teacher's device against the calls
+actually made. That is "false bingo auto-rejected", and it is the same principle as the test
+recomputing a mark rather than trusting a submitted score (v3.20a).
+
+**The list length is the duration dial.** A full card on a 3×3 needs all nine of a student's
+words; with twenty in the list the first of twenty-five cards lands around call fifteen —
+four or five minutes. Twelve words and it is over before the room looks up. So the minimum is
+**19** (more than twice the card), a shorter list is refused with the number in the message,
+and the setup screen says how many calls and roughly how many minutes before you start.
+
+**Two toggles, because each one changes the game:**
+
+- *Show the list of words already called* — on, a student who missed one can catch up and the
+  exercise becomes reading a list; off, they had to be listening. The list shows the calls
+  that have **been and gone**, never the one on the wall: printing the current word in the
+  catch-up strip would answer the definition the blur is hiding.
+- *Call the next word automatically* — timing is who decides when the next word comes, not how
+  the game is played.
+
+In the definitions version the word itself sits blurred under its clue, so a stuck room gets
+it from the front rather than from the next desk.
+
+Pseudonyms, like the quiz. The name exists only so a winner can be read out.

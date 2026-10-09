@@ -913,3 +913,41 @@ body.projecting .lq-board{ margin:0 auto; width:100%; }
 #lq-stage[data-phase="board"]  .poll-media-wrap{ display:none; }
 body.projecting #lq-panel-answer.on,
 body.projecting #lq-panel-board.on{ align-items:center; text-align:center; }
+
+/* ---------- vocabulary bingo (v3.32) ----------
+
+   The card is nine buttons a thumb has to hit while the teacher is still talking, so the
+   cells are square, large, and readable without looking twice. */
+#bg-lobby, #bg-stage{ display:none; }
+#bg-lobby.on{ display:block; }
+#bg-stage.on{ display:block; }
+body.projecting #bg-stage.on{ display:flex; flex-direction:column; justify-content:center;
+  align-items:center; text-align:center; }
+body.projecting #bg-stage.on .bg-winners-wrap{ width:100%; max-width:1100px; }
+
+.bg-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:14px; }
+.bg-cell{ aspect-ratio:1; border:2px solid var(--ink); border-radius:12px; background:var(--surface);
+  font-weight:700; font-size:clamp(.7rem, 3vw, 1.05rem); line-height:1.15; padding:4px;
+  box-shadow:3px 3px 0 var(--ink); cursor:pointer;
+  /* break-word, NOT anywhere: `anywhere` chopped "deductible" into "deductibl / e", which is
+     a vocabulary card that cannot be read. A long word wraps between words where it can and
+     only breaks inside itself when there is no alternative. */
+  overflow-wrap:break-word; hyphens:auto; }
+/* The claim button is the one control on this screen, so it must not look pressable until
+   the card is full — a student tapping a dead magenta button thinks the game is broken. */
+#bgs-claim:disabled{ background:var(--paper); color:var(--ink); opacity:.55; box-shadow:none; }
+/* Marked is unmistakable at arm's length and in a hurry: a filled cell, not a tick. */
+.bg-cell[data-marked="1"]{ background:var(--magenta); color:#fff; box-shadow:inset 2px 2px 0 rgba(0,0,0,.18); }
+
+.bg-call{ text-align:center; padding:18px 0; }
+.bg-call-word{ margin-top:10px; font-weight:700; opacity:.75; }
+/* The word behind a definition, held back until the teacher reveals it. */
+.bg-call-word.hidden-word{ color:transparent; text-shadow:0 0 14px rgba(0,0,0,.45); user-select:none; }
+body.projecting .bg-call-word{ font-size:clamp(1.1rem, 2.4vw, 2.2rem); }
+
+.bg-called{ display:flex; flex-wrap:wrap; gap:7px; margin-top:16px; justify-content:center; }
+.bg-chip{ border:2px solid var(--ink); border-radius:999px; padding:4px 12px; font-weight:600; font-size:.9rem; }
+body.projecting .bg-chip{ font-size:clamp(.95rem, 1.6vw, 1.5rem); padding:7px 18px; }
+
+.bg-winners-wrap{ margin-top:22px; }
+body.projecting .bg-winners-wrap{ margin-top:4vh; }

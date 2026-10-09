@@ -246,8 +246,9 @@ function copyJoinLink(){
 function openQRFullscreen(which){
   const isPoll = (which==="poll") || (!which && !!POLL.runId && isScreenActive("screen-poll-live"));
   const isLq   = (which==="lq")   || (!which && !isPoll && !!LQ.runId && isScreenActive("screen-lq-live"));
-  const code = isLq ? LQ.sessionCode : isPoll ? POLL.sessionCode : TEACHER.sessionCode;
-  const url  = isLq ? lqJoinUrl()    : isPoll ? pollJoinUrl()    : getJoinUrl();
+  const isBg   = (which==="bg")   || (!which && !isPoll && !isLq && !!BG.runId && isScreenActive("screen-bg-live"));
+  const code = isBg ? BG.sessionCode : isLq ? LQ.sessionCode : isPoll ? POLL.sessionCode : TEACHER.sessionCode;
+  const url  = isBg ? bgJoinUrl()    : isLq ? lqJoinUrl()    : isPoll ? pollJoinUrl()    : getJoinUrl();
   const overlay=document.getElementById("qr-overlay");
   const holder=document.getElementById("qr-overlay-code"); holder.innerHTML="";
   document.getElementById("qr-overlay-text").textContent=code||"";

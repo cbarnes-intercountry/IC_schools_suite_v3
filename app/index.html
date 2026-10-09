@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.31">
+<link rel="stylesheet" href="styles/app.css?v=3.32">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -317,6 +317,7 @@
         <button data-i18n="teacher_login.launch_test" class="btn-primary" onclick="teacherCreateSession()">Launch Test</button>
         <button data-i18n="teacher_login.new_poll" class="btn-secondary" onclick="pollCreateSession()">New Poll</button>
         <button data-i18n="teacher_login.start_quiz_game" class="btn-secondary" onclick="lqCreateSession()">Start a Quiz Game</button>
+        <button data-i18n="teacher_login.start_bingo" class="btn-secondary" onclick="bgCreateSession()">Start Bingo</button>
         <button data-i18n="teacher_login.start_role_play" class="btn-secondary" onclick="rpCreateSession()">Start a Role Play</button>
         <button data-i18n="teacher_login.start_describe_it" class="btn-secondary" onclick="diCreateSession()">Start Describe It</button>
         <button data-i18n="teacher_login.start_twenty_questions" class="btn-secondary" onclick="tqCreateSession()">Start Twenty Questions</button>
@@ -924,6 +925,176 @@
   </div>
 </div>
 
+<!-- ==========================================================================
+     VOCABULARY BINGO (v3.32). Nine words on a phone out of a list of twenty or more;
+     the teacher calls them one at a time. Nothing is kept.
+     ========================================================================== -->
+<div class="screen" id="screen-bg-setup">
+  <div class="top-nav wide">
+    <span class="nav-l">
+      <span data-i18n="bg_setup.new_bingo" class="badge">New Bingo</span>
+      <span class="badge" id="bg-setup-code" style="display:none;"></span>
+    </span>
+    <span class="nav-r">
+      <a data-i18n="bg_setup.home" class="linklike" onclick="teacherHome()">&larr; Home</a>
+      <a data-i18n="bg_setup.admin" class="linklike" onclick="openAdmin()">Admin</a>
+      <a data-i18n="bg_setup.log_out" class="linklike" onclick="teacherSignOut()">Log out</a>
+    </span>
+  </div>
+  <div class="duo">
+  <div class="card">
+    <h1 data-i18n="bg_setup.new_bingo">New Bingo</h1>
+    <p data-i18n="bg_setup.blurb" class="sub">Nine words on each phone, drawn from your list. You call them one at a time; a full card wins. Nothing is kept.</p>
+  </div>
+  <div class="duo-col">
+  <div class="card">
+    <div data-i18n="bg_setup.step_1_choose" class="step-label">Step 1 &middot; Choose a word list</div>
+    <div class="sel-row">
+      <select id="bg-school-select" onchange="filterBgSets()"><option data-i18n="lq.select_school" value="">— select a school —</option></select>
+      <select id="bg-set-select" onchange="bgSetPicked()"><option data-i18n="bg.select_list" value="">— select a word list —</option></select>
+    </div>
+    <button data-i18n="bg_setup.select_list" class="btn-primary" id="bg-select-btn" style="width:100%;" onclick="loadBgSet()">Select this list</button>
+    <p class="picked" id="bg-set-status" style="display:none;"></p>
+    <small data-i18n="bg_setup.none_hint" class="hint" id="bg-none-hint" style="display:none;">No lists for this school yet. Any quiz or quiz-game set works: the answer goes on the card, the question is what you read out.</small>
+  </div>
+  <div class="card" id="bg-step2" style="display:none;">
+    <div data-i18n="bg_setup.step_2_settings" class="step-label">Step 2 &middot; Settings</div>
+
+    <label data-i18n="bg_setup.how_you_call_them" for="bg-mode">How you call them</label>
+    <select id="bg-mode">
+      <option data-i18n="bg_setup.mode_strong" value="strong" selected>Definitions — they work out the word</option>
+      <option data-i18n="bg_setup.mode_weak" value="weak">The word itself — they find it</option>
+    </select>
+    <small data-i18n="bg_setup.mode_hint" class="hint">Definitions make it the exercise. The word itself makes it a ninety-second warm-up.</small>
+
+    <label class="check" style="margin-top:14px;">
+      <input type="checkbox" id="bg-show-called">
+      <span data-i18n="bg_setup.show_called">Show the list of words already called</span>
+    </label>
+    <small data-i18n="bg_setup.show_called_hint" class="hint">On, a student who missed one can catch up. Off, they had to be listening.</small>
+
+    <label class="check" style="margin-top:14px;">
+      <input type="checkbox" id="bg-timed">
+      <span data-i18n="bg_setup.timed">Call the next word automatically</span>
+    </label>
+    <label data-i18n="bg_setup.seconds_between_calls" for="bg-call-sec" style="margin-top:10px;">Seconds between calls</label>
+    <input type="number" id="bg-call-sec" value="12" min="4" max="60" step="1" onchange="bgPaintEstimate()">
+    <small class="hint" id="bg-estimate"></small>
+
+    <button data-i18n="bg_setup.open_launch" class="btn-primary" style="width:100%;margin-top:16px;" onclick="bgStartSession()">Open Bingo &amp; Launch &rarr;</button>
+  </div>
+  </div>
+  </div>
+</div>
+
+<!-- BINGO LIVE (doubles as the projection view) -->
+<div class="screen" id="screen-bg-live">
+  <button data-i18n="bg_live.exit_projection_esc" class="btn-outline proj-exit" onclick="bgToggleProject(false)">Exit projection (Esc)</button>
+  <div class="proj-bar" id="bg-proj-bar">
+    <span class="proj-qpos" id="bg-proj-callno"></span>
+    <button data-i18n="bg_live.call_next_short" class="btn-primary" onclick="bgCall()">Call next</button>
+    <button data-i18n="lq_live.join_code" class="btn-outline" onclick="openQRFullscreen('bg')">&#9783; Join code</button>
+  </div>
+  <div class="top-nav wide proj-hide" style="max-width:1140px;">
+    <span class="nav-l">
+      <span class="badge live live-dot"><i></i>BINGO &middot; <b id="bg-live-code"></b></span>
+    </span>
+    <span class="nav-r">
+      <a data-i18n="lq_live.project" class="linklike" onclick="bgToggleProject(true)">Project</a>
+      <a data-i18n="bg_live.end_game" class="linklike" onclick="bgEnd()">End game</a>
+    </span>
+  </div>
+  <div class="poll-wrap">
+    <div class="poll-banner">
+      <span data-i18n="bg_live.bingo" class="lbl">Bingo</span>
+      <h2 id="bg-title">&mdash;</h2>
+    </div>
+
+    <div class="card center proj-hide" id="bg-lobby">
+      <div data-i18n="lq_live.scan_join" class="step-label" style="margin-bottom:14px;">Scan to join</div>
+      <div id="bg-qr" style="display:flex;justify-content:center;cursor:zoom-in;" onclick="openQRFullscreen('bg')"></div>
+      <p class="join-code" id="bg-join-code"></p>
+      <div class="lobby-count"><b id="bg-lobby-count">0</b><span id="bg-lobby-count-label">students connected</span></div>
+      <div class="row">
+        <button data-i18n="lq_live.copy_join_link" class="btn-outline btn-mini" style="font-size:.8rem;letter-spacing:0;" onclick="copyBgJoinLink()">Copy join link</button>
+      </div>
+      <div id="bg-lobby-roster" style="margin-top:12px;text-align:left;"></div>
+      <button data-i18n="bg_live.start_bingo" class="btn-primary" style="width:100%;margin-top:14px;" onclick="bgBegin()">&#9654; Start Bingo</button>
+    </div>
+
+    <div class="poll-stage" id="bg-stage">
+      <div class="poll-meta">
+        <span class="badge" id="bg-callno">Call 0 / 0</span>
+        <span class="badge" id="bg-timer" style="display:none;"></span>
+        <span class="badge" id="bg-left"></span>
+      </div>
+      <div class="bg-call">
+        <p class="lq-answer-big" id="bg-call-big">&mdash;</p>
+        <p class="bg-call-word" id="bg-call-word" style="display:none;"></p>
+      </div>
+      <div id="bg-called" class="bg-called" style="display:none;"></div>
+      <div class="bg-winners-wrap">
+        <p data-i18n="bg_live.full_cards" class="lq-answer-label">Full cards</p>
+        <div id="bg-winners"></div>
+      </div>
+    </div>
+
+    <div class="card proj-hide" id="bg-controls" style="margin-top:16px;max-width:1140px;">
+      <div class="btn-row">
+        <button class="btn-primary" id="bg-call-btn" onclick="bgCall()">Call the next word</button>
+        <button data-i18n="bg_live.reveal_word" class="btn-outline" id="bg-reveal-btn" onclick="bgRevealWord()">Show the word</button>
+        <button data-i18n="lq_live.project" class="btn-outline" onclick="bgToggleProject(true)">Project</button>
+        <button data-i18n="bg_live.end_game" class="btn-secondary" onclick="bgEnd()">End game</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BINGO — FINAL -->
+<div class="screen" id="screen-bg-final">
+  <button data-i18n="bg_final.exit_projection_esc" class="btn-outline proj-exit" onclick="bgToggleProject(false)">Exit projection (Esc)</button>
+  <div class="poll-wrap">
+    <div class="top-nav wide proj-hide" style="max-width:1140px;">
+      <span class="nav-l"><span data-i18n="bg_final.game_finished" class="badge">Game finished</span></span>
+      <span class="nav-r">
+        <a data-i18n="lq_final.project" class="linklike" onclick="bgToggleProject(true)">Project</a>
+        <a data-i18n="lq_final.done_back_home" class="linklike" onclick="bgDone()">Done &mdash; back Home</a>
+      </span>
+    </div>
+    <div class="poll-stage on">
+      <h1 class="poll-q" id="bg-final-title" style="margin-bottom:10px;">—</h1>
+      <div id="bg-final-list"></div>
+      <p data-i18n="lq_final.nothing_kept" class="sub proj-hide" style="margin-top:14px;">Nothing is kept — once you leave this board the game is gone.</p>
+    </div>
+    <div class="card proj-hide" style="margin-top:16px;max-width:1140px;">
+      <button data-i18n="lq_final.done" class="btn-primary" style="width:100%;" onclick="bgDone()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT: BINGO CARD -->
+<div class="screen" id="screen-bg-play">
+  <div class="card">
+    <div class="poll-meta">
+      <span class="badge" id="bgs-name" style="display:none;"></span>
+    </div>
+    <h1 id="bgs-head">Your card</h1>
+    <div id="bgs-grid" class="bg-grid"></div>
+    <button class="btn-primary" id="bgs-claim" style="width:100%;margin-top:14px;" onclick="bgClaim()">0 of 9</button>
+    <p id="bgs-status" class="sub" style="margin-top:14px;"></p>
+  </div>
+</div>
+
+<!-- STUDENT: BINGO FINISHED -->
+<div class="screen" id="screen-bg-done">
+  <div class="card center wait-card">
+    <div class="done-tick wait-pop">&#10003;</div>
+    <h1 data-i18n="bg_done.thats_bingo" class="wait-pop wait-d1">That's bingo</h1>
+    <div id="bgs-final" class="wait-pop wait-d1"></div>
+    <p data-i18n="lq_done.put_phone_away" class="sub wait-pop wait-d2" style="margin-top:14px;font-weight:700;">You can put your phone away.</p>
+  </div>
+</div>
+
 <!-- STUDENT JOIN -->
 <!-- REMOVED FROM THE ROOM -->
 <!-- A teacher can remove a student from a lobby. Their phone says so rather than freezing on a
@@ -1090,40 +1261,42 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.31"></script>
-<script src="lang/fr.js?v=3.31"></script>
-<script src="core/i18n.js?v=3.31"></script>
-<script src="core/registry.js?v=3.31"></script>
-<script src="core/backend.js?v=3.31"></script>
-<script src="core/auth.js?v=3.31"></script>
-<script src="core/ui.js?v=3.31"></script>
-<script src="core/session.js?v=3.31"></script>
-<script src="core/groups.js?v=3.31"></script>
+<script src="lang/en.js?v=3.32"></script>
+<script src="lang/fr.js?v=3.32"></script>
+<script src="core/i18n.js?v=3.32"></script>
+<script src="core/registry.js?v=3.32"></script>
+<script src="core/backend.js?v=3.32"></script>
+<script src="core/auth.js?v=3.32"></script>
+<script src="core/ui.js?v=3.32"></script>
+<script src="core/session.js?v=3.32"></script>
+<script src="core/groups.js?v=3.32"></script>
 <!-- after groups.js: the allocator uses nameIsTaken and uniqueFirstName from it -->
-<script src="core/pseudonyms.js?v=3.31"></script>
-<script src="core/rounds.js?v=3.31"></script>
-<script src="core/bank.js?v=3.31"></script>
+<script src="core/pseudonyms.js?v=3.32"></script>
+<script src="core/rounds.js?v=3.32"></script>
+<script src="core/bank.js?v=3.32"></script>
 <!-- after bank.js: qzScored asks isPollType which questions are worth points -->
-<script src="core/quizscore.js?v=3.31"></script>
-<script src="core/media.js?v=3.31"></script>
-<script src="core/security.js?v=3.31"></script>
-<script src="core/answers.js?v=3.31"></script>
-<script src="modules/test.js?v=3.31"></script>
-<script src="modules/poll.js?v=3.31"></script>
-<script src="modules/quizlive.js?v=3.31"></script>
-<script src="modules/roleplay.js?v=3.31"></script>
-<script src="modules/describeit.js?v=3.31"></script>
-<script src="modules/twentyq.js?v=3.31"></script>
-<script src="modules/partners.js?v=3.31"></script>
-<script src="admin/editor.js?v=3.31"></script>
-<script src="admin/import.js?v=3.31"></script>
-<script src="admin/reports.js?v=3.31"></script>
-<script src="admin/scenarios.js?v=3.31"></script>
-<script src="admin/terms.js?v=3.31"></script>
-<script src="admin/subjects.js?v=3.31"></script>
-<script src="admin/collocations.js?v=3.31"></script>
-<script src="admin/accounts.js?v=3.31"></script>
-<script src="boot.js?v=3.31"></script>
+<script src="core/quizscore.js?v=3.32"></script>
+<script src="core/bingocard.js?v=3.32"></script>
+<script src="core/media.js?v=3.32"></script>
+<script src="core/security.js?v=3.32"></script>
+<script src="core/answers.js?v=3.32"></script>
+<script src="modules/test.js?v=3.32"></script>
+<script src="modules/poll.js?v=3.32"></script>
+<script src="modules/quizlive.js?v=3.32"></script>
+<script src="modules/bingo.js?v=3.32"></script>
+<script src="modules/roleplay.js?v=3.32"></script>
+<script src="modules/describeit.js?v=3.32"></script>
+<script src="modules/twentyq.js?v=3.32"></script>
+<script src="modules/partners.js?v=3.32"></script>
+<script src="admin/editor.js?v=3.32"></script>
+<script src="admin/import.js?v=3.32"></script>
+<script src="admin/reports.js?v=3.32"></script>
+<script src="admin/scenarios.js?v=3.32"></script>
+<script src="admin/terms.js?v=3.32"></script>
+<script src="admin/subjects.js?v=3.32"></script>
+<script src="admin/collocations.js?v=3.32"></script>
+<script src="admin/accounts.js?v=3.32"></script>
+<script src="boot.js?v=3.32"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
