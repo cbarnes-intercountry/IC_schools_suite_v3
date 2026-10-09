@@ -146,26 +146,67 @@ function bingoCallText(item, strong){
   return String(item.word || "");
 }
 
-/* A set from the bank, read as a word list. The ANSWER is what goes on the card; the QUESTION
-   is what gets read out in the strong version — which is why a short-answer set written for a
-   test plays as bingo with nothing added to it.
+/* ---------------------------------------------------------------------------
+   READING A LIST, AND FILLING ONE FROM THE BANKS THAT ALREADY EXIST
 
-   Anything without a usable one-or-two-word answer is left out rather than put on a card it
-   will not fit: a card cell holds a word, not a sentence. */
-function bingoWords(questions){
+   v3.32 had bingo read the quiz bank directly — the answer became the word, the question the
+   clue. It worked, and it was the wrong call: the launcher then offered the teacher a list of
+   their TESTS to play bingo with, and there was nowhere to build an actual word list. A game
+   with no bank of its own is a game nobody can prepare.
+
+   So bingo has its own kind, like every other game, and its own editor. What it keeps from
+   the old idea is the useful half: a new list can be FILLED FROM any bank already in the
+   library, so the words are typed once and played in several games.
+   --------------------------------------------------------------------------- */
+
+/* A saved bingo list, normalised. Anything without a usable one-or-two-word entry is left out
+   rather than put on a card it will not fit: a cell holds a word, not a sentence. */
+function bingoWords(items){
   const out = [], seen = {};
-  (questions || []).forEach(q => {
-    if(!q || isPollType(q.type)) return;
-    const raw = Array.isArray(q.correct) ? q.correct[0] : q.correct;
-    const word = String(raw === undefined || raw === null ? "" : raw).trim();
+  (items || []).forEach(it => {
+    if(!it) return;
+    const word = String(it.word === undefined || it.word === null ? "" : it.word).trim();
     if(!word) return;
     if(word.split(/\s+/).length > 3) return;          // too long for a cell
     const key = word.toLowerCase();
     if(seen[key]) return;                              // a word can only be on a card once
     seen[key] = true;
-    out.push({ word: word, clue: String(q.text || "").trim() });
+    out.push({ word: word, clue: String(it.clue || "").trim(), theme: String(it.theme || "").trim() });
   });
   return out;
+}
+
+/* The same list, pulled out of some OTHER game's pack. Each bank already holds a word and,
+   usually, something that can be read out about it — so the import is a translation, not a
+   retyping, and the teacher fixes the clues rather than inventing them.
+
+     describeit  a term, and nothing to read out but the term itself
+     twentyq     a subject, and its one hint — which is already written to re-open a question
+     partners    a head word, and the partners that go with it: "meet, miss, set" is a
+                 perfectly good thing to read out for "deadline"
+     quiz /      a short answer, and the question that asks for it — the closest fit there is,
+     livequiz    and the reason v3.32 reached for this bank in the first place
+     bingo       another list, copied
+
+   Clues are offered, never imposed: everything comes back editable, and a clue that reads
+   badly out loud is the author's to fix before the lesson. */
+function bingoImportFrom(kind, items){
+  const rows = [];
+  (items || []).forEach(it => {
+    if(!it) return;
+    if(kind === "describeit")      rows.push({ word: it.term, clue: "", theme: it.theme });
+    else if(kind === "twentyq")    rows.push({ word: it.subject, clue: it.hint, theme: it.theme });
+    else if(kind === "partners")   rows.push({ word: it.head,
+                                               clue: (it.partners || []).join(", "), theme: it.theme });
+    else if(kind === "bingo")      rows.push({ word: it.word, clue: it.clue, theme: it.theme });
+    else {
+      // A quiz or quiz-game set: the answer is the word, the question is the clue.
+      if(isPollType(it.type)) return;
+      const raw = Array.isArray(it.correct) ? it.correct[0] : it.correct;
+      rows.push({ word: raw, clue: it.text, theme: "" });
+    }
+  });
+  return bingoWords(rows);
 }
 
 /* How long this will take, so the setup screen can say so rather than leaving the teacher to

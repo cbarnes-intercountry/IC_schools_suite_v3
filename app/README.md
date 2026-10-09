@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.32
+# Classroom Exam App — v3.32.1
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -933,3 +933,43 @@ In the definitions version the word itself sits blurred under its clue, so a stu
 it from the front rather than from the next desk.
 
 Pseudonyms, like the quiz. The name exists only so a winner can be read out.
+
+---
+
+## v3.32.1 — bingo gets a bank of its own
+
+**The bug.** v3.32 shipped the game without a builder. It read the quiz bank directly — the
+answer became the word, the question the clue — which ran, but meant the launcher offered a
+teacher their **tests** to play bingo with, and there was nowhere to write a word list at all.
+A game with no bank of its own is a game nobody can prepare.
+
+**Admin → Word Lists · Bingo.** A list is words, each with the clue you read out, filed by set
+like every other pack (`kind:"bingo"`, same library, no backend change). The launcher now
+offers bingo lists and nothing else, and there is no school step — these packs are filed by
+area, as the other games' packs are.
+
+**It keeps the useful half of the old idea: fill a list from a pack you already have.** One
+control, and the words come across translated rather than retyped:
+
+| from | the word | the clue |
+|---|---|---|
+| Describe It | the term | — |
+| Twenty Questions | the subject | its hint (already written to re-open a question) |
+| Word Partners | the head word | its partners — "meet, miss, set" for *deadline* |
+| a test / quiz game | the short answer | the question |
+| another bingo list | copied | copied |
+
+Importing **adds**, never replaces — building one list out of two packs is the ordinary case,
+and a wipe would cost the clues just written. Words already on the list are not added twice,
+and a list is never offered as a source of itself. Everything arrives through the same rules a
+typed word meets, so an import cannot slip a sentence onto a card.
+
+**The editor checks what a bingo list needs**, and says so on save without refusing it (a list
+is written over several sittings):
+
+- a **clue containing its own word** — the easiest mistake there is, because the obvious clue
+  for a word is a sentence about the word using the word, and in the definitions version that
+  reads the answer out with the question;
+- duplicates, entries too long for a cell, and words with no clue;
+- **how many more words** are needed, shown live while the list is written rather than when
+  the game refuses to start.

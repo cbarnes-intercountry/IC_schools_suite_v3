@@ -60,20 +60,30 @@ async function bgCreateSession(){
   showScreen("screen-bg-setup");
 }
 
+/* Bingo's OWN lists and nothing else.
+
+   v3.32 offered every non-poll set in the library, which put a teacher's TESTS in the
+   launcher — pick one and you were playing bingo with an exam. A word list is written in
+   Admin → Word Lists · Bingo, and like every other game's pack it is filed by area
+   rather than by school, so there is no school step here either. */
 async function bgLoadSetList(){
+  const sel=document.getElementById("bg-set-select");
+  if(sel) sel.innerHTML = '<option value="">'+t("bg.select_list", "\u2014 select a word list \u2014")+'</option>';
   try{
-    const [qs, ss] = await Promise.all([Backend.listQuizzes(), Backend.listSchools()]);
-    /* Any marked-up set will do — a test bank or a quiz-game bank. Bingo needs words with
-       clues, which is exactly what a short-answer question already is, so there is no fourth
-       content type to build and nothing for a teacher to learn. */
-    BG.sets = (qs.quizzes||[]).filter(q=>q.kind!=="poll");
-    const sel=document.getElementById("bg-school-select");
-    sel.innerHTML = '<option value="">'+t("lq.select_school", '— select a school —')+'</option>';
-    (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); });
-    document.getElementById("bg-set-select").innerHTML =
-      '<option value="">'+t("lq.select_school_first", '— select a school first —')+'</option>';
+    const qs = await Backend.listQuizzes();
+    BG.sets = (qs.quizzes||[]).filter(q=>q.kind==="bingo").sort((a,b)=>a.name.localeCompare(b.name));
+    const hint=document.getElementById("bg-none-hint");
+    if(hint) hint.style.display = BG.sets.length ? "none" : "block";
+    if(!sel) return;
+    BG.sets.forEach(q=>{
+      const o=document.createElement("option"); o.value=q.key;
+      o.textContent=q.name+" ("+t("bg.n_words_paren", "{count} {words}",
+        { count:q.count, words: plural(q.count, t("bg.word", "word"), t("bg.words", "words")) })+")";
+      sel.appendChild(o);
+    });
   }catch(e){ console.warn(e); }
 }
+
 
 function bgResetStep2(){
   const st=document.getElementById("bg-set-status");
@@ -84,29 +94,10 @@ function bgResetStep2(){
 
 function bgSetPicked(){ BG.words=[]; bgResetStep2(); }
 
-function filterBgSets(){
-  const school=document.getElementById("bg-school-select").value;
-  const sel=document.getElementById("bg-set-select");
-  BG.words=[]; BG.school=school;
-  bgResetStep2();
-  sel.innerHTML='<option value="">'+t("bg.select_list", '— select a word list —')+'</option>';
-  const hint=document.getElementById("bg-none-hint");
-  if(hint) hint.style.display="none";
-  if(!school) return;
-  const mine=BG.sets.filter(q=>(q.schools||[]).includes(school)).sort((a,b)=>a.name.localeCompare(b.name));
-  if(mine.length===0){ if(hint) hint.style.display="block"; return; }
-  mine.forEach(q=>{
-    const o=document.createElement("option"); o.value=q.key;
-    o.textContent=q.name+" ("+t("poll.n_questions", "{count} {questions}",
-      { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })+")";
-    sel.appendChild(o);
-  });
-}
-
 async function loadBgSet(){
   const key=document.getElementById("bg-set-select").value;
   const status=document.getElementById("bg-set-status");
-  if(!key){ alert(t("bg.pick_school_list_first", "Pick a school and a word list first.")); return; }
+  if(!key){ alert(t("bg.pick_list_first", "Pick a word list first.")); return; }
   try{
     const set=await Backend.getQuiz(key);
     if(!set){ alert(t("bg.list_could_found", "That word list could not be found.")); return; }
@@ -125,7 +116,6 @@ async function loadBgSet(){
     }
     BG.words=words;
     BG.name=set.name||t("bg.word_list", "Word list");
-    BG.school=document.getElementById("bg-school-select").value || quizSchools(set)[0] || "";
     const withClues=words.filter(w=>w.clue).length;
     status.textContent=t("bg.selected_n", "✓ Selected — {count} {words}, {clues} with a clue.",
       { count:words.length,

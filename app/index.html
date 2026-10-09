@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.32">
+<link rel="stylesheet" href="styles/app.css?v=3.32.1">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -130,6 +130,16 @@
           <button data-i18n="admin.delete" class="btn-outline" onclick="deleteSubjectSet()" data-owner-only>Delete</button>
         </div>
         <button data-i18n="admin.create_new_area" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newSubjectSet()">+ Create a New Area</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2 data-i18n="admin.bingo_word_creator">Word Lists &middot; Bingo</h2>
+        <p data-i18n="admin.words_for_bingo" class="sub">Words for Bingo, each with the clue you read out. A list needs at least 19 &mdash; nine go on every card, and a list barely bigger than the card is over in a minute. You can fill one from any pack you already have.</p>
+        <select id="bgw-library-select"><option data-i18n="admin.opt.select_saved_list" value="">&mdash; select a saved list &mdash;</option></select>
+        <div class="btn-row">
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadBingoSet()">Load / Edit</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteBingoSet()" data-owner-only>Delete</button>
+        </div>
+        <button data-i18n="admin.create_new_word_list" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newBingoSet()">+ Create a New Word List</button>
       </div>
       <div class="card" style="margin-top:16px;">
         <h2 data-i18n="admin.collocation_creator">Partner Sets &middot; Word Partners</h2>
@@ -950,12 +960,11 @@
   <div class="card">
     <div data-i18n="bg_setup.step_1_choose" class="step-label">Step 1 &middot; Choose a word list</div>
     <div class="sel-row">
-      <select id="bg-school-select" onchange="filterBgSets()"><option data-i18n="lq.select_school" value="">— select a school —</option></select>
       <select id="bg-set-select" onchange="bgSetPicked()"><option data-i18n="bg.select_list" value="">— select a word list —</option></select>
     </div>
     <button data-i18n="bg_setup.select_list" class="btn-primary" id="bg-select-btn" style="width:100%;" onclick="loadBgSet()">Select this list</button>
     <p class="picked" id="bg-set-status" style="display:none;"></p>
-    <small data-i18n="bg_setup.none_hint" class="hint" id="bg-none-hint" style="display:none;">No lists for this school yet. Any quiz or quiz-game set works: the answer goes on the card, the question is what you read out.</small>
+    <small data-i18n="bg_setup.none_hint" class="hint" id="bg-none-hint" style="display:none;">No word lists yet. Build one in Admin &rarr; Word Lists &middot; Bingo &mdash; you can fill it from any pack you already have.</small>
   </div>
   <div class="card" id="bg-step2" style="display:none;">
     <div data-i18n="bg_setup.step_2_settings" class="step-label">Step 2 &middot; Settings</div>
@@ -1261,42 +1270,43 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.32"></script>
-<script src="lang/fr.js?v=3.32"></script>
-<script src="core/i18n.js?v=3.32"></script>
-<script src="core/registry.js?v=3.32"></script>
-<script src="core/backend.js?v=3.32"></script>
-<script src="core/auth.js?v=3.32"></script>
-<script src="core/ui.js?v=3.32"></script>
-<script src="core/session.js?v=3.32"></script>
-<script src="core/groups.js?v=3.32"></script>
+<script src="lang/en.js?v=3.32.1"></script>
+<script src="lang/fr.js?v=3.32.1"></script>
+<script src="core/i18n.js?v=3.32.1"></script>
+<script src="core/registry.js?v=3.32.1"></script>
+<script src="core/backend.js?v=3.32.1"></script>
+<script src="core/auth.js?v=3.32.1"></script>
+<script src="core/ui.js?v=3.32.1"></script>
+<script src="core/session.js?v=3.32.1"></script>
+<script src="core/groups.js?v=3.32.1"></script>
 <!-- after groups.js: the allocator uses nameIsTaken and uniqueFirstName from it -->
-<script src="core/pseudonyms.js?v=3.32"></script>
-<script src="core/rounds.js?v=3.32"></script>
-<script src="core/bank.js?v=3.32"></script>
+<script src="core/pseudonyms.js?v=3.32.1"></script>
+<script src="core/rounds.js?v=3.32.1"></script>
+<script src="core/bank.js?v=3.32.1"></script>
 <!-- after bank.js: qzScored asks isPollType which questions are worth points -->
-<script src="core/quizscore.js?v=3.32"></script>
-<script src="core/bingocard.js?v=3.32"></script>
-<script src="core/media.js?v=3.32"></script>
-<script src="core/security.js?v=3.32"></script>
-<script src="core/answers.js?v=3.32"></script>
-<script src="modules/test.js?v=3.32"></script>
-<script src="modules/poll.js?v=3.32"></script>
-<script src="modules/quizlive.js?v=3.32"></script>
-<script src="modules/bingo.js?v=3.32"></script>
-<script src="modules/roleplay.js?v=3.32"></script>
-<script src="modules/describeit.js?v=3.32"></script>
-<script src="modules/twentyq.js?v=3.32"></script>
-<script src="modules/partners.js?v=3.32"></script>
-<script src="admin/editor.js?v=3.32"></script>
-<script src="admin/import.js?v=3.32"></script>
-<script src="admin/reports.js?v=3.32"></script>
-<script src="admin/scenarios.js?v=3.32"></script>
-<script src="admin/terms.js?v=3.32"></script>
-<script src="admin/subjects.js?v=3.32"></script>
-<script src="admin/collocations.js?v=3.32"></script>
-<script src="admin/accounts.js?v=3.32"></script>
-<script src="boot.js?v=3.32"></script>
+<script src="core/quizscore.js?v=3.32.1"></script>
+<script src="core/bingocard.js?v=3.32.1"></script>
+<script src="core/media.js?v=3.32.1"></script>
+<script src="core/security.js?v=3.32.1"></script>
+<script src="core/answers.js?v=3.32.1"></script>
+<script src="modules/test.js?v=3.32.1"></script>
+<script src="modules/poll.js?v=3.32.1"></script>
+<script src="modules/quizlive.js?v=3.32.1"></script>
+<script src="modules/bingo.js?v=3.32.1"></script>
+<script src="modules/roleplay.js?v=3.32.1"></script>
+<script src="modules/describeit.js?v=3.32.1"></script>
+<script src="modules/twentyq.js?v=3.32.1"></script>
+<script src="modules/partners.js?v=3.32.1"></script>
+<script src="admin/editor.js?v=3.32.1"></script>
+<script src="admin/import.js?v=3.32.1"></script>
+<script src="admin/reports.js?v=3.32.1"></script>
+<script src="admin/scenarios.js?v=3.32.1"></script>
+<script src="admin/terms.js?v=3.32.1"></script>
+<script src="admin/subjects.js?v=3.32.1"></script>
+<script src="admin/collocations.js?v=3.32.1"></script>
+<script src="admin/bingowords.js?v=3.32.1"></script>
+<script src="admin/accounts.js?v=3.32.1"></script>
+<script src="boot.js?v=3.32.1"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -2201,6 +2211,48 @@
       <p data-i18n="tq_editor.subjects_hint" class="sub">The secret, the category the asker is told before their first question, and one hint. The hint must not contain the subject &mdash; it is there to re-open the question, not to answer it, and the editor says so when you save. Rename a set once and every subject in it follows; the dropdown moves one to another set.</p>
       <p id="tq-theme-summary" class="sub" style="font-size:.82rem;"></p>
       <div id="tq-subject-list" class="di-term-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BINGO — the word list editor (v3.32.1) -->
+<div class="screen" id="screen-bg-editor">
+  <div class="top-nav wide">
+    <span data-i18n="bgw_editor.admin_word_lists" class="badge">Admin &middot; Bingo Word Lists</span>
+    <a data-i18n="rp_editor.back" class="linklike" onclick="leaveBingoEditor()">&larr; Back</a>
+  </div>
+  <div class="duo">
+    <div class="card">
+      <h2 data-i18n="bgw_editor.this_list">This list</h2>
+      <label data-i18n="rp_editor.name">Name</label>
+      <input data-i18n-ph="bgw_editor.ph.list_name" type="text" id="bg-set-name" placeholder="e.g. Insurance basics">
+      <label data-i18n="tq_editor.language" style="margin-top:12px;">Language</label>
+      <select id="bgw-set-lang" onchange="setBingoWordsLang()">
+        <option data-i18n="di_editor.opt.english" value="en">English</option>
+        <option data-i18n="di_editor.opt.french" value="fr">Français</option>
+      </select>
+
+      <!-- The point of this screen: the words exist already, in some other game's pack. -->
+      <label data-i18n="bgw_editor.fill_from" style="margin-top:16px;">Fill from a pack you already have</label>
+      <select id="bgw-import-select"><option data-i18n="bgw.select_a_pack" value="">&mdash; take words from &mdash;</option></select>
+      <button data-i18n="bgw_editor.add_these_words" class="btn-outline" style="width:100%;margin-top:8px;" onclick="importBingoWords()">Add these words</button>
+      <small data-i18n="bgw_editor.fill_from_hint" class="hint">Words come across with whatever clue that pack had &mdash; a Twenty Questions hint, the partners of a collocation, a test question. Read them before the lesson: they were written for another game.</small>
+
+      <div class="btn-row" style="margin-top:14px;">
+        <button data-i18n="bgw_editor.add_word" class="btn-outline" onclick="addBingoWord()">+ Word</button>
+        <button data-i18n="tq_editor.add_set" class="btn-outline" onclick="addBingoWordTo('')">+ Set</button>
+      </div>
+      <button data-i18n="bgw_editor.save_list" class="btn-primary" style="width:100%;margin-top:14px;" onclick="saveBingoSet()">Save List</button>
+      <p data-i18n="tq_editor.nothing_kept_until_save" class="sub" style="font-size:.78rem;margin-top:8px;">Nothing is kept until you press Save.</p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h2 data-i18n="bgw_editor.words" style="flex:1;">Words</h2>
+        <span class="badge" id="bgw-count"></span>
+      </div>
+      <p data-i18n="bgw_editor.words_hint" class="sub">The word goes on the card; the clue is what you read out in the definitions version. A clue must not contain its own word &mdash; that reads the answer out with the question, and the editor says so when you save. Leave a clue blank and that word is called as itself.</p>
+      <div id="bgw-word-list" class="di-term-list"></div>
     </div>
   </div>
 </div>
