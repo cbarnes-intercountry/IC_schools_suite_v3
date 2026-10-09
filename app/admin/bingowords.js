@@ -34,7 +34,10 @@ function bwAreDirty(){
   return isScreenActive("screen-bg-editor") && bwFingerprint() !== BWORDS.clean;
 }
 
-function blankBingoWord(){ return { id:"bw_"+uid(6), word:"", clue:"",
+/* TWO clues per word, not one (v3.33): a short definition and a gapped sentence. The teacher
+   picks which is called when they launch, so the same list plays as a warm-up, as a
+   definitions exercise, or as the harder contextual one — see core/bingocard.js. */
+function blankBingoWord(){ return { id:"bw_"+uid(6), word:"", definition:"", gap:"",
                                     theme:BWORDS.lastTheme||"", lang:BWORDS.lang||"en" }; }
 
 async function newBingoSet(){
@@ -180,7 +183,9 @@ function renderBingoWordList(){
       '</div>';
     rows.forEach((i,k)=>{
       const w=BWORDS.list[i];
-      const thin=!String(w.clue||"").trim();
+      const def=String(w.definition||w.clue||"").trim();
+      const gap=String(w.gap||"").trim();
+      const thin=!def && !gap;
       html += '<div class="di-termrow'+(thin?" di-termrow-thin":"")+'">'+
         '<div class="di-termrow-top">'+
           '<span class="qrow-no">'+(k+1)+'</span>'+
@@ -197,9 +202,14 @@ function renderBingoWordList(){
             'title="'+escapeHtml(t("bgw.ti.remove", "Remove this word"))+'">×</button>'+
         '</div>'+
         '<div class="di-termrow-forbid">'+
-          '<input type="text" class="tq-hint-in" value="'+escapeHtml(w.clue||"")+'" '+
-            'placeholder="'+escapeHtml(t("bgw.ph.clue", "what you read out — a definition, or a sentence with a gap"))+'" '+
-            'oninput="setBingoWordField('+i+',\'clue\',this.value)">'+
+          '<input type="text" class="tq-hint-in" value="'+escapeHtml(def)+'" '+
+            'placeholder="'+escapeHtml(t("bgw.ph.definition", "a short definition \u2014 what you read out"))+'" '+
+            'oninput="setBingoWordField('+i+',\'definition\',this.value)">'+
+        '</div>'+
+        '<div class="di-termrow-forbid">'+
+          '<input type="text" class="tq-hint-in" value="'+escapeHtml(gap)+'" '+
+            'placeholder="'+escapeHtml(t("bgw.ph.gap", "a sentence with ___ where the word goes"))+'" '+
+            'oninput="setBingoWordField('+i+',\'gap\',this.value)">'+
         '</div>'+
       '</div>';
     });
@@ -213,19 +223,25 @@ function renderBingoWordList(){
 function bwPaintCount(){
   const el=document.getElementById("bgw-count");
   if(!el) return;
-  const good=bingoWords(BWORDS.list).length;
+  const rows=bingoWords(BWORDS.list);
+  const good=rows.length;
   const short=BINGO_MIN_WORDS-good;
-  el.textContent = short>0
+  const defs=bingoModeCount(rows, "definition"), gaps=bingoModeCount(rows, "gap");
+  el.textContent = (short>0
     ? t("bgw.n_words_need_more", "{count} usable — {short} more for a game of bingo.",
         { count:good, short:short })
-    : t("bgw.n_words_enough", "{count} usable — enough for bingo.", { count:good });
+    : t("bgw.n_words_enough", "{count} usable — enough for bingo.", { count:good }))
+    + " " + t("bgw.n_defs_n_gaps", "{defs} with a definition, {gaps} with a gapped sentence.",
+              { defs:defs, gaps:gaps });
   el.className = "hint" + (short>0 ? " warn" : "");
 }
 
 function setBingoWordField(i, field, value){
   const w=BWORDS.list[i]; if(!w) return;
   w[field]=value;
-  if(field==="word") bwPaintCount();
+  /* Any of the three changes what the count can say — the usable total for the word, and
+     which modes the list can be played in for the clues. */
+  bwPaintCount();
 }
 
 function renameBingoSetName(oldName, newName){
@@ -297,13 +313,6 @@ function setBingoWordsLang(){
    is also the easiest mistake to make, because the obvious clue for a word is usually a
    sentence about the word using the word. Same rule as the Twenty Questions hint check, for
    the same reason. */
-const BGW_STOP = "a an the of to it is in on and or you your they their with for one at".split(" ");
-
-function bwWordsOf(text){
-  const m=String(text||"").toLowerCase().match(/[a-z]+/g);
-  return m ? m.filter(w=>w.length>2 && BGW_STOP.indexOf(w)<0) : [];
-}
-
 function bingoListProblems(list){
   const out=[];
   const seen={};
@@ -312,18 +321,35 @@ function bingoListProblems(list){
     const word=String(w.word||"").trim();
     if(!word){ out.push(where+t("bgw.is_empty", "is empty.")); return; }
     if(word.split(/\s+/).length > 3)
-      out.push(where+t("bgw.too_long", "“{word}” is too long for a card cell and will be left out.", {word:word}));
+      out.push(where+t("bgw.too_long", "\u201c{word}\u201d is too long for a card cell and will be left out.", {word:word}));
     const key=word.toLowerCase();
     if(seen[key]) out.push(where+t("bgw.is_a_duplicate",
-      "“{word}” appears twice — only the first will be used.", {word:word}));
+      "\u201c{word}\u201d appears twice \u2014 only the first will be used.", {word:word}));
     seen[key]=true;
-    const clue=String(w.clue||"").trim();
-    if(!clue){
-      out.push(where+t("bgw.no_clue",
-        "no clue, so it can only be called as the word itself."));
-    } else if(bwWordsOf(clue).indexOf(key)>=0 || clue.toLowerCase().indexOf(key)>=0){
-      out.push(where+t("bgw.clue_gives_it_away",
-        "the clue contains “{word}”, which reads the answer out with the question.", {word:word}));
+
+    const def=String(w.definition||w.clue||"").trim();
+    const gap=String(w.gap||"").trim();
+    if(!def && !gap){
+      out.push(where+t("bgw.no_clue", "no clue of either kind, so it can only be called as the word itself."));
+    } else {
+      if(!def) out.push(where+t("bgw.no_definition",
+        "no definition \u2014 a definitions game falls back to its gapped sentence."));
+      if(!gap) out.push(where+t("bgw.no_gap",
+        "no gapped sentence \u2014 a gap game falls back to its definition."));
+    }
+    /* THE GIVEAWAY, checked on both clues. A definition containing its own word reads the
+       answer out with the question; a gapped sentence that still contains the word has not
+       been gapped at all, which is the same mistake made twice as easily. */
+    if(def && bgwGivesAway(def, key))
+      out.push(where+t("bgw.definition_gives_it_away",
+        "the definition contains \u201c{word}\u201d, which reads the answer out with the question.", {word:word}));
+    if(gap){
+      if(bgwGivesAway(gap, key))
+        out.push(where+t("bgw.gap_gives_it_away",
+          "the gapped sentence still contains \u201c{word}\u201d \u2014 it has not been gapped.", {word:word}));
+      if(gap.indexOf("___")<0)
+        out.push(where+t("bgw.gap_has_no_gap",
+          "the gapped sentence has no gap in it \u2014 write ___ where the word goes."));
     }
   });
   const usable=bingoWords(list).length;
@@ -333,6 +359,21 @@ function bingoListProblems(list){
       { count:usable, words: plural(usable, t("bg.word", "word"), t("bg.words", "words")),
         min: BINGO_MIN_WORDS }));
   return out;
+}
+
+/* Does this clue contain the word it is a clue for?
+
+   WORD-BOUNDARY MATCHED, not by substring: "claim" inside "reclaimed" is not the word, and a
+   check that cried wolf there would teach a teacher to ignore it.
+
+   One test, not two. This read `bwWordsOf(clue).indexOf(key) >= 0 ||` before the boundary
+   match, and that first half could never catch anything the second missed — it tokenises on
+   letters, so it sees strictly less. Worse, it saw nothing at all for a two-letter entry or
+   a two-word one, both of which it drops on the way in — and the shipped packs are full of
+   both. A mutation deleting it survived, which is how dead code announces itself. */
+function bgwGivesAway(clue, key){
+  if(!key) return false;
+  return new RegExp("\\b" + key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(clue);
 }
 
 async function saveBingoSet(){
@@ -359,6 +400,45 @@ async function saveBingoSet(){
   await loadQuizList();
   alert(t("bgw.saved", "Saved “")+BWORDS.name+"”.");
   showScreen("screen-admin");
+}
+
+/* ---------- Excel ---------- */
+
+/* Twenty words with two clues each is sixty things to type, so the sheet is the intended way
+   in and this screen is for fixing the two that came out wrong. Same shape as the Describe It
+   and Twenty Questions importers. */
+function importBingoFromExcel(){
+  if(typeof XLSX==="undefined"){ alert(t("scenarios.excel_library_didn_t_load_needs", "Excel library didn't load (needs internet).")); return; }
+  const input=document.createElement("input"); input.type="file"; input.accept=".xlsx,.xls,.csv";
+  input.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:"array"});
+        const name=wb.SheetNames.indexOf("Bingo")>=0?"Bingo":wb.SheetNames[0];
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{defval:""});
+        const { words, errors, lang }=parseBingoRows(rows);
+        if(!words.length){
+          alert(t("bgw.no_words_found", "No words found.\n\n")+(errors.join("\n")||
+            t("bgw.sheet_shape_hint", "The sheet needs a Word column, and a Definition and Gap sentence column beside it.")));
+          return;
+        }
+        /* Added to what is there, not over it — the same rule as importing from another pack,
+           and for the same reason: a list is built out of more than one source. */
+        const onlyBlank = BWORDS.list.every(w=>!String(w.word||"").trim());
+        BWORDS.list = onlyBlank ? words : BWORDS.list.concat(words);
+        BWORDS.lang = lang || BWORDS.lang || "en";
+        renderBingoWordList();
+        alert(t("bgw.imported_n", "Imported {count} {words}, {defs} with a definition and {gaps} with a gapped sentence.",
+          { count:words.length, words: plural(words.length, t("bg.word", "word"), t("bg.words", "words")),
+            defs: bingoModeCount(words, "definition"), gaps: bingoModeCount(words, "gap") })
+          + (errors.length ? "\n\n"+t("scenarios.skipped", "Skipped:")+"\n"+errors.slice(0,8).join("\n") : ""));
+      }catch(err){ alert(t("import.couldn_t_read_file", "Couldn't read that file: ")+err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  input.click();
 }
 
 function leaveBingoEditor(){

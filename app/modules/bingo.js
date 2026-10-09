@@ -35,8 +35,18 @@ const BG_DEFAULT_SEC = 12;     // between automatic calls, when the teacher want
 const BG_MIN_SEC = 4;
 const BG_MAX_SEC = 60;
 
-function bgStrong(meta){ return !!(meta && meta.strong); }
+/* Which of the three ways the words are being called. One question, asked at launch rather
+   than when the list was typed — see core/bingocard.js for why both clues are written. */
+function bgMode(meta){ return bingoMode(meta); }
 function bgShowCalled(meta){ return !!(meta && meta.showCalled); }
+
+/* What to call each mode in a sentence, in the reader's language. A function rather than a
+   table built at load time: a table would hold whatever language the page started in. */
+function bgModeNoun(mode){
+  if(mode==="definition") return t("bg.mode_definition_noun", "definition");
+  if(mode==="gap")        return t("bg.mode_gap_noun", "gapped sentence");
+  return t("bg.mode_word_noun", "word");
+}
 function bgTimed(meta){ return !!(meta && meta.timed); }
 
 function bgCallSec(meta){
@@ -116,11 +126,12 @@ async function loadBgSet(){
     }
     BG.words=words;
     BG.name=set.name||t("bg.word_list", "Word list");
-    const withClues=words.filter(w=>w.clue).length;
-    status.textContent=t("bg.selected_n", "✓ Selected — {count} {words}, {clues} with a clue.",
+    status.textContent=t("bg.selected_n",
+      "✓ Selected — {count} {words}. {defs} have a definition, {gaps} a gapped sentence.",
       { count:words.length,
         words: plural(words.length, t("bg.word", "word"), t("bg.words", "words")),
-        clues:withClues });
+        defs: bingoModeCount(words, "definition"),
+        gaps: bingoModeCount(words, "gap") });
     status.style.display="flex";
     document.getElementById("bg-select-btn").style.display="none";
     document.getElementById("bg-step2").style.display="block";
@@ -143,19 +154,22 @@ function bgPaintEstimate(){
 
 async function bgStartSession(){
   if(BG.words.length < BINGO_MIN_WORDS){ alert(t("bg.choose_list_first", "Choose a word list first.")); return; }
-  const strong = (document.getElementById("bg-mode")||{}).value === "strong";
-  /* A strong game needs clues to call. Letting one start without them would put the teacher
-     in front of a class reading out blanks. */
-  if(strong && BG.words.filter(w=>w.clue).length < BG.words.length){
-    const without = BG.words.length - BG.words.filter(w=>w.clue).length;
-    if(!confirm(t("bg.some_without_clues",
-      "{count} of these {words} have no clue written for them, so those will be called as the word itself.\n\nStart anyway?",
-      { count:without, words: plural(BG.words.length, t("bg.word", "word"), t("bg.words", "words")) }))) return;
+  const mode = (document.getElementById("bg-mode")||{}).value || "word";
+  /* A game played on definitions needs definitions. A word without one still plays — it falls
+     back to its other clue, then to itself — but the teacher should know how many before the
+     class does, not while reading one out. */
+  if(mode!=="word"){
+    const have=bingoModeCount(BG.words, mode);
+    const without=BG.words.length-have;
+    if(without && !confirm(t("bg.some_without_clues",
+      "{count} of these {words} have no {kind} written for them. Those fall back to the other clue, or to the word itself.\n\nStart anyway?",
+      { count:without, words: plural(BG.words.length, t("bg.word", "word"), t("bg.words", "words")),
+        kind: bgModeNoun(mode) }))) return;
   }
   BG.settings={
     kind:"bingo", status:"waiting", title:BG.name||t("bg.word_list", "Word list"),
     school:BG.school||"",
-    strong: strong,
+    callMode: mode,
     showCalled: !!(document.getElementById("bg-show-called")||{}).checked,
     timed: !!(document.getElementById("bg-timed")||{}).checked,
     callSec: Math.max(BG_MIN_SEC, Math.min(BG_MAX_SEC,
@@ -293,19 +307,23 @@ function bgRenderStage(){
   if(pos) pos.textContent=t("bg.call_x_of_y", "Call {n} / {total}", {n:idx, total:order.length});
 
   const big=document.getElementById("bg-call-big");
-  if(big) big.textContent = cur ? bingoCallText(cur, bgStrong(BG.settings)) : "";
-  /* In the strong version the word itself is held back on a second line the teacher can
+  if(big) big.textContent = cur ? bingoCallText(cur, bgMode(BG.settings)) : "";
+  /* When a clue is being read, the word itself is held back on a second line the teacher can
      reveal — so a room that is stuck gets the answer from the front rather than from the
      student next to them. */
   const word=document.getElementById("bg-call-word");
   if(word){
-    const hide = bgStrong(BG.settings) && cur && cur.clue;
+    /* Held back only when the clue being read is not the word itself — otherwise the board
+       would blur the very thing it has just called out. */
+    const hide = bgMode(BG.settings)!=="word" && cur &&
+                 bingoCallText(cur, bgMode(BG.settings)) !== cur.word;
     word.textContent = cur ? cur.word : "";
     word.classList.toggle("hidden-word", !!hide && !BG.showWord);
     word.style.display = cur ? "block" : "none";
   }
   const revealBtn=document.getElementById("bg-reveal-btn");
-  if(revealBtn) revealBtn.style.display = (bgStrong(BG.settings) && cur && cur.clue) ? "" : "none";
+  if(revealBtn) revealBtn.style.display =
+    (bgMode(BG.settings)!=="word" && cur && bingoCallText(cur, bgMode(BG.settings)) !== cur.word) ? "" : "none";
 
   /* The called list: a toggle, because it changes the game. Shown, a student who missed a
      word can catch up and the exercise becomes reading a list; hidden, they had to be
@@ -316,7 +334,7 @@ function bgRenderStage(){
       /* PREVIOUS calls, not including the one on the wall. The first version listed every
          call including the current one, which printed "underwriter" in the history strip
          while its definition was still up with the word itself blurred out — the whole
-         strong version answered by its own catch-up list. The history is what has been and
+         game answered by its own catch-up list. The history is what has been and
          gone; the current call is the thing above it. */
       const past=bingoCalled(order, Math.max(0, idx-1));
       hist.style.display="block";
@@ -484,7 +502,7 @@ function bgRenderStudent(){
   }
 
   /* The grid. Nine buttons, big enough for a thumb, and a tap is allowed on ANY of them: in
-     the strong version working out which word the definition describes IS the exercise, and
+     a clue-called game working out which word the clue describes IS the exercise, and
      an app that only accepted taps on words it had already called would be doing it for
      them. The optimistic tap is checked when the card is claimed. */
   grid.innerHTML=BGSTU.card.map((ix,cell)=>{

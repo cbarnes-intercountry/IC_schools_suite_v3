@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.32.1">
+<link rel="stylesheet" href="styles/app.css?v=3.33">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -971,10 +971,11 @@
 
     <label data-i18n="bg_setup.how_you_call_them" for="bg-mode">How you call them</label>
     <select id="bg-mode">
-      <option data-i18n="bg_setup.mode_strong" value="strong" selected>Definitions — they work out the word</option>
-      <option data-i18n="bg_setup.mode_weak" value="weak">The word itself — they find it</option>
+      <option data-i18n="bg_setup.mode_definition" value="definition" selected>Definitions — they work out the word</option>
+      <option data-i18n="bg_setup.mode_gap" value="gap">Gapped sentences — the word in context</option>
+      <option data-i18n="bg_setup.mode_word" value="word">The word itself — they find it</option>
     </select>
-    <small data-i18n="bg_setup.mode_hint" class="hint">Definitions make it the exercise. The word itself makes it a ninety-second warm-up.</small>
+    <small data-i18n="bg_setup.mode_hint" class="hint">Every word carries both clues, so the same list plays three ways. Gapped sentences are the hardest and the most useful; the word itself is a ninety-second warm-up.</small>
 
     <label class="check" style="margin-top:14px;">
       <input type="checkbox" id="bg-show-called">
@@ -1270,43 +1271,43 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.32.1"></script>
-<script src="lang/fr.js?v=3.32.1"></script>
-<script src="core/i18n.js?v=3.32.1"></script>
-<script src="core/registry.js?v=3.32.1"></script>
-<script src="core/backend.js?v=3.32.1"></script>
-<script src="core/auth.js?v=3.32.1"></script>
-<script src="core/ui.js?v=3.32.1"></script>
-<script src="core/session.js?v=3.32.1"></script>
-<script src="core/groups.js?v=3.32.1"></script>
+<script src="lang/en.js?v=3.33"></script>
+<script src="lang/fr.js?v=3.33"></script>
+<script src="core/i18n.js?v=3.33"></script>
+<script src="core/registry.js?v=3.33"></script>
+<script src="core/backend.js?v=3.33"></script>
+<script src="core/auth.js?v=3.33"></script>
+<script src="core/ui.js?v=3.33"></script>
+<script src="core/session.js?v=3.33"></script>
+<script src="core/groups.js?v=3.33"></script>
 <!-- after groups.js: the allocator uses nameIsTaken and uniqueFirstName from it -->
-<script src="core/pseudonyms.js?v=3.32.1"></script>
-<script src="core/rounds.js?v=3.32.1"></script>
-<script src="core/bank.js?v=3.32.1"></script>
+<script src="core/pseudonyms.js?v=3.33"></script>
+<script src="core/rounds.js?v=3.33"></script>
+<script src="core/bank.js?v=3.33"></script>
 <!-- after bank.js: qzScored asks isPollType which questions are worth points -->
-<script src="core/quizscore.js?v=3.32.1"></script>
-<script src="core/bingocard.js?v=3.32.1"></script>
-<script src="core/media.js?v=3.32.1"></script>
-<script src="core/security.js?v=3.32.1"></script>
-<script src="core/answers.js?v=3.32.1"></script>
-<script src="modules/test.js?v=3.32.1"></script>
-<script src="modules/poll.js?v=3.32.1"></script>
-<script src="modules/quizlive.js?v=3.32.1"></script>
-<script src="modules/bingo.js?v=3.32.1"></script>
-<script src="modules/roleplay.js?v=3.32.1"></script>
-<script src="modules/describeit.js?v=3.32.1"></script>
-<script src="modules/twentyq.js?v=3.32.1"></script>
-<script src="modules/partners.js?v=3.32.1"></script>
-<script src="admin/editor.js?v=3.32.1"></script>
-<script src="admin/import.js?v=3.32.1"></script>
-<script src="admin/reports.js?v=3.32.1"></script>
-<script src="admin/scenarios.js?v=3.32.1"></script>
-<script src="admin/terms.js?v=3.32.1"></script>
-<script src="admin/subjects.js?v=3.32.1"></script>
-<script src="admin/collocations.js?v=3.32.1"></script>
-<script src="admin/bingowords.js?v=3.32.1"></script>
-<script src="admin/accounts.js?v=3.32.1"></script>
-<script src="boot.js?v=3.32.1"></script>
+<script src="core/quizscore.js?v=3.33"></script>
+<script src="core/bingocard.js?v=3.33"></script>
+<script src="core/media.js?v=3.33"></script>
+<script src="core/security.js?v=3.33"></script>
+<script src="core/answers.js?v=3.33"></script>
+<script src="modules/test.js?v=3.33"></script>
+<script src="modules/poll.js?v=3.33"></script>
+<script src="modules/quizlive.js?v=3.33"></script>
+<script src="modules/bingo.js?v=3.33"></script>
+<script src="modules/roleplay.js?v=3.33"></script>
+<script src="modules/describeit.js?v=3.33"></script>
+<script src="modules/twentyq.js?v=3.33"></script>
+<script src="modules/partners.js?v=3.33"></script>
+<script src="admin/editor.js?v=3.33"></script>
+<script src="admin/import.js?v=3.33"></script>
+<script src="admin/reports.js?v=3.33"></script>
+<script src="admin/scenarios.js?v=3.33"></script>
+<script src="admin/terms.js?v=3.33"></script>
+<script src="admin/subjects.js?v=3.33"></script>
+<script src="admin/collocations.js?v=3.33"></script>
+<script src="admin/bingowords.js?v=3.33"></script>
+<script src="admin/accounts.js?v=3.33"></script>
+<script src="boot.js?v=3.33"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -2241,6 +2242,7 @@
       <div class="btn-row" style="margin-top:14px;">
         <button data-i18n="bgw_editor.add_word" class="btn-outline" onclick="addBingoWord()">+ Word</button>
         <button data-i18n="tq_editor.add_set" class="btn-outline" onclick="addBingoWordTo('')">+ Set</button>
+        <button data-i18n="rp_editor.import_excel" class="btn-outline" onclick="importBingoFromExcel()">Import Excel</button>
       </div>
       <button data-i18n="bgw_editor.save_list" class="btn-primary" style="width:100%;margin-top:14px;" onclick="saveBingoSet()">Save List</button>
       <p data-i18n="tq_editor.nothing_kept_until_save" class="sub" style="font-size:.78rem;margin-top:8px;">Nothing is kept until you press Save.</p>
@@ -2251,7 +2253,7 @@
         <h2 data-i18n="bgw_editor.words" style="flex:1;">Words</h2>
         <span class="badge" id="bgw-count"></span>
       </div>
-      <p data-i18n="bgw_editor.words_hint" class="sub">The word goes on the card; the clue is what you read out in the definitions version. A clue must not contain its own word &mdash; that reads the answer out with the question, and the editor says so when you save. Leave a clue blank and that word is called as itself.</p>
+      <p data-i18n="bgw_editor.words_hint" class="sub">The word goes on the card. Beneath it, two clues: a short definition, and a sentence with ___ where the word goes. The teacher picks which to read out when they launch the game, so one list plays three ways. Neither clue may contain its own word &mdash; that reads the answer out with the question, and the editor says so when you save.</p>
       <div id="bgw-word-list" class="di-term-list"></div>
     </div>
   </div>

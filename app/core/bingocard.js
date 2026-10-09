@@ -104,11 +104,67 @@ function bingoCalled(order, callIdx){
 }
 
 /* ---------------------------------------------------------------------------
+   THE THREE WAYS A WORD CAN BE CALLED (v3.33)
+
+   A bingo word carries TWO clues, not one, and the teacher picks which to use when they
+   launch the game:
+
+     word         the word itself      recognition. A warm-up, ninety seconds, nothing more.
+     definition   a short definition   the student works out which of their nine it describes.
+     gap          a gapped sentence    the student meets the word in a context that constrains
+                  it — "We need to ___ the deadline" — which is the harder and more useful of
+                  the two, and the one a collocation deserves.
+
+   WHY BOTH ARE WRITTEN AND THE CHOICE IS MADE AT LAUNCH. The same list serves a Monday
+   warm-up and a Thursday revision hour, and which one a class needs is not known when the
+   words are typed. v3.32 stored one clue and made the decision an author's; the teacher then
+   had to keep two lists of the same vocabulary to get two difficulties out of it.
+
+   A word that has no clue of the chosen kind FALLS BACK rather than calling out a blank: to
+   its other clue if it has one, and to the word itself if it has neither. A half-written list
+   is then a playable game with some easy items in it, instead of a game that stops.
+   --------------------------------------------------------------------------- */
+const BINGO_MODES = ["word", "definition", "gap"];
+
+function bingoMode(meta){
+  const m = (meta || {}).callMode;
+  if(BINGO_MODES.indexOf(m) >= 0) return m;
+  /* Runs created before v3.33 said `strong: true/false` and carried one clue. A strong one
+     was being called by its definition, so that is what it becomes. */
+  return (meta && meta.strong) ? "definition" : "word";
+}
+
+function bingoClueOf(item, mode){
+  if(!item) return "";
+  if(mode === "gap")        return String(item.gap || "").trim();
+  if(mode === "definition") return String(item.definition || item.clue || "").trim();
+  return "";
+}
+
+/* What the room hears for this word, in this mode. */
+function bingoCallText(item, mode){
+  if(!item) return "";
+  const want = bingoClueOf(item, mode);
+  if(want) return want;
+  // Fall back to the other clue before falling back to the word.
+  const other = bingoClueOf(item, mode === "gap" ? "definition" : "gap");
+  if(mode !== "word" && other) return other;
+  return String(item.word || "");
+}
+
+/* How many of a list could actually be called this way, so the setup screen can say
+   "14 of 20 have a gapped sentence" before a teacher picks the mode rather than after. */
+function bingoModeCount(words, mode){
+  if(mode === "word") return (words || []).length;
+  return (words || []).filter(w => bingoClueOf(w, mode)).length;
+}
+
+/* ---------------------------------------------------------------------------
    THE CLAIM, AND WHY IT IS CHECKED RATHER THAN TRUSTED
 
-   A student marks a cell by tapping it, and tapping is ALLOWED ON ANY CELL. It has to be: in
-   the strong version the teacher calls a definition and the student has to work out which of
-   their nine words it describes. If the app only let them tap words that had been called, the
+   A student marks a cell by tapping it, and tapping is ALLOWED ON ANY CELL. It has to be:
+   the teacher calls a clue and the student has to work out which of their nine words it
+   describes. If the app only let them tap words that had been called, the
    app would be doing the comprehension and the game would play itself.
 
    So a full card is a CLAIM, and the claim is verified: every marked cell must name a word
@@ -130,20 +186,6 @@ function bingoVerify(card, marks, called){
   (called || []).forEach(i => { seen[i] = true; });
   const wrong = marked.filter(i => !seen[i]);
   return { full:full, valid: full && wrong.length === 0, wrong:wrong };
-}
-
-/* What a word is called on the board, and what is read out for it.
-
-   The two versions of the game, and the difference is the whole pedagogy. In the WEAK version
-   the teacher reads the word and the student finds it — recognition, which is a warm-up. In
-   the STRONG version the teacher reads a definition or a gapped sentence and the student has
-   to work out which word it describes — which is the exercise. Same list either way, so a set
-   written for one plays as the other. */
-function bingoCallText(item, strong){
-  if(!item) return "";
-  const clue = String(item.clue || "").trim();
-  if(strong && clue) return clue;
-  return String(item.word || "");
 }
 
 /* ---------------------------------------------------------------------------
@@ -171,7 +213,12 @@ function bingoWords(items){
     const key = word.toLowerCase();
     if(seen[key]) return;                              // a word can only be on a card once
     seen[key] = true;
-    out.push({ word: word, clue: String(it.clue || "").trim(), theme: String(it.theme || "").trim() });
+    out.push({ word: word,
+               /* `clue` was the single field up to v3.32.1, and a list saved then still has
+                  it. Read as the definition so those lists keep playing. */
+               definition: String(it.definition || it.clue || "").trim(),
+               gap: String(it.gap || "").trim(),
+               theme: String(it.theme || "").trim() });
   });
   return out;
 }
@@ -180,7 +227,8 @@ function bingoWords(items){
    usually, something that can be read out about it — so the import is a translation, not a
    retyping, and the teacher fixes the clues rather than inventing them.
 
-     describeit  a term, and nothing to read out but the term itself
+     describeit  a term, and nothing to read out but the term itself — the clues are written
+                 here, which is why the shipped Describe It packs now carry a Bingo sheet
      twentyq     a subject, and its one hint — which is already written to re-open a question
      partners    a head word, and the partners that go with it: "meet, miss, set" is a
                  perfectly good thing to read out for "deadline"
@@ -194,16 +242,17 @@ function bingoImportFrom(kind, items){
   const rows = [];
   (items || []).forEach(it => {
     if(!it) return;
-    if(kind === "describeit")      rows.push({ word: it.term, clue: "", theme: it.theme });
-    else if(kind === "twentyq")    rows.push({ word: it.subject, clue: it.hint, theme: it.theme });
+    if(kind === "describeit")      rows.push({ word: it.term, theme: it.theme });
+    else if(kind === "twentyq")    rows.push({ word: it.subject, definition: it.hint, theme: it.theme });
     else if(kind === "partners")   rows.push({ word: it.head,
-                                               clue: (it.partners || []).join(", "), theme: it.theme });
-    else if(kind === "bingo")      rows.push({ word: it.word, clue: it.clue, theme: it.theme });
+                                               definition: (it.partners || []).join(", "), theme: it.theme });
+    else if(kind === "bingo")      rows.push({ word: it.word, definition: it.definition || it.clue,
+                                               gap: it.gap, theme: it.theme });
     else {
       // A quiz or quiz-game set: the answer is the word, the question is the clue.
       if(isPollType(it.type)) return;
       const raw = Array.isArray(it.correct) ? it.correct[0] : it.correct;
-      rows.push({ word: raw, clue: it.text, theme: "" });
+      rows.push({ word: raw, definition: it.text, theme: "" });
     }
   });
   return bingoWords(rows);

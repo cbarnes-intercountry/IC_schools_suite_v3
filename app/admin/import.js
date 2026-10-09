@@ -375,3 +375,44 @@ function parseCollocationRows(rows){
   });
   return { cards:cards, errors:errors, lang:lang };
 }
+
+/* ---------- the Bingo sheet (v3.33) ----------
+
+   One row per word, with BOTH clues: a short definition and a sentence with the word gapped
+   out. The two are the point of the sheet — a bingo list is played three ways and the teacher
+   picks which at launch, so a list written with both covers a warm-up and a revision hour
+   instead of a teacher keeping two lists of the same vocabulary.
+
+   Shaped like parseTermRows and for the same reasons: Set carries down a column so a block of
+   words under one heading does not repeat it, and a problem is REPORTED rather than silently
+   dropping the row — a word that vanishes between the sheet and the list is found in front of
+   a class. */
+function parseBingoRows(rows){
+  const words=[], errors=[], seen={};
+  const get=(row,name)=>{ const key=Object.keys(row).find(k=>k.trim().toLowerCase()===name.toLowerCase()); return key?String(row[key]).trim():""; };
+  const lang=readSheetLang(rows, get, errors);
+  let theme="";
+  (rows||[]).forEach((row,i)=>{
+    const rowNum=i+2;
+    const word=get(row,"Word") || get(row,"Term");
+    const here=get(row,"Set") || get(row,"Theme");
+    const def=get(row,"Definition") || get(row,"Clue");
+    const gap=get(row,"Gap sentence") || get(row,"Gap");
+    if(here) theme=here;
+    if(!word && !def && !gap) return;                              // a spacer row
+    if(!word){ errors.push(t("import.row_no_word", "Row {row}: a clue with no word.", {row:rowNum})); return; }
+    /* A word can only be on a card once, so a duplicate anywhere in the LIST is a problem —
+       unlike a Describe It term, which may legitimately appear in two sets of one area. */
+    const key=word.toLowerCase();
+    if(seen[key]){ errors.push(t("import.row_duplicate_word", "Row {row}: \u201c{word}\u201d is already in this list.", {row:rowNum, word:word})); return; }
+    seen[key]=true;
+    if(word.split(/\s+/).length>3){
+      errors.push(t("import.row_word_too_long", "Row {row}: \u201c{word}\u201d is too long for a card cell.", {row:rowNum, word:word}));
+      return;
+    }
+    if(gap && gap.indexOf("___")<0)
+      errors.push(t("import.row_gap_has_no_gap", "Row {row}: the gap sentence for \u201c{word}\u201d has no ___ in it.", {row:rowNum, word:word}));
+    words.push({ id:"bw_"+uid(6), word:word, definition:def, gap:gap, theme:theme, lang:lang });
+  });
+  return { words:words, errors:errors, lang:lang };
+}

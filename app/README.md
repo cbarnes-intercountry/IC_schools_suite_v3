@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.32.1
+# Classroom Exam App — v3.33
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -973,3 +973,64 @@ is written over several sittings):
 - duplicates, entries too long for a cell, and words with no clue;
 - **how many more words** are needed, shown live while the list is written rather than when
   the game refuses to start.
+
+---
+
+## v3.33 — two clues per word, chosen at launch
+
+**Every bingo word now carries a short definition AND a gapped sentence**, and the teacher
+picks which is read out when they launch the game. The same list plays three ways:
+
+| mode | what the room hears | what it is |
+|---|---|---|
+| the word | *premium* | recognition. A ninety-second warm-up. |
+| definition | *The amount you pay each month or year for cover* | they work out which of their nine it is |
+| gap sentence | *The ___ went up again after two claims* | the word in a context that constrains it — the hardest and most useful |
+
+v3.32 stored one clue and made the choice an author's, so a teacher wanting two difficulties
+out of the same vocabulary had to keep two lists. A word missing the chosen clue **falls
+back** — to its other clue, then to itself — so a half-written list is a playable game with
+some easy items in it rather than a game that stops.
+
+**The editor has two boxes per word**, and checks both on save: neither clue may contain its
+own word (a definition that says it reads the answer out with the question; a "gapped"
+sentence that still contains it has not been gapped), and a gap sentence must actually have
+`___` in it. The count beside the heading says how many of each clue the list has, so you can
+see which modes it can be played in before you launch.
+
+**A Bingo sheet in the import template (v8)**: Set, Word, Definition, Gap sentence, Language.
+Column notes explain what each one is for and what makes a bad clue. Sheets written against
+v3.32's single-clue idea still import — `Term` and `Clue` are read as `Word` and `Definition`.
+
+### The four Describe It areas now ship as bingo lists
+
+**475 words, 950 clues**, filed under the same set names as the Describe It packs — so the
+vocabulary taught on Tuesday is the vocabulary played on Friday.
+
+| file | words | sets |
+|---|---|---|
+| `bingo-business-language-en.xlsx` | 164 | 14 |
+| `bingo-general-english-en.xlsx` | 166 | 14 |
+| `bingo-jobs-and-sectors-en.xlsx` | 98 | 8 |
+| `bingo-french-speaker-traps-en.xlsx` | 47 | 4 |
+
+The rules they were written to, and they are not stylistic:
+
+- **Neither clue contains its own word**, in any inflected form.
+- **A definition is said in one breath.** It is read aloud once to a room, not printed for a
+  student to re-read. Sixteen words is the ceiling.
+- **A gap sentence constrains the word.** "This is a ___" fits forty words and teaches
+  nothing; the sentence has to carry the collocation and the situation.
+- **No clue uses another word from the same set**, since nine of them are on a card together.
+- The *French-speaker traps* clues **distinguish rather than define** — a French speaker
+  already has a meaning for "eventually" and "sensible", and a definition that only gives the
+  English sense leaves the trap untouched.
+
+`packs/check_bingo_clues.py` holds the clue files to those rules and the build refuses to run
+if it has anything to say. The suite then re-checks the shipped rows through **the app's own
+importer and the app's own giveaway test**, so a pack the app would refuse is a failing test
+rather than something found in front of a class.
+
+One term is deliberately left out — *the turn of the century*, five words with no shorter form
+that is still the expression. The omission is recorded with its reason in `bingo_traps.py`
+rather than being a silent loss.
