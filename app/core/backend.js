@@ -88,6 +88,7 @@ const Backend = {
   uid(){ try{ return (firebase.auth().currentUser||{}).uid || null; }catch(e){ return null; } },
   _sess(runId){ return db.ref("sessions/"+runId); },
   _part(runId){ return db.ref("participants/"+runId); },
+  _roster(runId){ return db.ref("roster/"+runId); },
   _now(){ return firebase.database.ServerValue.TIMESTAMP; },
 
   // High-level operations (same names/shape in both modes).
@@ -203,6 +204,41 @@ const Backend = {
     await this._part(runId).child(studentId).remove();
     return {ok:true};
   },
+  /* ---------- the roster index (v3.30.1) ----------
+
+     A node holding NOTHING BUT NAMES: roster/<runId>/<studentId> = "Nimble Salmon".
+
+     It exists because a student cannot read the room. The rules make participants/$runId
+     teacher-only — deliberately, since that record carries answers, scores and the cheat
+     alert log — so every student's listParticipants() came back permission_denied, and
+     existingFirstNames() swallowed it and returned an empty list. The ALLOCATOR that v3.21
+     built to make pseudonym clashes impossible was therefore drawing blind in production,
+     and v3.17's "there is already a Marie in this room" question had never once been able
+     to fire on a student's phone. Both read as "the name on my phone is not the name on the
+     board", which is how it was reported.
+
+     Names only, and that is the whole point of a separate node: a student can see which
+     names are taken without seeing a single answer. A pseudonym is not personal data and a
+     first name is said out loud across the room all lesson, so nothing here is exposed that
+     the room does not already have.
+
+     One entry per student, keyed by their own sign-in id — so a student who rejoins replaces
+     their entry rather than leaving a ghost name reserved behind them. */
+  async rosterNames(runId){
+    await this._ready();
+    const val = (await this._roster(runId).once("value")).val() || {};
+    return { names: Object.keys(val).map(id => ({ studentId:id, name:String(val[id]||"") })) };
+  },
+  async claimName(runId, studentId, name){
+    await this._ready();
+    await this._roster(runId).child(studentId).set(String(name||""));
+    return {ok:true};
+  },
+  async releaseName(runId, studentId){
+    await this._ready();
+    try{ await this._roster(runId).child(studentId).remove(); }catch(e){ console.warn(e); }
+    return {ok:true};
+  },
   async getParticipant(runId, studentId){
     await this._ready();
     return (await this._part(runId).child(studentId).once("value")).val() || null;
@@ -306,6 +342,13 @@ const Backend = {
       for(const sid of Object.keys(val)){ await this._part(runId).child(sid).remove(); }
     }catch(e){ console.warn("participant cleanup:", e); }
     try{ await this._part(runId).remove(); }catch(e){ /* already empty; parent node disappears on its own */ }
+    // The names index goes with the run. Same shape as the participants cleanup above, and
+    // for the same reason: the rules grant write per student, never at the parent.
+    try{
+      const rv=(await this._roster(runId).once("value")).val()||{};
+      for(const sid of Object.keys(rv)){ await this._roster(runId).child(sid).remove(); }
+    }catch(e){ console.warn("roster cleanup:", e); }
+    try{ await this._roster(runId).remove(); }catch(e){ /* already empty */ }
     // Drop the code index entry too, but only if it still points at this run.
     if(code){
       const idxRef = db.ref("codeIndex/"+code);

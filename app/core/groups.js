@@ -410,6 +410,19 @@ async function removeFromLobby(runId, participants, studentId, meta){
     { name:name }))) return false;
   try{ await Backend.removeParticipant(runId, studentId); }
   catch(e){ alert(t("roster.remove_failed", "Couldn't remove them: ")+((e&&e.message)||e)); return false; }
+  /* And give their name back to the room (v3.30.1). A removed student otherwise keeps the
+     room's only "Marie" reserved, and the real Marie joining afterwards is renamed Marie 2
+     by somebody who is not there.
+
+     Here rather than inside Backend.removeParticipant, because this is roster policy and not
+     a database primitive — and because a primitive is the one place the test harness cannot
+     reach: it replaces Backend wholesale, so a rule written in there is checked against the
+     stand-in's copy of itself. The mutation that proved it survived a build where the release
+     was gone.
+
+     After the removal, and not fatal: a name left reserved is untidy, a student left in the
+     room after the teacher removed them is not. */
+  try{ await Backend.releaseName(runId, studentId); }catch(e){ console.warn(e); }
   return true;
 }
 
@@ -457,18 +470,50 @@ function showRemovedScreen(){
    is written down rather than after. Read from the database rather than from any local list: the
    student joining has never seen the others. A failed read returns nothing, which means the
    duplicate goes unresolved — better than refusing to let somebody join because a read blipped. */
+/* Which names are already in use in this room, not counting the asker's own.
+
+   Reads the ROSTER INDEX (v3.30.1), not the participants list. The participants list is
+   teacher-only by design — it carries answers, scores and the cheat log — so from a student's
+   phone this function had been returning an empty list for every caller since the rules were
+   written: `permission_denied`, caught, logged to a console nobody reads, and an empty array
+   handed back as though the room were empty. Every allocator downstream then "allocated"
+   against nothing. See Backend.rosterNames for the node and why names live apart from records.
+
+   The participants list is still the fallback, because a run created before v3.30.1 has no
+   index. On a teacher's device that fallback works; on a student's it is refused and returns
+   nothing, which is the old behaviour and no worse than it was. */
 async function existingFirstNames(runId, exceptId){
+  /* NOT counting the asker's own entry, wherever it is read from. Without this, a student who
+     reloads her phone and rejoins finds "Marie" already taken — by herself — and is renamed
+     Marie 2. On the next reload "Marie" is free again, so she flips back. Her name oscillated
+     on every rejoin, and the teacher's roster flickered with it. Shipped in v3.17, found in
+     v3.18 by probing what actually makes a second record. */
+  const mine = p => !exceptId || p !== exceptId;
+
+  let indexed = null;
+  try{
+    const res=await Backend.rosterNames(runId);
+    indexed = ((res&&res.names)||[])
+      .filter(p=>mine(p.studentId))
+      .map(p=>String(p.name||"").trim()).filter(Boolean);
+  }catch(e){ console.warn("could not read the room's names", e); }
+
+  // Anything in the index is the answer: it is the one source a student is allowed to read.
+  if(indexed && indexed.length) return indexed;
+
+  /* Empty, or refused. Either way try the participant records, because a run created before
+     v3.30.1 has no index at all and on a TEACHER's device that older read still works — an
+     empty index must not make a full room look empty to the person marking it.
+
+     On a student's phone this read is refused by the rules, logs, and returns the empty list
+     that the index already gave. That costs the first student in a room one failed read and
+     nothing else. */
   try{
     const res=await Backend.listParticipants(runId);
     return ((res&&res.participants)||[])
-      /* NOT counting the student's own record. Without this, a student who reloads her phone
-         and rejoins finds "Marie" already taken — by herself — and is renamed Marie 2. On the
-         next reload "Marie" is free again, so she flips back. Her name oscillated on every
-         rejoin, and the teacher's roster flickered with it. Shipped in v3.17, found in v3.18
-         by probing what actually makes a second record. */
-      .filter(p=>!exceptId || p.studentId !== exceptId)
+      .filter(p=>mine(p.studentId))
       .map(p=>String(p.firstName||"").trim()).filter(Boolean);
-  }catch(e){ console.warn("could not read the room's names", e); return []; }
+  }catch(e){ console.warn("could not read the room's names", e); return indexed || []; }
 }
 
 /* Is this name already in the room, held by somebody else?

@@ -787,6 +787,25 @@ async function studentJoin(){
     } else {
       if(!surname || !firstName){ askForName(t("test.this_needs_your_name", "This {what} needs your name.", {what:what})); return; }
     }
+    /* CLAIM IT BEFORE JOINING (v3.30.1). The name was resolved a few lines above against the
+       room as it stood; writing it to the index here is what makes the NEXT student's read
+       see it. Without the claim the index stays empty and the resolution above is reading a
+       room that never fills — which is the shape the bug had, with the read refused instead
+       of the write missing.
+
+       Before act.join rather than after, because the join can take a moment and two phones
+       tapping the code together would otherwise both resolve against the same empty room.
+       It does not close that window completely: two students whose reads both land before
+       either write still collide. With 16,506 pseudonyms that is a few milliseconds of
+       exposure rather than the whole session, and a first name is resolved by asking the
+       student anyway.
+
+       Not fatal if it fails. A refused claim costs the room its guarantee of distinct names;
+       it must not cost this student their place in the game. */
+    if(firstName){
+      try{ await Backend.claimName(session.runId, STUDENT.id, firstName); }
+      catch(e){ console.warn("could not claim the name", e); }
+    }
     await act.join(session, surname, firstName);
     return;
   }

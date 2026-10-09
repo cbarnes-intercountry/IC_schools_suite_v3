@@ -1,4 +1,4 @@
-# Classroom Exam App — v3.30
+# Classroom Exam App — v3.30.1
 
 The app is a folder rather than a single page. v3.0 moved the code without changing it;
 **v3.1 adds role play**, the first activity built against the module contract.
@@ -799,3 +799,42 @@ is accepted here because nothing is kept and no mark follows anybody, and it is 
 separate "answers off the phone" work is scoped to the true test mode.
 
 Nothing is archived. The run is deleted behind the final board.
+
+---
+
+## v3.30.1 — the name on the phone is the name on the board
+
+**The bug Chris reported:** in quiz mode, the pseudonym on a student's phone did not match the
+one on the teacher's screen.
+
+**The cause, and it is older than quiz mode.** v3.21 replaced derived pseudonyms with
+*allocated* ones — read the room, pick a name nobody has — and v3.17 does the same for typed
+first names, asking "is that you, joining again on another phone?" when one is taken. Both
+read the room through `existingFirstNames()`, which reads `participants/<runId>`.
+
+That node is **teacher-only**, correctly: it carries answers, scores and the cheat alert log.
+So on a student's phone the read came back `permission_denied`, was caught, logged to a console
+nobody reads, and returned an empty array. **Every student allocated against an empty room** —
+a blind draw with extra steps. Two students could draw the same pseudonym, and one of them
+would then see their own name sitting against somebody else's score. The duplicate-first-name
+question had never once been able to fire on a student's phone either.
+
+**The fix: a names-only index.** `roster/<runId>/<studentId> = "Nimble Salmon"` — readable by
+any signed-in user, writable only by its owner, capped at 60 characters so it cannot become
+free storage. Names only. Answers, scores and alerts stay exactly where they were, and a
+student still cannot read another student's record. A pseudonym is not personal data, and a
+first name is said out loud across the room all lesson.
+
+The name is claimed **before** the student joins, so the next phone to read the room sees it.
+Two reads that both land before either write can still collide — that is now a few
+milliseconds of exposure instead of the whole session, against 16,506 pseudonyms.
+
+A removed student gets their name back, and deleting a run takes its index with it. Runs
+created before v3.30.1 have no index; the old read is still the fallback, which works on a
+teacher's device and is no worse than before on a student's.
+
+**This also repairs polls, Describe It, Twenty Questions and Word Partners**, which share the
+same function.
+
+> **The rules change.** Deploy `firebase-rules-combined.json` as always — it now carries the
+> `roster` node. The app's own rules file must never be deployed.
