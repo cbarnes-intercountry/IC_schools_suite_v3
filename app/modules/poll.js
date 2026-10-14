@@ -86,11 +86,9 @@ function filterPollSets(){
   if(!school) return;
   const mine=POLL.sets.filter(q=>(q.schools||[]).includes(school)).sort((a,b)=>a.name.localeCompare(b.name));
   if(mine.length===0){ hint.style.display="block"; return; }
-  mine.forEach(q=>{
-    const o=document.createElement("option"); o.value=q.key;
-    o.textContent=q.name+" ("+t("poll.n_questions", "{count} {questions}", { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })+")";
-    sel.appendChild(o);
-  });
+  setSearchMount(sel, mine, q => setSearchLabel(q,
+    t("poll.n_questions", "{count} {questions}",
+      { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })));
 }
 
 async function loadPollSet(){

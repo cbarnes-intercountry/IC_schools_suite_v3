@@ -149,6 +149,7 @@ function openAdmin(){
   applyRoleVisibility();  // owner-only cards and buttons, before anything draws into them
   renderQBank();
   loadQuizList();       // fills the admin's quiz-library-select
+  loadComboLibrary();   // and the combined-sets picker beside it
   renderSchools();      // fills the schools list + the quiz school checkboxes
   renderTeacherPanel(); // no-op for a plain teacher
   loadUnsplashKeyUI();  // owner-only too

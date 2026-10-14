@@ -168,8 +168,9 @@ function filterRoleplaySets(){
   sel.innerHTML = '<option value="">'+escapeHtml(mine.length
     ? t("rp.select_a_set", "\u2014 select a set \u2014")
     : t("rp.no_role_plays_for_school", "\u2014 no role plays for this school \u2014"))+'</option>';
-  mine.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
-    o.textContent=s.name+" ("+t("rp.n_scenarios", "{count} {scenarios}", { count:s.count, scenarios: plural(s.count, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) })+")"; sel.appendChild(o); });
+  setSearchMount(sel, mine, s => setSearchLabel(s,
+    t("rp.n_scenarios", "{count} {scenarios}",
+      { count:s.count, scenarios: plural(s.count, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) })));
   rpResetStep2();
 }
 

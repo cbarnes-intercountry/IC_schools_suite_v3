@@ -217,6 +217,15 @@ async function loadSetFromLibrary(mode){
   try{
     const rec = await Backend.getQuiz(key);
     if(!rec){ alert(t("editor.that_could_not_be_found", "That {what} could not be found.", {what:L.one})); loadQuizList(); return; }
+    /* A combination is not editable here. getQuiz hands back its members already assembled
+       into one flat list, so saving it from this screen would write that flat copy over the
+       combination and quietly cut it loose from the lists it was following. */
+    if(rec.combo){
+      alert(t("editor.combo_not_editable",
+        "\u201c{name}\u201d is a combined set ({ref}). Change which lists it holds in Admin \u2192 Combined Sets; to change the words themselves, edit the list they come from.",
+        { name: rec.name || "", ref: rec.ref || "" }));
+      return;
+    }
     /* The record's own kind, not a two-way guess. Reading it as "poll or else quiz" is what
        sent role play into the Test Creator in v3.1 and made it look as though nothing saved. */
     const k = setKind(rec);
@@ -257,6 +266,18 @@ async function deleteSetFromLibrary(mode){
   const key = sel.value;
   if(!key){ alert(t("editor.pick_a_saved_to_delete", "Pick a saved {what} to delete.", {what:L.one})); return; }
   if(!confirm(t("editor.delete_saved_confirm", "Delete saved {what} \u201c{name}\u201d?", {what:L.one, name:sel.options[sel.selectedIndex].textContent}))) return;
+  /* A combination follows its members, so deleting a member takes words out of every
+     combination built on it. Those combinations keep working \u2014 getQuiz plays the lists
+     that are left \u2014 but the teacher is told which ones are about to get shorter, before
+     it happens rather than in front of a class. */
+  try{
+    const used = await Backend.combosUsing(key);
+    if(used.length && !confirm(t("editor.delete_breaks_combos",
+      "{count} combined {sets} use this list:\n\n{names}\n\nThey will keep working with the lists that are left. Delete anyway?",
+      { count: used.length,
+        sets: plural(used.length, t("editor.combined_set", "set"), t("editor.combined_sets", "sets")),
+        names: used.map(c => "\u2022 " + c.name + (c.ref ? " (" + c.ref + ")" : "")).join("\n") }))) return;
+  }catch(e){ console.warn("could not check combinations", e); }
   try{ await Backend.deleteQuiz(key); loadQuizList(); }catch(e){ alert(t("editor.delete_failed", "Delete failed: ")+e.message); }
 }
 

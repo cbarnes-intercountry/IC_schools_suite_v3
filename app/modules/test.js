@@ -49,11 +49,12 @@ function filterTeacherQuizzes(){
   if(!school) return;
   // Only quizzes. This used to exclude polls by name, which let every later kind through —
   // role plays turned up in the Launch Test list. Name what belongs, not what does not.
-  TEACHER_QUIZZES.filter(q=>q.kind==="quiz" && (q.schools||[]).includes(school)).sort((a,b)=>a.name.localeCompare(b.name)).forEach(q=>{
-    const o=document.createElement("option"); o.value=q.key;
-    o.textContent = q.name + " (" + t("poll.n_questions", "{count} {questions}", { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) }) + ")";
-    qSel.appendChild(o);
-  });
+  const mine = TEACHER_QUIZZES
+    .filter(q=>q.kind==="quiz" && (q.schools||[]).includes(school))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  setSearchMount(qSel, mine, q => setSearchLabel(q,
+    t("poll.n_questions", "{count} {questions}",
+      { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })));
 }
 
 async function loadQuizForTeacher(){

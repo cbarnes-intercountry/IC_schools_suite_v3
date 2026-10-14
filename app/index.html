@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/app.css?v=3.33">
+<link rel="stylesheet" href="styles/app.css?v=4.0">
 <template id="__bundler_thumbnail" data-bg-color="#EFE9DF">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#EFE9DF"/>
@@ -140,6 +140,20 @@
           <button data-i18n="admin.delete" class="btn-outline" onclick="deleteBingoSet()" data-owner-only>Delete</button>
         </div>
         <button data-i18n="admin.create_new_word_list" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newBingoSet()">+ Create a New Word List</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2 data-i18n="admin.combined_sets">Combined Sets</h2>
+        <p data-i18n="admin.combined_sets_sub" class="sub">Join several word lists from the same game into one set a class can be given by its code. The combination follows the lists it holds &mdash; correct a word once and every combination built on it is corrected.</p>
+        <select id="combo-library-select"><option data-i18n="admin.opt.select_saved_combo" value="">&mdash; select a combined set &mdash;</option></select>
+        <div class="btn-row">
+          <button data-i18n="admin.load_edit" class="btn-outline" onclick="loadComboSet()">Load / Edit</button>
+          <button data-i18n="admin.delete" class="btn-outline" onclick="deleteComboSet()" data-owner-only>Delete</button>
+        </div>
+        <button data-i18n="admin.create_new_combo" class="btn-primary" style="width:100%;margin-top:12px;" onclick="newComboSet()">+ Create a Combined Set</button>
+        <div class="btn-row" style="margin-top:12px;">
+          <button data-i18n="admin.assign_refs" class="btn-outline" onclick="assignRefsUI()" data-owner-only>Assign reference codes</button>
+        </div>
+        <p data-i18n="admin.assign_refs_sub" class="sub" style="margin-top:6px;">Gives a permanent code to every saved set that does not have one yet. Safe to run more than once &mdash; a set that already has a code keeps it.</p>
       </div>
       <div class="card" style="margin-top:16px;">
         <h2 data-i18n="admin.collocation_creator">Partner Sets &middot; Word Partners</h2>
@@ -1271,43 +1285,46 @@
   <p data-i18n="student_feedback.tap_anywhere_close" style="color:#fff;margin-top:16px;font-size:.9rem;">Tap anywhere to close</p>
 </div>
 
-<script src="lang/en.js?v=3.33"></script>
-<script src="lang/fr.js?v=3.33"></script>
-<script src="core/i18n.js?v=3.33"></script>
-<script src="core/registry.js?v=3.33"></script>
-<script src="core/backend.js?v=3.33"></script>
-<script src="core/auth.js?v=3.33"></script>
-<script src="core/ui.js?v=3.33"></script>
-<script src="core/session.js?v=3.33"></script>
-<script src="core/groups.js?v=3.33"></script>
+<script src="lang/en.js?v=4.0"></script>
+<script src="lang/fr.js?v=4.0"></script>
+<script src="core/i18n.js?v=4.0"></script>
+<script src="core/registry.js?v=4.0"></script>
+<script src="core/backend.js?v=4.0"></script>
+<script src="core/auth.js?v=4.0"></script>
+<script src="core/ui.js?v=4.0"></script>
+<script src="core/session.js?v=4.0"></script>
+<script src="core/groups.js?v=4.0"></script>
 <!-- after groups.js: the allocator uses nameIsTaken and uniqueFirstName from it -->
-<script src="core/pseudonyms.js?v=3.33"></script>
-<script src="core/rounds.js?v=3.33"></script>
-<script src="core/bank.js?v=3.33"></script>
+<script src="core/pseudonyms.js?v=4.0"></script>
+<script src="core/rounds.js?v=4.0"></script>
+<script src="core/refcode.js?v=4.0"></script>
+<script src="core/bank.js?v=4.0"></script>
 <!-- after bank.js: qzScored asks isPollType which questions are worth points -->
-<script src="core/quizscore.js?v=3.33"></script>
-<script src="core/bingocard.js?v=3.33"></script>
-<script src="core/media.js?v=3.33"></script>
-<script src="core/security.js?v=3.33"></script>
-<script src="core/answers.js?v=3.33"></script>
-<script src="modules/test.js?v=3.33"></script>
-<script src="modules/poll.js?v=3.33"></script>
-<script src="modules/quizlive.js?v=3.33"></script>
-<script src="modules/bingo.js?v=3.33"></script>
-<script src="modules/roleplay.js?v=3.33"></script>
-<script src="modules/describeit.js?v=3.33"></script>
-<script src="modules/twentyq.js?v=3.33"></script>
-<script src="modules/partners.js?v=3.33"></script>
-<script src="admin/editor.js?v=3.33"></script>
-<script src="admin/import.js?v=3.33"></script>
-<script src="admin/reports.js?v=3.33"></script>
-<script src="admin/scenarios.js?v=3.33"></script>
-<script src="admin/terms.js?v=3.33"></script>
-<script src="admin/subjects.js?v=3.33"></script>
-<script src="admin/collocations.js?v=3.33"></script>
-<script src="admin/bingowords.js?v=3.33"></script>
-<script src="admin/accounts.js?v=3.33"></script>
-<script src="boot.js?v=3.33"></script>
+<script src="core/quizscore.js?v=4.0"></script>
+<script src="core/bingocard.js?v=4.0"></script>
+<script src="core/setsearch.js?v=4.0"></script>
+<script src="core/media.js?v=4.0"></script>
+<script src="core/security.js?v=4.0"></script>
+<script src="core/answers.js?v=4.0"></script>
+<script src="modules/test.js?v=4.0"></script>
+<script src="modules/poll.js?v=4.0"></script>
+<script src="modules/quizlive.js?v=4.0"></script>
+<script src="modules/bingo.js?v=4.0"></script>
+<script src="modules/roleplay.js?v=4.0"></script>
+<script src="modules/describeit.js?v=4.0"></script>
+<script src="modules/twentyq.js?v=4.0"></script>
+<script src="modules/partners.js?v=4.0"></script>
+<script src="admin/editor.js?v=4.0"></script>
+<script src="admin/import.js?v=4.0"></script>
+<script src="admin/reports.js?v=4.0"></script>
+<script src="admin/scenarios.js?v=4.0"></script>
+<script src="admin/terms.js?v=4.0"></script>
+<script src="admin/subjects.js?v=4.0"></script>
+<script src="admin/collocations.js?v=4.0"></script>
+<script src="admin/bingowords.js?v=4.0"></script>
+<script src="admin/combos.js?v=4.0"></script>
+<script src="admin/accounts.js?v=4.0"></script>
+<script src="boot.js?v=4.0"></script>
 
 
 <!-- Shown only when the database cannot be reached. There is no offline mode. -->
@@ -2217,6 +2234,48 @@
 </div>
 
 <!-- BINGO — the word list editor (v3.32.1) -->
+<div class="screen" id="screen-admin-combos">
+  <div class="top-nav wide">
+    <span data-i18n="combo_editor.admin_combined" class="badge">Admin &middot; Combined Sets</span>
+    <a data-i18n="combo_editor.back" class="linklike" onclick="leaveCombos('screen-admin')">&larr; Back</a>
+  </div>
+  <div class="card">
+    <h2 data-i18n="combo_editor.heading">Combine word lists</h2>
+    <p data-i18n="combo_editor.sub" class="sub">Pick a game, then tick the lists this set should hold. Only lists from the same game can be combined &mdash; a bingo word needs two clues and a Word Pairs head needs partners, so a mixed list would be half unplayable in whichever game you launched.</p>
+
+    <div class="field">
+      <label data-i18n="combo_editor.game" class="lbl" for="combo-kind">Game</label>
+      <select id="combo-kind" onchange="comboKindPicked()">
+        <option data-i18n="combo_editor.opt_bingo" value="bingo">Bingo!</option>
+        <option data-i18n="combo_editor.opt_twentyq" value="twentyq">20 Questions</option>
+        <option data-i18n="combo_editor.opt_partners" value="partners">Word Pairs</option>
+        <option data-i18n="combo_editor.opt_describeit" value="describeit">Off-Limits</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label data-i18n="combo_editor.name" class="lbl" for="combo-name">Name this combined set</label>
+      <input data-i18n-ph="combo_editor.ph.name" type="text" id="combo-name" placeholder="e.g. BTS2 Assurance \u2014 revision mix">
+    </div>
+
+    <div class="field">
+      <label data-i18n="combo_editor.schools" class="lbl">Schools</label>
+      <div id="combo-schools"></div>
+    </div>
+
+    <div class="field">
+      <label data-i18n="combo_editor.lists" class="lbl">Lists in this set</label>
+      <div id="combo-members"></div>
+      <p id="combo-count" class="sub"></p>
+    </div>
+
+    <div class="btn-row">
+      <button data-i18n="combo_editor.save" class="btn-primary" onclick="saveComboSet()">Save combined set</button>
+    </div>
+    <p id="combo-status" class="sub"></p>
+  </div>
+</div>
+
 <div class="screen" id="screen-bg-editor">
   <div class="top-nav wide">
     <span data-i18n="bgw_editor.admin_word_lists" class="badge">Admin &middot; Bingo Word Lists</span>

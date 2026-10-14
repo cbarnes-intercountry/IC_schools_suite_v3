@@ -951,3 +951,17 @@ body.projecting .bg-chip{ font-size:clamp(.95rem, 1.6vw, 1.5rem); padding:7px 18
 
 .bg-winners-wrap{ margin-top:22px; }
 body.projecting .bg-winners-wrap{ margin-top:4vh; }
+
+/* ---- the set-search box (v4.0) -----------------------------------------
+   Sits above a set picker. It appears only once a picker holds eight or more
+   sets — below that it is furniture. Full width so it lines up with the
+   select beneath it, and type-size 16px so an iPhone does not zoom the page
+   when the box takes focus. */
+.set-search{
+  width:100%; box-sizing:border-box; margin-bottom:6px;
+  padding:10px 12px; font-size:16px; line-height:1.3;
+  border:1px solid var(--line,#C9CDD6); border-radius:8px;
+  background:#fff; color:inherit;
+}
+.set-search:focus{ outline:2px solid var(--accent,#1F6FEB); outline-offset:1px; }
+.set-search-note{ font-size:12px; color:var(--muted,#6B7280); margin:0 0 6px; min-height:1em; }

@@ -252,19 +252,112 @@ const Backend = {
   },
   // kind: "quiz" (marked test) or "poll" (live opinion poll). Stored on the same node so
   // polls need no new database path — and therefore no change to the security rules.
-  async saveQuiz(key, name, questions, schools, kind){
+  // kind: "quiz" (marked test) or "poll" (live opinion poll). Stored on the same node so
+  // polls need no new database path — and therefore no change to the security rules.
+  //
+  // v4.0: the record carries a permanent `ref`. saveQuiz writes with .set(), which REPLACES
+  // the record, so an existing code has to be read back and carried across or every save
+  // would issue the set a new identity — the opposite of permanent. A set that has no code
+  // yet is minted one here against the codes currently in the bank, read immediately before
+  // the write rather than from a list the caller fetched some minutes ago.
+  //
+  // `extra` carries the fields only some kinds have (combo, members). It is merged rather
+  // than enumerated, so a field added later does not need this function edited — the v3.1.1
+  // lesson: name what belongs, never what does not.
+  async saveQuiz(key, name, questions, schools, kind, extra){
     await this._ready();
-    await db.ref("quizzes/"+key).set({ name, questions, schools:schools||[], kind:kind||"quiz", savedAt:Date.now() });
-    return {ok:true};
+    const k = kind || "quiz";
+    const prev = (await db.ref("quizzes/"+key).once("value")).val() || null;
+    let ref = prev && prev.ref;
+    if(!ref){
+      const all = (await db.ref("quizzes").once("value")).val() || {};
+      ref = refMint(k, Object.keys(all).map(x => all[x] && all[x].ref).filter(Boolean));
+    }
+    const rec = Object.assign({}, extra || {},
+      { name, questions, schools:schools||[], kind:k, ref, savedAt:Date.now() });
+    await db.ref("quizzes/"+key).set(rec);
+    return {ok:true, ref};
   },
   async listQuizzes(){
     await this._ready();
     const val = (await db.ref("quizzes").once("value")).val() || {};
-    return { quizzes: Object.keys(val).map(k=>({ key:k, name:val[k].name, schools:quizSchools(val[k]), kind:setKind(val[k]), count:(val[k].questions||[]).length })) };
+    return { quizzes: Object.keys(val).map(k=>({
+      key:k, name:val[k].name, schools:quizSchools(val[k]), kind:setKind(val[k]),
+      count:(val[k].questions||[]).length,
+      // v4.0. ref may be absent on a record saved before this release and not yet back-filled;
+      // the search box treats that as "matches on name and school only" rather than hiding it.
+      ref:val[k].ref || "", savedAt:val[k].savedAt || 0,
+      combo:!!val[k].combo, members:val[k].members || []
+    })) };
+  },
+  /* Back-fill: give a code to every set that has none. Returns what it did rather than a bare
+     ok, because an owner who presses this is entitled to see the list. One pass over the bank,
+     one multi-path update, so a half-finished back-fill cannot leave the bank in two states. */
+  async assignMissingRefs(){
+    await this._ready();
+    const val = (await db.ref("quizzes").once("value")).val() || {};
+    const taken = refTakenSet(Object.keys(val).map(k => val[k] && val[k].ref).filter(Boolean));
+    const updates = {}, assigned = [];
+    Object.keys(val).forEach(k => {
+      const rec = val[k]; if(!rec || rec.ref) return;
+      const code = refMint(setKind(rec), taken);
+      taken.add(code);                       // within this pass, not just against the bank
+      updates["quizzes/"+k+"/ref"] = code;
+      assigned.push({ key:k, name:rec.name, kind:setKind(rec), ref:code });
+    });
+    if(assigned.length) await db.ref().update(updates);
+    return { assigned, already: Object.keys(val).length - assigned.length };
+  },
+  /* Which combinations point at this set? Asked before a delete, so a word list that three
+     combinations are built on cannot vanish from under them silently. */
+  async combosUsing(key){
+    await this._ready();
+    const val = (await db.ref("quizzes").once("value")).val() || {};
+    return Object.keys(val)
+      .filter(k => val[k] && val[k].combo && (val[k].members||[]).indexOf(key) >= 0)
+      .map(k => ({ key:k, name:val[k].name, ref:val[k].ref || "" }));
+  },
+  /* A combination is resolved HERE, not in the eight launchers. Every launcher already calls
+     getQuiz(key) and reads .questions, so resolving at this one point makes combinations work
+     in all four word games with no change to any of them — eight places to get right reduced
+     to one.
+     The editor must therefore refuse a record that comes back with combo:true, or saving it
+     would flatten the combination into an ordinary list; that guard is in admin/editor.js.
+     Members are read LIVE on every load, which is what "follow the source" means: correct a
+     word in a member list and every combination built on it is corrected. */
+  /* The record exactly as stored, with a combination NOT resolved. The combination builder
+     needs this: it edits which lists a combination holds, and getQuiz would hand it the
+     members' words instead, which is the one thing that screen must never save back. */
+  async getRawQuiz(key){
+    await this._ready();
+    return (await db.ref("quizzes/"+key).once("value")).val() || null;
   },
   async getQuiz(key){
     await this._ready();
-    return (await db.ref("quizzes/"+key).once("value")).val() || null;
+    const rec = (await db.ref("quizzes/"+key).once("value")).val() || null;
+    if(!rec || !rec.combo) return rec;
+
+    const members = rec.members || [];
+    const loaded = await Promise.all(members.map(async m => {
+      const r = (await db.ref("quizzes/"+m).once("value")).val() || null;
+      // A combination of a combination is not supported and is not silently followed: it
+      // would need cycle detection, and nothing in the builder can create one.
+      return (r && !r.combo) ? r : null;
+    }));
+
+    const questions = [], seen = new Set(), missing = [];
+    loaded.forEach((r, i) => {
+      if(!r){ missing.push(members[i]); return; }
+      (r.questions || []).forEach(item => {
+        const id = comboItemId(item);
+        if(id && seen.has(id)) return;        // the same word in two member lists plays once
+        if(id) seen.add(id);
+        questions.push(item);
+      });
+    });
+    // `missing` is carried on the record rather than thrown: a combination whose fourth list
+    // was deleted should still play the other three, and say so, not refuse to open.
+    return Object.assign({}, rec, { questions, missing });
   },
   async deleteQuiz(key){
     await this._ready();

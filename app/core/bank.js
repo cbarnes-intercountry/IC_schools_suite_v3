@@ -91,6 +91,30 @@ function applyPerQuestionTimerLock(){
 /* ============ SAVED QUIZ LIBRARY (admin) ============ */
 function quizKey(name){ return name.trim().replace(/[^A-Za-z0-9_-]/g,"_").slice(0,120); }
 
+/* ---- word-set combinations (v4.0) -------------------------------------------------------
+
+   A combination is an ordinary record in the same bank with combo:true and members:[keys].
+   It holds no words of its own — core/backend.js getQuiz assembles them from the members
+   every time it is opened, so a correction in a member list reaches every combination built
+   on it.
+
+   Only the four WORD games can be combined. A Test, a Quizfire, a Synapse and a Role Play are
+   not lists of interchangeable items — a role play is a cast and a situation, and half of one
+   bolted to half of another is not a longer role play. */
+const COMBO_KINDS = ["bingo", "twentyq", "partners", "describeit"];
+function comboCombinable(kind){ return COMBO_KINDS.indexOf(String(kind||"").toLowerCase()) >= 0; }
+
+/* The identity of one item, for de-duplicating across member lists. Each word game names its
+   primary field differently; the list is explicit rather than "the first string on the
+   object", because a hint or a definition is also a string and two different words can share
+   one. An item with none of these is kept rather than dropped — a thing we cannot identify is
+   not a thing we know to be a duplicate. */
+function comboItemId(item){
+  if(!item || typeof item !== "object") return "";
+  const v = item.word || item.term || item.subject || item.head || item.text || "";
+  return String(v).trim().toLowerCase();
+}
+
 function blankQuestion(){
   const poll = (typeof BUILDER_MODE!=="undefined" && BUILDER_MODE==="poll");
   return { id:"q_"+uid(6), type: poll?"poll":"mcq", text:"", points: poll?0:1, image:null, timeLimitSec:0 };
