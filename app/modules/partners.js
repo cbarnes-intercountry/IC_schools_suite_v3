@@ -207,9 +207,13 @@ async function loadPartnersSetList(){
     sel.innerHTML = '<option value="">'+escapeHtml(WP.sets.length
       ? t("wp.select_an_area", "— select an area —")
       : t("wp.no_areas_yet", "— no partner sets yet: add one in Admin —"))+'</option>';
-    setSearchMount(sel, WP.sets, a => setSearchLabel(a,
-      t("wp.n_cards", "{count} {cards}",
-        { count:a.count, cards: plural(a.count, t("wp.card", "word"), t("wp.cards", "words")) })));
+    WP.sets.forEach(a=>{ const o=document.createElement("option"); o.value=a.key;
+      o.textContent=setSearchLabel(a, t("wp.n_cards", "{count} {cards}",
+        { count:a.count, cards: plural(a.count, t("wp.card", "word"), t("wp.cards", "words")) }));
+      sel.appendChild(o); });
+    setSearchAttach({ id:"wp", anchor:sel, setSelect:sel, records:WP.sets,
+      label:a => setSearchLabel(a, t("wp.n_cards", "{count} {cards}",
+        { count:a.count, cards: plural(a.count, t("wp.card", "word"), t("wp.cards", "words")) })) });
   }catch(e){ console.warn(e); }
 }
 

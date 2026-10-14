@@ -158,6 +158,10 @@ async function loadRoleplaySetList(){
     sel.innerHTML = '<option value="">'+t("poll.select_school", '— select a school —')+'</option>';
     (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); });
     document.getElementById("rp-set-select").innerHTML = '<option value="">'+t("poll.select_school_first", '— select a school first —')+'</option>';
+    setSearchAttach({ id:"rp", anchor:sel, schoolSelect:sel,
+      setSelect:document.getElementById("rp-set-select"), records:RP.sets,
+      label:s => setSearchLabel(s, t("rp.n_scenarios", "{count} {scenarios}",
+        { count:s.count, scenarios: plural(s.count, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) })) });
   }catch(e){ console.warn(e); }
 }
 
@@ -168,9 +172,10 @@ function filterRoleplaySets(){
   sel.innerHTML = '<option value="">'+escapeHtml(mine.length
     ? t("rp.select_a_set", "\u2014 select a set \u2014")
     : t("rp.no_role_plays_for_school", "\u2014 no role plays for this school \u2014"))+'</option>';
-  setSearchMount(sel, mine, s => setSearchLabel(s,
-    t("rp.n_scenarios", "{count} {scenarios}",
-      { count:s.count, scenarios: plural(s.count, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) })));
+  mine.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
+    o.textContent=setSearchLabel(s, t("rp.n_scenarios", "{count} {scenarios}",
+      { count:s.count, scenarios: plural(s.count, t("rp.scenario", "scenario"), t("rp.scenarios", "scenarios")) }));
+    sel.appendChild(o); });
   rpResetStep2();
 }
 

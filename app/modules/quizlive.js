@@ -111,6 +111,10 @@ async function lqLoadSetList(){
     (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); });
     document.getElementById("lq-set-select").innerHTML =
       '<option value="">'+t("lq.select_school_first", '— select a school first —')+'</option>';
+    setSearchAttach({ id:"lq", anchor:sel, schoolSelect:sel,
+      setSelect:document.getElementById("lq-set-select"), records:LQ.sets,
+      label:q => setSearchLabel(q, t("poll.n_questions", "{count} {questions}",
+        { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })) });
   }catch(e){ console.warn(e); }
 }
 
@@ -136,9 +140,12 @@ function filterLqSets(){
   if(!school) return;
   const mine=LQ.sets.filter(q=>(q.schools||[]).includes(school)).sort((a,b)=>a.name.localeCompare(b.name));
   if(mine.length===0){ if(hint) hint.style.display="block"; return; }
-  setSearchMount(sel, mine, q => setSearchLabel(q,
-    t("poll.n_questions", "{count} {questions}",
-      { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })));
+  mine.forEach(q=>{
+    const o=document.createElement("option"); o.value=q.key;
+    o.textContent=setSearchLabel(q, t("poll.n_questions", "{count} {questions}",
+      { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) }));
+    sel.appendChild(o);
+  });
 }
 
 async function loadLqSet(){

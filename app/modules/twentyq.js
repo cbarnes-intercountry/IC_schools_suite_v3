@@ -250,9 +250,13 @@ async function loadTwentyQSetList(){
     sel.innerHTML = '<option value="">'+escapeHtml(TQ.sets.length
       ? t("tq.select_an_area", "— select an area —")
       : t("tq.no_areas_yet", "— no subject sets yet: add one in Admin —"))+'</option>';
-    setSearchMount(sel, TQ.sets, a => setSearchLabel(a,
-      t("tq.n_subjects", "{count} {subjects}",
-        { count:a.count, subjects: plural(a.count, t("tq.subject", "subject"), t("tq.subjects", "subjects")) })));
+    TQ.sets.forEach(a=>{ const o=document.createElement("option"); o.value=a.key;
+      o.textContent=setSearchLabel(a, t("tq.n_subjects", "{count} {subjects}",
+        { count:a.count, subjects: plural(a.count, t("tq.subject", "subject"), t("tq.subjects", "subjects")) }));
+      sel.appendChild(o); });
+    setSearchAttach({ id:"tq", anchor:sel, setSelect:sel, records:TQ.sets,
+      label:a => setSearchLabel(a, t("tq.n_subjects", "{count} {subjects}",
+        { count:a.count, subjects: plural(a.count, t("tq.subject", "subject"), t("tq.subjects", "subjects")) })) });
   }catch(e){ console.warn(e); }
 }
 

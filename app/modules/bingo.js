@@ -85,9 +85,15 @@ async function bgLoadSetList(){
     const hint=document.getElementById("bg-none-hint");
     if(hint) hint.style.display = BG.sets.length ? "none" : "block";
     if(!sel) return;
-    setSearchMount(sel, BG.sets, q => setSearchLabel(q,
-      t("bg.n_words_paren", "{count} {words}",
-        { count:q.count, words: plural(q.count, t("bg.word", "word"), t("bg.words", "words")) })));
+    BG.sets.forEach(q=>{
+      const o=document.createElement("option"); o.value=q.key;
+      o.textContent=setSearchLabel(q, t("bg.n_words_paren", "{count} {words}",
+        { count:q.count, words: plural(q.count, t("bg.word", "word"), t("bg.words", "words")) }));
+      sel.appendChild(o);
+    });
+    setSearchAttach({ id:"bg", anchor:sel, setSelect:sel, records:BG.sets,
+      label:q => setSearchLabel(q, t("bg.n_words_paren", "{count} {words}",
+        { count:q.count, words: plural(q.count, t("bg.word", "word"), t("bg.words", "words")) })) });
   }catch(e){ console.warn(e); }
 }
 

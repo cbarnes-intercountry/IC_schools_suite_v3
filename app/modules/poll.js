@@ -63,6 +63,10 @@ async function loadPollSetList(){
     sel.innerHTML = '<option value="">'+t("poll.select_school", '— select a school —')+'</option>';
     (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); });
     document.getElementById("poll-set-select").innerHTML = '<option value="">'+t("poll.select_school_first", '— select a school first —')+'</option>';
+    setSearchAttach({ id:"poll", anchor:sel, schoolSelect:sel,
+      setSelect:document.getElementById("poll-set-select"), records:POLL.sets,
+      label:q => setSearchLabel(q, t("poll.n_questions", "{count} {questions}",
+        { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })) });
   }catch(e){ console.warn(e); }
 }
 
@@ -86,9 +90,12 @@ function filterPollSets(){
   if(!school) return;
   const mine=POLL.sets.filter(q=>(q.schools||[]).includes(school)).sort((a,b)=>a.name.localeCompare(b.name));
   if(mine.length===0){ hint.style.display="block"; return; }
-  setSearchMount(sel, mine, q => setSearchLabel(q,
-    t("poll.n_questions", "{count} {questions}",
-      { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })));
+  mine.forEach(q=>{
+    const o=document.createElement("option"); o.value=q.key;
+    o.textContent=setSearchLabel(q, t("poll.n_questions", "{count} {questions}",
+      { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) }));
+    sel.appendChild(o);
+  });
 }
 
 async function loadPollSet(){

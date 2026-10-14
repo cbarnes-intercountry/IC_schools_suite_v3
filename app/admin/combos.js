@@ -56,10 +56,15 @@ async function loadComboLibrary(){
     if(!sel) return;
     const combos = COMBO.sets.filter(q => q.combo)
                              .sort((a,b) => String(a.name||"").localeCompare(String(b.name||"")));
-    setSearchMount(sel, combos, c => setSearchLabel(c,
-      t("combo.n_lists", "{count} {lists}",
-        { count:(c.members||[]).length,
-          lists: plural((c.members||[]).length, t("combo.list", "list"), t("combo.lists", "lists")) })));
+    const lab = c => setSearchLabel(c, t("combo.n_lists", "{count} {lists}",
+      { count:(c.members||[]).length,
+        lists: plural((c.members||[]).length, t("combo.list", "list"), t("combo.lists", "lists")) }));
+    while(sel.options.length > 1) sel.remove(1);
+    combos.forEach(c => {
+      const o = document.createElement("option"); o.value = c.key; o.textContent = lab(c);
+      sel.appendChild(o);
+    });
+    setSearchAttach({ id:"combo-lib", anchor:sel, setSelect:sel, records:combos, label:lab });
   }catch(e){ console.warn(e); }
 }
 

@@ -187,9 +187,13 @@ async function loadDescribeItSetList(){
     sel.innerHTML = '<option value="">'+escapeHtml(DI.sets.length
       ? t("di.select_an_area", "\u2014 select an area \u2014")
       : t("di.no_areas_yet", "\u2014 no word sets yet: add one in Admin \u2014"))+'</option>';
-    setSearchMount(sel, DI.sets, a => setSearchLabel(a,
-      t("di.n_terms", "{count} {terms}",
-        { count:a.count, terms: plural(a.count, t("di.term", "term"), t("di.terms", "terms")) })));
+    DI.sets.forEach(a=>{ const o=document.createElement("option"); o.value=a.key;
+      o.textContent=setSearchLabel(a, t("di.n_terms", "{count} {terms}",
+        { count:a.count, terms: plural(a.count, t("di.term", "term"), t("di.terms", "terms")) }));
+      sel.appendChild(o); });
+    setSearchAttach({ id:"di", anchor:sel, setSelect:sel, records:DI.sets,
+      label:a => setSearchLabel(a, t("di.n_terms", "{count} {terms}",
+        { count:a.count, terms: plural(a.count, t("di.term", "term"), t("di.terms", "terms")) })) });
   }catch(e){ console.warn(e); }
 }
 

@@ -35,6 +35,11 @@ async function loadTeacherQuizList(){
     schoolSel.innerHTML = '<option value="">'+t("poll.select_school", '— select a school —')+'</option>';
     (ss.schools||[]).forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; schoolSel.appendChild(o); });
     document.getElementById("teacher-quiz-select").innerHTML = '<option value="">'+t("poll.select_school_first", '— select a school first —')+'</option>';
+    setSearchAttach({ id:"teacher", anchor:schoolSel, schoolSelect:schoolSel,
+      setSelect:document.getElementById("teacher-quiz-select"),
+      records:TEACHER_QUIZZES.filter(q=>q.kind==="quiz"),
+      label:q => setSearchLabel(q, t("poll.n_questions", "{count} {questions}",
+        { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })) });
   }catch(e){ console.warn(e); }
 }
 
@@ -49,12 +54,14 @@ function filterTeacherQuizzes(){
   if(!school) return;
   // Only quizzes. This used to exclude polls by name, which let every later kind through —
   // role plays turned up in the Launch Test list. Name what belongs, not what does not.
-  const mine = TEACHER_QUIZZES
+  TEACHER_QUIZZES
     .filter(q=>q.kind==="quiz" && (q.schools||[]).includes(school))
-    .sort((a,b)=>a.name.localeCompare(b.name));
-  setSearchMount(qSel, mine, q => setSearchLabel(q,
-    t("poll.n_questions", "{count} {questions}",
-      { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) })));
+    .sort((a,b)=>a.name.localeCompare(b.name)).forEach(q=>{
+      const o=document.createElement("option"); o.value=q.key;
+      o.textContent=setSearchLabel(q, t("poll.n_questions", "{count} {questions}",
+        { count:q.count, questions: plural(q.count, t("poll.question", "question"), t("poll.questions", "questions")) }));
+      qSel.appendChild(o);
+    });
 }
 
 async function loadQuizForTeacher(){
