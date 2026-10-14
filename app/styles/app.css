@@ -952,31 +952,46 @@ body.projecting .bg-chip{ font-size:clamp(.95rem, 1.6vw, 1.5rem); padding:7px 18
 .bg-winners-wrap{ margin-top:22px; }
 body.projecting .bg-winners-wrap{ margin-top:4vh; }
 
-/* ---- the set-search box (v4.0.1) --------------------------------------
-   Sits above a set picker and searches the whole bank. It is always present:
-   v4.0 only showed it on pickers of eight or more, which for the per-school
-   dropdowns meant almost never. 16px type so an iPhone does not zoom the
-   page when the box takes focus; rows are 44px so they can be tapped. */
+/* ---- the set-search combobox (v4.0.2) --------------------------------
+   A search field with its own results panel beneath it: the matched text is
+   marked, one row is active at a time, and the arrow keys move it. 16px type
+   so iOS does not zoom the page on focus; 44px rows so they can be tapped. */
 .set-search{
-  width:100%; box-sizing:border-box; margin-bottom:6px;
-  padding:10px 12px; font-size:16px; line-height:1.3;
+  width:100%; box-sizing:border-box; margin-bottom:0;
+  padding:10px 34px 10px 12px; font-size:16px; line-height:1.3;
   border:1px solid var(--line,#C9CDD6); border-radius:8px;
-  background:#fff; color:inherit;
+  background:#fff url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat right 10px center;
+  background-size:16px 16px; color:inherit;
 }
 .set-search:focus{ outline:2px solid var(--accent,#1F6FEB); outline-offset:1px; }
 
 .set-search-results{
-  display:none; margin:0 0 6px; max-height:46vh; overflow-y:auto;
-  border:1px solid var(--line,#C9CDD6); border-radius:8px; background:#fff;
+  display:none; margin:0; max-height:46vh; overflow-y:auto;
+  border:1px solid var(--line,#C9CDD6); border-top:0;
+  border-radius:0 0 8px 8px; background:#F4F5F7;
 }
 .set-search-row{
-  display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline;
+  display:flex; flex-wrap:wrap; gap:2px 8px; align-items:baseline;
   width:100%; min-height:44px; padding:10px 12px; text-align:left;
-  border:0; border-bottom:1px solid var(--line,#E6E8EE);
-  background:#fff; color:inherit; font:inherit; font-size:14px; cursor:pointer;
+  color:inherit; font:inherit; font-size:14px; cursor:pointer;
+  /* The app gives every button a radius and a hard offset shadow, which turns a result
+     list into a stack of separate cards. These rows are list items, so the button chrome
+     is reset explicitly rather than hoped away. */
+  border:0; border-bottom:1px solid var(--line,#E3E5EB);
+  border-radius:0; box-shadow:none; background:transparent; transform:none;
+  margin:0; appearance:none; -webkit-appearance:none;
 }
 .set-search-row:last-child{ border-bottom:0; }
-.set-search-row:hover, .set-search-row:focus{ background:var(--mist,#F2EFE7); outline:none; }
-.set-search-row-name{ font-weight:700; }
+.set-search-row:hover, .set-search-row:active{ box-shadow:none; transform:none; }
+/* One row is active at a time — pointer and keyboard share it, so what Enter
+   does is always what the highlight says it will do. */
+.set-search-row.is-active{ background:var(--accent,#1F6FEB); color:#fff; }
+.set-search-row.is-active .set-search-row-school,
+.set-search-row.is-active .set-search-row-ref{ color:rgba(255,255,255,.85); }
+.set-search-row-name{ font-weight:600; }
 .set-search-row-school{ color:var(--muted,#6B7280); }
-.set-search-note{ font-size:12px; color:var(--muted,#6B7280); margin:0 0 6px; min-height:1em; }
+.set-search-row-ref{ margin-left:auto; font-size:12px; letter-spacing:.04em; color:var(--muted,#6B7280); }
+/* The matched characters, underlined rather than coloured: colour alone would
+   carry the meaning, and the row's own highlight already owns the colour. */
+.set-search-hit{ text-decoration:underline; text-underline-offset:2px; font-weight:700; }
+.set-search-note{ font-size:12px; color:var(--muted,#6B7280); margin:4px 0 6px; min-height:1em; }
